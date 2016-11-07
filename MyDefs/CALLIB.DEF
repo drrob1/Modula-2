@@ -1,0 +1,48 @@
+DEFINITION MODULE CALLIB;
+
+  FROM UTILLIB IMPORT BUFTYP;
+
+(*  EXPORT QUALIFIED GREG2JUL,JUL2GREG,GETMDY; *)
+
+PROCEDURE GREG2JUL(M,D,Y : CARDINAL; VAR JULDATE : LONGREAL);
+(*
+******************************* GREG2JUL *********************************
+Gregorian To Julian Date Conversion Routine.
+This routine computes the Julian Date from the standard calendar date
+format.  The formula is J := [365.25 Y0] + [30.6001 M0] + D + 1,720,982.
+Y0 and M0 are the modified year and month, to account for the changes
+imposed by leap years.
+Reals must be used because the size and precision required to manipulate the
+Julian dates exceeds that of cards or ints.  Longcards would obviate this
+problem, but V2.0 of Logitech's Mod-2 compiler does not support them.
+
+If the result returned is zero, one of the input params to the subroutine
+was out of range.
+
+INPUT FROM GLOBAL VAR'S : FUDGEFACTOR.
+
+*)
+
+PROCEDURE JUL2GREG(JULDATE : LONGREAL; VAR M,D,Y : CARDINAL);
+(*
+************************************ JUL2GREG ***************************
+Julian to Gregorian Date Conversion Routine.
+This converts from the Julian date back to the conventional date format.
+
+Year will be returned as zero if JULDATE was out of range.
+
+INPUT FROM GLOBAL VAR'S : FUDGEFACTOR.
+*)
+
+PROCEDURE GETMDY(INBUF : BUFTYP; VAR M,D,Y : CARDINAL);
+(*
+********************************** GETMDY *****************************
+GET MONTH DAY YEAR.
+This procedure parses the input string into the month, day and year.  Any
+delimiters can be used because the parsing process uses a finite state
+automata algorithm (part of the TOKENIZE module) to parse the input line.
+If an error occurs, then Y is returned as zero.
+
+*)
+
+END CALLIB.

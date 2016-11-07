@@ -1,0 +1,471 @@
+<trijezdci> http://objective.modula2.net/papers/ObjM2-Overview.pdf
+<ttmrichter> I'll hold off for now, but will keep it in mind.  (It's almost bedtime here.)
+<ttmrichter> I don't know enough about Objective-C at this point to comment meaningfully.
+<ttmrichter> But that bit of having the method outside the record, for example, is Modula-3-like if memory serves.
+<ttmrichter> I think, though, that much of the subtyping and opaque typing operation from Modula-3 could be easily put on top of an Objective Modula-2 system.
+<ttmrichter> Keeping the compatibility but giving you some expressiveness and concealment power.
+* impomatic has quit (Ping timeout: 252 seconds)
+<trijezdci> objc has four access modes for ivars
+<trijezdci> public, package, protected and private
+* Disconnected (Connection timed out).
+* drrob1 sets mode +i drrob1
+-NickServ- This nickname is registered. Please choose a different nickname, or identify via /msg NickServ identify <password>.
+* Now talking on #modula-2
+* Topic for #modula-2 is: Discussions related to Modula-2 and Oberon-2   ·   Book list: http://www.modula2.net/resources/books.shtml   ·   Compiler list: http://www.modula2.net/resources/compilers.shtml
+* Topic for #modula-2 set by trijezdci!~trijezdci@f8a01-0357.din.or.jp at Mon Feb  1 05:10:52 2010
+* ttmrichter has quit (Quit: Leaving)
+* trijezdci (~trijezdci@194.230.159.114) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Quit: trijezdci)
+* trijezdci (~trijezdci@194.230.159.114) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@27.240.192.77.rev.sfr.net) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Remote host closed the connection)
+* javar has quit (Quit: javar)
+* sinuhe has quit (Quit: leaving)
+* trijezdci (~trijezdci@27.240.192.77.rev.sfr.net) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* xpololz has quit (Read error: Operation timed out)
+* ttmrichter (~ttmrichte@61.183.22.197) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+<trijezdci> hi ttmrichter 
+ Messaging Indicator 0.3.10 plugin unloaded.
+ Python interface unloaded
+ Tcl interface unloaded
+* Now talking on #modula-2
+* Topic for #modula-2 is: Discussions related to Modula-2 and Oberon-2   ·   Book list: http://www.modula2.net/resources/books.shtml   ·   Compiler list: http://www.modula2.net/resources/compilers.shtml
+* Topic for #modula-2 set by trijezdci!~trijezdci@f8a01-0357.din.or.jp at Mon Feb  1 05:10:52 2010
+* javar (~javier@152.pool85-55-33.dynamic.orange.es) has joined #modula-2
+* sinuhe (~sinuhe@kaptah.deevans.net) has joined #modula-2
+* xpololz (~xpo@203.80-203-124.nextgentel.com) has joined #modula-2
+* ttmrichter has quit (Quit: Leaving)
+* sinuhe has quit (*.net *.split)
+* sinuhe (~sinuhe@kaptah.deevans.net) has joined #modula-2
+* javar has quit (Quit: javar)
+* impomatic (~digital_w@46.208.42.253) has joined #modula-2
+* sinuhe_ (~sinuhe@kaptah.deevans.net) has joined #modula-2
+* sinuhe has quit (Ping timeout: 255 seconds)
+* sinuhe_ is now known as sinuhe
+* impomatic has quit (Quit: impomatic)
+* xpololz has quit (Ping timeout: 248 seconds)
+* ttmrichter (~ttmrichte@58.55.124.245) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+* Disconnected (Network is unreachable).
+* drrob1 sets mode +i drrob1
+-NickServ- This nickname is registered. Please choose a different nickname, or identify via /msg NickServ identify <password>.
+* Now talking on #modula-2
+* Topic for #modula-2 is: Discussions related to Modula-2 and Oberon-2   ·   Book list: http://www.modula2.net/resources/books.shtml   ·   Compiler list: http://www.modula2.net/resources/compilers.shtml
+* Topic for #modula-2 set by trijezdci!~trijezdci@f8a01-0357.din.or.jp at Mon Feb  1 05:10:52 2010
+* Disconnected (Network is unreachable).
+* drrob1 sets mode +i drrob1
+-NickServ- This nickname is registered. Please choose a different nickname, or identify via /msg NickServ identify <password>.
+* Now talking on #modula-2
+* Topic for #modula-2 is: Discussions related to Modula-2 and Oberon-2   ·   Book list: http://www.modula2.net/resources/books.shtml   ·   Compiler list: http://www.modula2.net/resources/compilers.shtml
+* Topic for #modula-2 set by trijezdci!~trijezdci@f8a01-0357.din.or.jp at Mon Feb  1 05:10:52 2010
+* trijezdci has quit (Quit: trijezdci)
+* trijezdci (~trijezdci@194.113.59.45) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* sinuhe has quit (Ping timeout: 248 seconds)
+* sinuhe (~sinuhe@kaptah.deevans.net) has joined #modula-2
+* xpololz (~xpo@80.203.124.203) has joined #modula-2
+* javar (~javier@152.pool85-55-33.dynamic.orange.es) has joined #modula-2
+* javar has quit (Quit: javar)
+* javar (~javier@152.pool85-55-33.dynamic.orange.es) has joined #modula-2
+* trijezdci has quit (Quit: trijezdci)
+* javar has quit (Ping timeout: 256 seconds)
+* javar (~javier@64.pool85-52-37.dynamic.orange.es) has joined #modula-2
+* trijezdci (~trijezdci@194.230.155.31) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Ping timeout: 252 seconds)
+* trijezdci (~trijezdci@194.230.159.78) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+<trijezdci> what do you think of it?
+<ttmrichter> Think of what?
+<trijezdci> the use case I posted?
+<trijezdci> trijezdci: I found a use case for paramter scope to start after the procedure header (before BEGIN)
+<trijezdci> [17:43] trijezdci: PROCEDURE P ( a : ARRAY OF OCTET );
+<trijezdci> [17:43] trijezdci: TYPE LocalCopy = ARRAY COUNT(a) OF OCTET;
+<trijezdci> [17:43] trijezdci: VAR buffer : LocalCopy;
+<trijezdci> [17:43] trijezdci: BEGIN ...
+<trijezdci> [17:44] trijezdci: this would basically be the equivalent of C's alloca function
+<ttmrichter> I didn't see that.
+<ttmrichter> COUNT(a) is a pseudo-function that tells you the size of a?
+<trijezdci> yes
+<trijezdci> a pervasive function (built0in)
+<ttmrichter> Yes, then, that sounds like a viable use case.
+<trijezdci> C programming guidelines often say that one should avoid alloca and use malloc instead because if malloc fails you get NULL returned but if there is no more stack then you end up with an unrecoverable error.
+<trijezdci> however, one could use the same argument to recommend against recursive functions
+<trijezdci> yet nobody is doing that
+* trijezdci has quit (Ping timeout: 252 seconds)
+* trijezdci (~trijezdci@194.230.155.5) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+<trijezdci> new M2 FAQ
+<trijezdci> http://www.arjay.bc.ca/Modula-2/m2faq.html
+<trijezdci> several references to R10
+* trijezdci has quit (Ping timeout: 255 seconds)
+* trijezdci (~trijezdci@27.240.192.77.rev.sfr.net) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* ttmrichter has quit (Quit: Leaving)
+* javar has quit (Quit: javar)
+* impomatic (~digital_w@46.208.42.253) has joined #modula-2
+* javar (~javier@64.pool85-52-37.dynamic.orange.es) has joined #modula-2
+* javar has quit (Quit: javar)
+* impomatic has quit (Read error: Connection reset by peer)
+* xpololz has quit (Read error: Connection reset by peer)
+* xpololz (~xpo@203.80-203-124.nextgentel.com) has joined #modula-2
+* xpololz has quit (Ping timeout: 255 seconds)
+* ttmrichter (~ttmrichte@61.184.206.218) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+<ttmrichter> Ahoy.
+* trijezdci has quit (Quit: trijezdci)
+* ttmrichter has quit (Remote host closed the connection)
+* ttmrichter (~ttmrichte@61.184.206.218) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+* trijezdci (~trijezdci@194.113.59.45) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+<trijezdci> ahoy ttmrichter 
+* javar (~javier@64.pool85-52-37.dynamic.orange.es) has joined #modula-2
+* xpololz (~xpo@203.80-203-124.nextgentel.com) has joined #modula-2
+<ttmrichter> Ahoy.
+<javar> Ahoy
+* javar has quit (Quit: javar)
+* javar (~javier@64.pool85-52-37.dynamic.orange.es) has joined #modula-2
+* javar has quit (Quit: javar)
+* javar (~javier@64.pool85-52-37.dynamic.orange.es) has joined #modula-2
+* xpololz has quit (Quit: Leaving)
+* xpololz (~xpo@203.80-203-124.nextgentel.com) has joined #modula-2
+<trijezdci> https://groups.google.com/forum/?fromgroups#!topic/comp.lang.modula2/eHThE-OBFJk
+* trijezdci has quit (Quit: trijezdci)
+* ttmrichter has quit (Quit: Leaving)
+* ttmrichter (~ttmrichte@113.106.102.171) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+* ttmrichter has quit (Ping timeout: 244 seconds)
+* ttmrichter (~ttmrichte@60.169.25.158) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+* ttmrichter has quit (Quit: Leaving)
+* javar has quit (Quit: javar)
+* javar (~javier@64.pool85-52-37.dynamic.orange.es) has joined #modula-2
+* trijezdci (~trijezdci@194.230.155.17) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Ping timeout: 240 seconds)
+* xpololz has quit (Quit: Leaving)
+* xpololz (~xpo@203.80-203-124.nextgentel.com) has joined #modula-2
+* xpololz has quit (Client Quit)
+* xpololz (~xpo@80.203.124.203) has joined #modula-2
+* trijezdci (~trijezdci@27.240.192.77.rev.sfr.net) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* javar has quit (Quit: javar)
+* ttmrichter (~ttmrichte@113.106.102.178) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+* xpololz has quit (Ping timeout: 252 seconds)
+* xpololz (~xpo@80.203.124.203) has joined #modula-2
+* ttmrichter has quit (Ping timeout: 244 seconds)
+* xpololz has quit (Ping timeout: 252 seconds)
+* ttmrichter (~ttmrichte@113.106.102.174) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+* trijezdci has quit (Quit: trijezdci)
+* trijezdci (~trijezdci@194.113.59.45) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* javar (~javier@64.pool85-52-37.dynamic.orange.es) has joined #modula-2
+* xpololz (~xpo@203.80-203-124.nextgentel.com) has joined #modula-2
+<trijezdci> updated: http://www.modula2.net/resources/M2R10.IssueTracker.pdf
+<ttmrichter> trijezdci: http://www.txt.io/t-2gast
+<trijezdci> I always torpedoe my job by speaking my mind and standing up for what I believe in, don't even need to have an excuse like "lives depend on it" to do that
+<trijezdci> I am of the rebellious kind :-)
+<trijezdci> yesterday I called up the customer and said "if your director does not apologise to me for the lies he wrote about myself in an email to our CEO, I will immediately resign from the project and then good luck for your all-depends-on-this project to be finished by X, you'll be screwed then."
+<trijezdci> it took half a day and he apologised
+<trijezdci> but if he had not, I would have resigned the mission
+<trijezdci> this was not for charitable causes though
+<trijezdci> it was about asserting authority and making sure people won't just use me as a scapegoat for their own incompetence
+<trijezdci> but like I said, this is my nature, it doesn't matter what the reason is
+<trijezdci> whether it is a selfish or unselfish reason
+<trijezdci> this is also why I prefer to be a contractor and not a wage-slave
+<trijezdci> I think at the end of the day it all comes down to pride
+<trijezdci> there are people who totally lack any kind of pride
+<trijezdci> and there are people who have it
+<trijezdci> if you have no pride, you are not likely to care for things no matter what the rationale, be it people's lives in danger or a sense of beauty or rightousness, it doesn't matter, no pride people do not care about anything
+<trijezdci> if you have pride, you are likely to care for things no matter what the rationale, you don't need people's lives to be at risk to care whether something is good, you simply care
+<trijezdci> anyway, that's my take
+<trijezdci> mind you, caring so much can also have evil consequences
+<trijezdci> Steve Jobs cared about various things so much that he didn't exactly behave like a civilised human being all the time
+<trijezdci> to put it diplomatically
+<ttmrichter> trijezdci: Normally I'm exactly that kind of rebellious.  I've stood toe to toe with communist officials in Jiangxi province and won.
+<ttmrichter> But that was a *very* bad time in my life.  My confidence was shaken (read: nonexistent).  I was a coward.
+<ttmrichter> Steve Jobs was a shithead at every level.
+<ttmrichter> Absolutely *every* level as a human being.
+<sinuhe> trijezdci: I've taken this approach in the past, with similar results, and with negative results. I find that a more subtle, and sometimes devious, approach is often necessary. Human psychology is a mysterious thing, and each situation almost seems like a power game. The trick is how to stroke an ego and avoid a power struggle, which you will often be on the negative receiving end if you attempt it.
+<trijezdci> sinuhe, I am not saying that I am not trying to be diplomatic and sensitive
+<trijezdci> but I am saying that I do not override my natural tendency to stand up for things I believe are right, whatever the rationale
+<trijezdci> in fact, after all these years in Japan and now back in Europe, I find that I am actually very good in diplomacy even though this was never a strength of mine
+<trijezdci> its simply the outcome of having had to cope with the Japanese environment which is very sensitive towards not offending and not making anyone look bad, let people keep face etc
+<trijezdci> and in Europe people are just rather blunt relateively speaking
+<trijezdci> for example that director who sent an email to our CEO complaining about how bad our project is going and claiming that I had not been giving status and that they had to chase me for any information etc etc
+<trijezdci> I have a daily status call at 17:45 with the program manager who is reporting to him
+<trijezdci> during that status call, everything that has come up during the day is discussed
+<trijezdci> so this was utter nonsense
+<trijezdci> he has seen some email of which he only read the first paragraph and then decided to send off this mail to our CEO
+<trijezdci> this was on his last day before going on holidays you see
+<trijezdci> so he wanted to do all the stuff that piled up on his to do list hush hush so he could go on holidays
+<trijezdci> and he didn't want to have to read the whole mail from his program manager
+<trijezdci> but he didn't want to have to deal with what he perceived to be a disaster either
+<trijezdci> so he shot off this mail
+<trijezdci> prematurely
+<trijezdci> in the end it made him look like a total idiot
+<trijezdci> and it made him look like an ass
+<trijezdci> and it wasted a lot of people's time to try to find out what was going on, write reports, have crisis meetings, repair damaga
+<trijezdci> damage
+<trijezdci> when I was 25 years of age, I was shooting off email like that
+<trijezdci> but nowadays I would never do such a thing
+<trijezdci> I'd think very seriously about what kind of damage I might cause if I am wrong before hitting that send button
+<trijezdci> but it seems after returning to Europe the tables have turned
+<trijezdci> I am no longer the inconsiderate shoot from the hip guy
+<trijezdci> but many other people around me seem to be
+<trijezdci> still I am rebellious
+<trijezdci> but I go about it in a different way
+<sinuhe> Sounds like the reaction I would have had too.
+<trijezdci> anyway, any comments on any issue in the issue tracker?
+<trijezdci> especially those marked "pending discussion"
+<trijezdci> I can't believe I am fighting with Rick over INCL(set, elem)/EXCL(set, elem) versus set[elem]:=TRUE/set[elem]:=FALSE
+<trijezdci> how could anybody like INCL/EXCL
+<trijezdci> my first reaction when I saw those 30+ years ago in Pascal I think, was WTF WTF WTF WTF WTF
+<trijezdci> or maybe they came later only in M2
+<trijezdci> don't remember now
+<trijezdci> but I do remember I felt they were bad design right from the first time I saw them
+<trijezdci> Rick says mathematically a set is not an array of booleans
+<trijezdci> but then we also need to remove the IF elem IN set => boolean result
+<trijezdci> instead you need to have another function
+<trijezdci> ISELEM(set, elem)
+<sinuhe> Rick may be on to something, but I wouldn't consider myself wholly qualified with that discussion.
+<trijezdci> ideally returning a value of TYPE SETMEMBERSHIP = (INCLUDED, EXCLUDED)
+<trijezdci> no, I want to hear
+<trijezdci> what do you think is positive about INCL/EXCL versus bracket notation
+<trijezdci> so far everybody has lauded this feature
+<trijezdci> so I have never ever seen any cricicism anywhere
+<trijezdci> The Mod51 compiler receives accolades for having extended the notation to sets
+<trijezdci> just about everytime anybdy mentions Mod51, this comes up
+<trijezdci> so I am really curious why anyone would prefer INCL/EXCL
+<trijezdci> simply because the bracket notation seems to be so well received
+<sinuhe> Perhaps familiarity. However, I was commenting about the set vs array comment you relayed regarding Rick's perspective. That seemed to make sense. Wirth was always picky with his syntax when it came to potential mathematical symbology, and having it confused in the language.
+<trijezdci> er no, in this case Wirth was not
+<trijezdci> the membership test uses BOOLEAN as a result type
+<trijezdci> but the INCL/EXCL do not
+<trijezdci> if you reject BOOLEAN values as a representation of membership on the grounds that the mathematical definition of sets does not equal to a collection of booleans then you must also reject using boolean for membership tests
+<trijezdci> booleans are just a very general abstraction for any kind of yes/no observations and decisions
+<sinuhe> Hmmm...
+<trijezdci> there is boolean logic in mathematics
+<trijezdci> this is very abstract and pure
+<trijezdci> you can't really claim that in programming languages booleans are used only for pure mathematical boolean logic
+<trijezdci> its not
+<trijezdci> it is used to represent a lot of things that are not pure boolean logic but that are suited to representing in boolean logic
+<ttmrichter> Well, some languages are built that separate those concerns.
+<ttmrichter> But they're not very popular.
+<ttmrichter> SNOBOL4 was popular, but its successor Icon was definitively NOT popular.
+<trijezdci> yes, as a general design rule it makes a lot of sense to separate model and implementation
+<trijezdci> however, if you use that to justify not using what would otherwise be straightforward notation simply because the notation coincides with something else that SUGGESTS a certain implementation, that would be counterproductive in my view
+<trijezdci> after all there is nothing about [ and ] that is inherently saying "you must implement arrays here"
+<trijezdci> it is after all just a notation
+<trijezdci> to me all that [ and ] suggest is "the part before the brackets is a container, the part inside the brackets is some kind of index like entity"
+<ttmrichter> I find "argument by purity" dubious oft-times.
+<trijezdci> yes, me too
+<ttmrichter> Yes, if you put on your ultra-pedantic glasses, there's a difference between a set and an array.
+<trijezdci> selector is the word
+<ttmrichter> But...
+<ttmrichter> Yeah.  Exactly.
+<trijezdci> the part before [ ] is a container
+<ttmrichter> [] is just selector notation.
+<trijezdci> the part wthin [ and ] is a selector
+<ttmrichter> You're selecting a member of a container.
+<ttmrichter> Any container.
+<trijezdci> exactly
+<ttmrichter> [] works, AFAIC, for any container: array, list (albeit ill-advised here!), set, bag, 2,3-tree, finger tree, PATRICIA.
+<ttmrichter> Changing notations for each one of these could actually *damage* software development.
+<ttmrichter> If they all use the same notation you can experiment with data representation with minimal code change.
+<ttmrichter> Test your performance characteristics across a variety of backing structures.
+<ttmrichter> If, however, they all require different notation you pretty much commit to one early on and then never move it.
+<ttmrichter> Because changing EVERY GOD-DAMNED ACCESS is just going to be too painful.
+<ttmrichter> So from an engineering principle alone having different syntax for each type of container is a Bad Thing™.
+<trijezdci> actually we use the term selector in 7.1
+<trijezdci> . is also a selector
+<trijezdci> "A selector may denote the index of an array, the dereference symbol following a pointer, a field of a record or a procedure's actual parameter list."
+<trijezdci> All we have to do is mention sets in that sentence
+* ttmrichter has quit (Quit: Leaving)
+* trijezdci has quit (Quit: trijezdci)
+* trijezdci (~trijezdci@194.230.159.103) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+<trijezdci> test
+<trijezdci> ok, seems Rick has now accepted [ ] notation for sets
+<trijezdci> often it is not so much the syntax he cares about but the theoretical justification
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@194.230.159.103) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@194.230.159.103) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@194.230.159.103) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@194.230.159.103) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@194.230.159.103) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@194.230.159.103) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@194.230.159.103) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Client Quit)
+* javar has quit (Quit: javar)
+* trijezdci (~trijezdci@27.240.192.77.rev.sfr.net) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+<trijezdci> ok, how does this sound ...
+<trijezdci> A set type is a container type for a finite number of elements from a finite value space. The value space of a set contains all possible elements of the set. A value that is an element of the set is said to be a member of the set. In order to test or modify the membership of a value in a set, it may be addressed by selector. Membership in a set is of type BOOLEAN, it is either TRUE or FALSE.
+<trijezdci> so it is not the element that is boolean
+<trijezdci> it is the membership of the element that is
+<trijezdci> which in practise turns out to be the same, but the purists among us have nothing to complain about
+<sinuhe> That sounds purely reasonable. :)
+<sinuhe> type BOOLEAN: it is either...
+<sinuhe> Small nitpick
+<trijezdci> heh
+<trijezdci> noted
+<trijezdci> but I am pretty sure Rick will change that back to a comma
+<sinuhe> He'd be wrong.
+<sinuhe> :)
+<trijezdci> he's the univeristy prof and always has tiny things like that
+<sinuhe> I'm a computer text book editor, who writes courseware for a living, and originally did his degree in English and philosophy.
+<sinuhe> But a Prof. would trump. :)
+<trijezdci> or he might insert, "that is, ...."
+<trijezdci> this sort of thing
+<sinuhe> I might actually go with two separate sentences, but as I said, as small nitpick. English is versitle in allowing punctuation styles.
+<sinuhe> s/as/a/
+<trijezdci> he's very noisy about avoiding prepositions at the end of a sentence
+<sinuhe> Well, that's probably why he's a professor, and I'm not. ;)
+<trijezdci> haha
+<trijezdci> I like prepositions at the end of a sentence
+<trijezdci> it sounds ... er .... oh so British, uh
+<trijezdci> in Japan I was working with a guy who had once had started a career as an English major at some US university but then got drawn into the vietnam war for the CIA flying over vietnam and china to listen to radio transmissions and translate them
+<trijezdci> eventually he ended up in Japan
+<trijezdci> anyway, we did some business planning and pitching together
+<trijezdci> he had a thing against using "which"
+<trijezdci> it would either have to be "that" or should be avoided altogether
+<sinuhe> I lived in Wales for awhile. Perhaps that explains it.
+<trijezdci> so often you had to change a sentence that had a subclause starting with which into a clause that ended in a preposition
+<sinuhe> I've been unduly colored with Britishisms... :)
+<trijezdci> now, working with Rick, I have to do the exact opposite
+<sinuhe> Wait: coloured with Britishisms. ;)
+<trijezdci> and everytime it feels like committing a sin
+<trijezdci> heh
+<sinuhe> When in doubt, check your Oxford Style Manual. ;)
+<trijezdci> the formal parameter it was passed-in for.
+<trijezdci> =>
+<sinuhe> I have a current beefy hard copy on my shelf, underneath by Oxford Shorter. :)
+<trijezdci> the formal parameter for which it was passed-in.
+<trijezdci> to me the former sounds far better
+<sinuhe> I like the latter.
+<sinuhe> However, 'for which' is more archaic.
+<trijezdci> but at the end of the day, this is just personal preference
+<trijezdci> but I don't care so much, as long as the whole thing is consistent
+<sinuhe> If you dropped '-in' that would suit me.
+<trijezdci> well, passed-in is more precise because you can also pass back with VAR parameters
+* sinuhe shrugs
+<trijezdci> I would not be surprised though if Springer have their own editors who have their own opinions and they change the style again to something else
+<sinuhe> Let me know if he goes with the [] syntax.
+<sinuhe> I'm curious what the end result will be, there.
+<trijezdci> yes, he accepted the syntax
+<trijezdci> apparently it wasn't so much the syntax that bothered him but the theoretical model to explain it
+<trijezdci> so we keep set[elem] := TRUE to set the membership of an element
+<trijezdci> and we won't go back to INCL and EXCL
+<sinuhe> I find 'American' style to be rediculous. In many ways, it lacks logical cohesion (seriously: what printing press exists to make ...foo." corrrect, and ...foo". not?), and etymological purity. *Real* American English is nothing like the Microsoft grammar and spelling checkers let on.
+<trijezdci> I wonder where Springer's copy editors are for English language material
+<trijezdci> they are in Heidelberg DE
+<trijezdci> but I doubt the folks in DE will do the editing of English language material
+<sinuhe> Chances are they following the Oxford international English conventions, not the Chicago Manual.
+<trijezdci> their books often say New York, Frankfurt, Heidelberg or something like that
+<sinuhe> s/they/they are/
+<trijezdci> anyway, I am not really concerned about that, I trust they know what they are doing
+<sinuhe> As long as it is consistent, or at least comprehensible, as you said.
+<trijezdci> heh
+<trijezdci> I hope it is
+<trijezdci> Programming in Modern Modula-2 by B.Kowarsch and R.Sutcliffe, 200 pages of incomprehensible gibberish ...
+<sinuhe> lol
+<sinuhe> I imagine every author dreads that possibility in the back of their psyche.
+<trijezdci> heh
+<sinuhe> Looking at PIM4, it has set notation similar to what you suggested earlier.
+<sinuhe> I take that back. There's INCL(s,x)...
+<sinuhe> Now your point is starting to make more sense.
+<trijezdci> it has the test as a boolean expression, which makes sense of course
+<trijezdci> but the modification of membership is using specific built-in procedures that aren't of any use for anything else
+<trijezdci> of course if you can test like
+<trijezdci> IF set[elem] = TRUE THEN
+<trijezdci> you actually wouldn't need IN anymore
+<trijezdci> IF elem IN set THEN
+<trijezdci> but since we need IN anyway for the FOR IN loop
+<trijezdci> and also you can do more tests with IN, like IF foo in { foo, bar, baz }
+<trijezdci> IN*
+<trijezdci> we may as well keep the IN syntax
+<trijezdci> the beauty with this paragraph defining set types is that we can now reuse the vocabulary introduced to make things more easy explaining specific set types
+<trijezdci> A bitset type is a static ordered set type whose value space is defined by the subrange type  [0 .. TSIZE(BitsetType)] OF CARDINAL. Values are called bits. A bit whose membership in a bitset type is TRUE is said to be set, a bit whose membership is FALSE is said to be cleared.
+<trijezdci> An ordinal set type is a static ordered set type whose value space is defined by an enumeration type.
+* sinuhe has quit (Quit: leaving)
+* Mephisto_ (~Mephisto@94-226-93-189.access.telenet.be) has joined #modula-2
+* ChanServ gives voice to Mephisto_
+* ttmrichter (~ttmrichte@175.25.241.151) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+* xpololz has quit (Read error: Operation timed out)
+<trijezdci> hi ttmrichter 
+<trijezdci> 5.3.9 Set Types
+<trijezdci> A set type is a container type for a finite number of elements from a finite value space. The value space of a set contains all possible elements of the set. A value that is an element of the set is said to be a member of the set. In order to test or modify the membership of a value in a set, it may be addressed by selector. Membership in a set is of type BOOLEAN, it is either TRUE or FALSE.
+<trijezdci> Two kinds of set types are provided by built-in facilities: bitset types and enumerated set types.
+<trijezdci> A bitset type is a static ordered set type whose value space is defined by the subrange type  [0 .. 8*TSIZE(BitsetType)-1] OF CARDINAL. The values are called bits. A bit whose membership in a bitset is TRUE is said to be set, a bit whose membership is FALSE is said to be cleared.
+<trijezdci> An enumerated set type is a static ordered set type whose value space is defined by an enumeration type. Enumerated set types are defined using the SET OF type constructor.
+<trijezdci> now it is not the values that are boolean, their membership is
+<ttmrichter> Yeah, that works better now trijezdci.
+<ttmrichter> It makes it clear for the anal retentive.  :D
+<trijezdci> it took me two hours to come up with this description
+<trijezdci> but now Rick is happy
+<trijezdci> so we don't have any syntax discussion
+* xpololz (~xpo@80.203.124.203) has joined #modula-2
+<ttmrichter> So you didn't change the syntax at all.  You changed the words that described the syntax a small amount.
+* ttmrichter facepalms.
+<ttmrichter> Pedantry has its place in standards creation I guess...
+<trijezdci> heh
+<trijezdci> well, Rick is a university professor after all, to him it matters what the underlying theoretical model is, especially since he's a mathematician first and a computer scientist only second
+<trijezdci> I can understand that
+<trijezdci> if you are a mathematician then sets have a certain definition, its in your blood
+<trijezdci> so if then your name shows up on a book that is published by a renowned publisher for science literature and it says sets are arrays of booleans, then I can see how that would make him uncomfortable
+<trijezdci> a certain level of pedantry is needed for mathematics
+<ttmrichter> http://www.txt.io/t-2gccc
+<ttmrichter> On the other hand there's something petty about having a hissy fit over "sets are associative arrays of booleans" and "sets are easily implemented as associative arrays of booleans".
+* ttmrichter has quit (Quit: Leaving)
+* Mephisto_ is now known as Mephisto
+* impomatic (~digital_w@31.185.139.168) has joined #modula-2
+* Mephisto has quit (Ping timeout: 240 seconds)
+* Mephisto (~Mephisto@94-226-93-189.access.telenet.be) has joined #modula-2
+* ChanServ gives voice to Mephisto
+* xpololz has quit (Read error: Connection reset by peer)
+* xpololz (~xpo@203.80-203-124.nextgentel.com) has joined #modula-2
+* impomatic has quit (Quit: impomatic)
+* xpololz has quit (Ping timeout: 240 seconds)
+* xpololz (~xpo@80.203.124.203) has joined #modula-2
+* xpololz has quit (Read error: Operation timed out)
+* ttmrichter (~ttmrichte@61.184.205.49) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+<trijezdci> hi ttmrichter 
+<trijezdci> the last sentence in your blog post shoudl be "has an egde" not "is an edge" I think
+<ttmrichter> No, the *business* has the edge, that edge being the language it uses.
+<trijezdci> well, from the view point of the language being the subject, the language has an edge that gives the business an edge
+<trijezdci> otherwise I would rephrase
+<trijezdci> along the lines of ... the language may well be what gives the business an edge
+<trijezdci> or similar
+* impomatic (~digital_w@31.185.139.168) has joined #modula-2
+* xpololz (~xpo@203.80-203-124.nextgentel.com) has joined #modula-2
+ 
+* Loaded log from Sun Jul 29 08:13:26 2012
+ 
+* Now talking on #modula-2
+* Topic for #modula-2 is: Discussions related to Modula-2 and Oberon-2   ·   Book list: http://www.modula2.net/resources/books.shtml   ·   Compiler list: http://www.modula2.net/resources/compilers.shtml
+* Topic for #modula-2 set by trijezdci!~trijezdci@f8a01-0357.din.or.jp at Mon Feb  1 05:10:52 2010

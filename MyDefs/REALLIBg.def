@@ -1,0 +1,65 @@
+DEFINITION MODULE REALLIBg;
+
+  FROM UTILLIBg IMPORT BUFTYP;
+(*
+  EXPORT QUALIFIED AINT,AMOD,ROUND,PWRI,PWRR, CROPNSTR,GETCROPNUM;
+*)
+PROCEDURE AINT(R : LONGREAL) : LONGREAL;
+(*
+****************************** AINT ***********************************
+REAL INTEGERIZE FUNCTION.
+This is equivalent to Fortran's AINT fnt, which just returns the integral
+part of a number and removes the fractional part.  This is done by
+converting to a string, searching for the decimal point, and then converting
+the digits to the left of the decimal pt back to a real number.
+
+*)
+
+PROCEDURE AMOD(ANUM,AMODULUS : LONGREAL) : LONGREAL;
+(*
+*************************************** AMOD **************************
+Real Modulus
+This is a modulus function for real numbers, that uses the AINT in the
+standard definition of the modulus fnt, A MOD B = A - [A/B]*B where []
+represents the integerization function.  For integers the mod function is a
+built in operator.
+
+*)
+
+PROCEDURE ROUND(R : LONGREAL) : CARDINAL;
+(*
+***************************************** ROUND ***************************
+Does Just That.
+*)
+
+PROCEDURE PWRI(R:LONGREAL; I:INTEGER) : LONGREAL;
+(*
+************************** PWRI ***********************************
+POWER OF I.
+This is a power function with a real base and cardinal exponent.
+It uses the optimized algorithm as discussed in PIM-2,V. 2.
+*)
+
+PROCEDURE PWRR(Y,X:LONGREAL) : LONGREAL;
+(*
+**************************** PWRR ************************************
+POWER OF REAL NUMBERS.
+This is a power function with a real base and exponent.  It uses a
+simple log and antilog formula to calculate Y**X.
+*)
+
+PROCEDURE CROPNSTR(VAR STR : ARRAY OF CHAR);
+(*
+******************************************* CROPNSTR ***********************
+CROP Number STRing by truncating trailing insignificant zeros and leading 
+blanks.
+*)
+
+PROCEDURE GETCROPNUM(R : LONGREAL; VAR STR : ARRAY OF CHAR);
+(*
+********************************** GETCROPNUM *******************************
+GET CROPped NUMber string from longreal input as a param.
+*)
+
+END REALLIBg.
+

@@ -1,0 +1,129 @@
+DEFINITION MODULE Mat;
+
+        (********************************************************)
+        (*                                                      *)
+        (*                 Matrix arithmetic                    *)
+        (*   We can handle matrices with up to 8191 elements    *)
+        (*                                                      *)
+        (*  Programmer:         P. Moylan                       *)
+        (*  Last edited:        15 August 1995                  *)
+        (*  Status:             OK                              *)
+        (*                                                      *)
+        (*      Portability problem: I've had to use an XDS     *)
+        (*      language extension (open arrays) here; I        *)
+        (*      haven't yet figured out how to do the job       *)
+        (*      in ISO standard Modula-2.                       *)
+        (*                                                      *)
+        (********************************************************)
+
+TYPE
+    EltType = LONGREAL;
+    ArrayPtr = POINTER TO ARRAY OF ARRAY OF EltType;
+
+(************************************************************************)
+(*                   CREATING AND DESTROYING MATRICES                   *)
+(************************************************************************)
+
+PROCEDURE NewArray (N, M: CARDINAL): ArrayPtr;
+
+    (* Creates an NxM matrix. *)
+
+PROCEDURE DisposeArray (VAR (*INOUT*) V: ArrayPtr;  N, M: CARDINAL);
+
+    (* Deallocates an NxM matrix. *)
+
+(************************************************************************)
+(*                          ASSIGNMENTS                                 *)
+(************************************************************************)
+
+PROCEDURE Zero (VAR (*OUT*) M: ARRAY OF ARRAY OF EltType;  r, c: CARDINAL);
+
+    (* Creates an r by c matrix with all zero entries. *)
+
+PROCEDURE Unit (VAR (*OUT*) M: ARRAY OF ARRAY OF EltType;  N: CARDINAL);
+
+    (* Creates an N by N unit matrix. *)
+
+PROCEDURE Random (VAR (*OUT*) M: ARRAY OF ARRAY OF EltType;  r, c: CARDINAL);
+
+    (* Creates an r by c matrix with random entries. *)
+
+PROCEDURE Copy (A: ARRAY OF ARRAY OF EltType;  r, c: CARDINAL;
+                         VAR (*OUT*) B: ARRAY OF ARRAY OF EltType);
+
+    (* Copies an rxc matrix A to B. *)
+
+(************************************************************************)
+(*                      THE BASIC MATRIX OPERATIONS                     *)
+(************************************************************************)
+
+PROCEDURE Add (A, B: ARRAY OF ARRAY OF EltType;  r, c: CARDINAL;
+                      VAR (*OUT*) C: ARRAY OF ARRAY OF EltType);
+
+    (* Computes C := A + B.  All matrices are rxc. *)
+
+PROCEDURE Sub (A, B: ARRAY OF ARRAY OF EltType;  r, c: CARDINAL;
+                      VAR (*OUT*) C: ARRAY OF ARRAY OF EltType);
+
+    (* Computes C := A - B.  All matrices are rxc.  *)
+
+PROCEDURE Mul (A, B: ARRAY OF ARRAY OF EltType;  r, c1, c2: CARDINAL;
+                      VAR (*OUT*) C: ARRAY OF ARRAY OF EltType);
+
+    (* Computes C := A*B, where A is rxc1 and B is c1xc2. *)
+
+PROCEDURE ScalarMul (A: EltType;  B: ARRAY OF ARRAY OF EltType;  r, c: CARDINAL;
+                                  VAR (*OUT*) C: ARRAY OF ARRAY OF EltType);
+
+    (* Computes C := A*B, where B is rxc. *)
+
+(************************************************************************)
+(*                      SOLVING LINEAR EQUATIONS                        *)
+(************************************************************************)
+
+PROCEDURE GaussJ (A, B: ARRAY OF ARRAY OF EltType;
+                     VAR (*OUT*) X: ARRAY OF ARRAY OF EltType;
+                     N, M: CARDINAL);
+
+    (* Solves the equation AX = B by Gauss-Jordan elimination.  In the  *)
+    (* present version A must be square and nonsingular.                *)
+    (* This approach to solving the equation is not the best available  *)
+    (* - see below - but is included here anyway since it is popular.   *)
+    (* Dimensions: A is NxN, B is NxM.                                  *)
+
+PROCEDURE Solve (A, B: ARRAY OF ARRAY OF EltType;
+                    VAR (*OUT*) X: ARRAY OF ARRAY OF EltType;
+                    N, M: CARDINAL);
+
+    (* Solves the equation AX = B.  In the present version A must be    *)
+    (* square and nonsingular.                                          *)
+    (* Dimensions: A is NxN, B is NxM.                                  *)
+
+PROCEDURE Invert (A: ARRAY OF ARRAY OF EltType;
+                     VAR (*OUT*) X: ARRAY OF ARRAY OF EltType;
+                     N: CARDINAL);
+
+    (* Inverts an NxN nonsingular matrix. *)
+
+(************************************************************************)
+(*                           EIGENVALUES                                *)
+(************************************************************************)
+
+PROCEDURE Eigenvalues (A: ARRAY OF ARRAY OF EltType;
+                          VAR OUT W: ARRAY OF LONGCOMPLEX;
+                          N: CARDINAL);
+
+    (* Finds all the eigenvalues of an NxN matrix.    *)
+    (* This procedure does not modify A.              *)
+
+(************************************************************************)
+(*                          SCREEN OUTPUT                               *)
+(************************************************************************)
+
+PROCEDURE Write (M: ARRAY OF ARRAY OF EltType;  r, c: CARDINAL;  places: CARDINAL);
+
+    (* Writes the rxc matrix M to the screen, where each column *)
+    (* occupies a field "places" characters wide.               *)
+
+END Mat.
+

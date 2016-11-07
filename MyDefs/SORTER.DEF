@@ -1,0 +1,41 @@
+DEFINITION MODULE SORTER;
+ 
+EXPORT QUALIFIED MAXDIM,ITEMPTR,LINKSPTR,TREESORT,QUICKSORT,BININSSORT;
+
+CONST
+  MAXDIM = 10000;
+
+TYPE
+  INDEX      = INTEGER;
+  ITEM       = CARDINAL;
+  ITEMARRAY  = ARRAY [1..MAXDIM] OF ITEM;
+  LINKSARRAY = ARRAY [1..MAXDIM+20]  OF INDEX;
+  ITEMPTR    = POINTER TO ITEMARRAY;
+  LINKSPTR   = POINTER TO LINKSARRAY;
+
+(* / D A T A : L *)
+PROCEDURE TREESORT(I : ITEMPTR; L : LINKSPTR; LASTELEM : CARDINAL);
+(*
+The LASTELEM input param is the actual last element used in its huge array.
+This was the only way I could think of to allow this method to be in a
+module of its own;
+  This program creates a butterfly merge to combine leaves into twigs, twigs
+into branches, and branches into one final linked list starting at position
+LASTELEM+1.  In the end, LINKS(LASTELEM+1) points to the first leaf,
+LINKS(LINKS(LASTELEM+1)) points to the second, LINKS(LINKS(LINKS(LASTELEM+1)))
+points to the third, and the last link points to itself.  
+  The dimensions of LINKS needs to be >= LASTELEM + log2(LASTELEM) + 2, and
+the procedure will check to make sure this condition is met.  If not, a 
+warning message is displayed on the terminal.
+
+*)
+(* / R E V E R T *)
+
+PROCEDURE QUICKSORT(VAR AI : ARRAY OF ITEM; LASTITEM : INDEX);
+(* Algorithm as implemented assumes that original array index starts at 1 *)
+
+PROCEDURE BININSSORT(VAR AI : ARRAY OF ITEM; LASTITEM : INDEX);
+(* Algorithm as implemented assumes that original array index starts at 1 *)
+
+END SORTER.
+

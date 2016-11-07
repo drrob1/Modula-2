@@ -1,0 +1,200 @@
+DEFINITION MODULE TKNRTNS;
+
+  FROM UTILLIB IMPORT BUFTYP;
+
+
+TYPE 
+(* 
+  FSA TYPE IS A TYPE TO DEFINE THE FINITE STATE AUTOMATON ON WHICH THIS
+  ALGORITHM IS BASED.  IT IS AN ENUMERATION TYPE.
+*)
+  FSATYP = (DELIM, OP, DGT, ALLELSE);
+  CHARSETTYP = SET OF CHAR;
+  CHRSETTYP  = CHARSETTYP;
+
+VAR
+  DELIMCH    : CHAR;    (* Exported delimiting character *)
+  DELIMSTATE : FSATYP;  (* Exported delimiting character state *)
+
+PROCEDURE INI3TKN(BUF:BUFTYP);
+(*
+*************************** INI3TKN *******************************************
+INITIALIZE TOKEN.
+THE PURPOSE OF THE INITIALIZE TOKEN ROUTINE IS TO INITIALIZE THE
+VARIABLES USED BY GETCHR TO BEGIN PROCESSING A NEW LINE.
+THE BUFFER ON WHICH THE TOKENIZING RTNS OPERATE IS ALSO INITIALIZED.
+CURPOSN IS INITIALIZED TO SKIP OVER THE @@A CHAR'S WHICH
+ARE ALWAYS THE FIRST TWO CHAR'S ON THE LINE.
+
+OUTPUT TO GBLVAR'S:  NONE.
+*)
+
+PROCEDURE INI1TKN(BUF:BUFTYP);
+(*
+*************************** INI1TKN *******************************************
+INITIALIZE TOKEN.
+THE PURPOSE OF THE INITIALIZE TOKEN ROUTINE IS TO INITIALIZE THE
+VARIABLES USED BY NXTCHR TO BEGIN PROCESSING A NEW LINE.
+THE BUFFER ON WHICH THE TOKENIZING RTNS OPERATE IS ALSO INITIALIZED.
+CURPOSN IS INITIALIZED TO START AT THE FIRST CHARACTER ON THE LINE.
+
+OUTPUT TO GBLVAR'S:  NONE.
+*)
+
+PROCEDURE STOTKNPOSN;
+(*
+****************************** STOTKNPOSN ***********************************
+STORE TOKEN POSITION.
+THIS ROUTINE WILL STORE THE VALUE OF THE CURPOSN INTO A HOLD VARIABLE FOR
+LATER RECALL BY RCLTKNPOSN.  ITS MAIN USE IS BY THE GET ENVIRONMENT PROC'S
+SO THAT THE ENVIRONMENT NEED BE PARSED ONLY ONCE.
+*)
+
+PROCEDURE RCLTKNPOSN;
+(*
+****************************** RCLTKNPOSN **********************************
+RECALL TOKEN POSITION.
+THIS IS THE INVERSE OF THE STOTKNPOSN PROCEDURE.
+*)
+
+PROCEDURE NEWDELIMSET(delimset : CHARSETTYP);
+(*
+*********************************************** NEWDELIMSET **************
+Allows changing the DELIMSET to include different characters.
+Setting this and the others to the null set has the
+same effect as GETTKNEOL from TOKENIZE.
+Default assignment is DELIMSET := CHARSETTYP{BLANK,NULL,SEMCOL,COMMA};
+*)
+
+PROCEDURE NEWOPSET(opset : CHARSETTYP);
+(*
+************************************************* NEWOPSET **************
+Allows changing the OPSET to include different characters.
+Setting this and DGTSET to the null set has the same effect
+as GETTKNSTR from TOKENIZE.  If change DELIMSET to only be blank and
+null, then have a situation closer to what GETTKNSTR probably strove 
+for in the first place.
+Default assignment is:
+  OPSET := CHARSETTYP{POUNDSIGN,PLUSSIGN,MINUSSIGN,LTSIGN,EQUALSIGN,
+             GTSIGN,MULTSIGN,DIVSIGN,EXPSIGN};
+*)
+
+PROCEDURE NEWDGTSET(dgtset : CHARSETTYP);
+(*
+************************************************* NEWDGTSET **************
+Allows changing the DGTSET to include different characters.
+Default assignment is DGTSET := CHARSETTYP{'0'..'9'};
+*)
+
+PROCEDURE GETCHR(VAR CH:CHAR; VAR CHRSTATE:FSATYP; VAR RETCOD:CARDINAL);
+(*
+**************************** GETCHR *******************************************
+THIS IS THE GET CHARACTER ROUTINE.  ITS PURPOSE IS TO GET THE NEXT
+CHARACTER FROM INBUF, DETERMINE ITS FSATYP (FINITE STATE AUTOMATA TYPE),
+AND RETURN THE UPPER CASE VALUE OF CHAR.  RETCOD VALUE OF ONE MEANS AN END OF
+LINE WAS FOUND, TWO MEANS AN ERROR OCCURRED.  
+NOTE: THE CURPOSN POINTER IS USED BEFORE IT'S INCREMENTED, UNLIKE MOST OF THE
+OTHER POINTERS IN THIS PROGRAM.
+
+CURPOSN -- CURRENT POSITION IN INBUF OF @@A LINE.
+CH     -- THE CHARACTER TO BE RETURNED.
+CHRSTATE-- FINITE STATE AUTOMATON VARIABLE INDICATING THE STATE OF THE
+           CHARACTER READ.
+RETCOD -- ZERO MEANS NORMAL RETURN.
+          ONE MEANS END-OF-TKNBUF FOUND.  IN THIS CASE CH RETURNED IS NULL.
+
+*)
+
+PROCEDURE UNGETCHR(VAR RETCOD:CARDINAL);
+(*
+********************************* UNGETCHR ********************************
+UNGETCHARACTER.
+THIS IS THE ROUTINE THAT WILL ALLOW THE CHARACTER LAST READ TO BE READ
+AGAIN BY DECREMENTING THE POINTER INTO TKNBUF, CURPOSN.
+
+RETCOD = 0 MEANS NORMAL RETURN.
+RETCOD = 1 MEANS ERROR, LIKE CAN'T UNGETCHR BECAUSE NO CHAR TO UNGET.
+
+*)
+
+PROCEDURE GETTKN(VAR TOKEN:BUFTYP; VAR TKNSTATE:FSATYP; 
+                 VAR SUM:LONGINT; VAR RETCOD2:CARDINAL);
+(*
+*************************** GETTKN **************************************
+
+THIS IS THE GET NEXT TOKEN ROUTINE.  A TOKEN IS A STRING OF SYMBOLS THAT
+REPRESENT A SIGNIFICANT QUANTITY, LIKE A CHAR STRING REPRESENTING A PARAM
+NAME OR A DIGIT STRING REPRESENTING A NUMBER.  EACH TOKEN IS DELIMITED BY THE
+DELIMITERS RECOGNIZED BY NXTCHR (COMMA, EQUALS SIGN, OR END-OF-TKNBUF COND).
+THIS ROUTINE WILL DETERMINE THE LENGTH OF THE TOKEN AND WHETHER IT IS A
+CHARACTER TOKEN OR A NUMBER TOKEN.
+
+TOKEN -- BUFFER HOLDING THE CHARACTERS OF THIS TOKEN.
+SUM   -- CONTAINS THE VALUE OF THE NUMBER IN A NUMBER TOKEN, OR HAS THE
+          SUM OF THE ASCII VALUES FOR A CHARACTER TOKEN.
+RETCOD2--RETURN CODE.  0: Normal return; 1: No more tokens on line;
+          2: Char token too long; 3: Number token with too many digits;
+          4: Cannot UNGETCHR; 5: Currently unused;
+          6: Error from GETOPCODE.
+*)
+
+PROCEDURE GETTKNREAL(VAR TOKEN:BUFTYP; VAR TKNSTATE:FSATYP;
+                VAR INTVAL:LONGINT; VAR REALVAL:LONGREAL; VAR RETCOD2:CARDINAL);
+(*
+************************ GETTKNREAL ***************************************
+GET ToKeN REAL.
+This behaves very similarly to GETTKN, only that all numbers are returned as
+reals instead of integers.  Since it uses GETTKN to first see if there is a
+dgt token, this rtn can be used instead of GETTKN if a real number token is
+possible.  It returns the same codes as GETTKN, with an additional code of 7
+if the real token is invalid (the StringToReal conversion failed).
+
+RETCOD2--RETURN CODE.  0: Normal return; 1: No more tokens on line;
+          2: Char token too long; 3: Number token with too many digits;
+          4: Cannot UNGETCHR; 5: Currently unused;
+          6: Error from GETOPCODE; 
+          7: real token invalid (the StringToReal conversion failed).
+*)
+
+PROCEDURE GETTKNSTR(VAR TOKEN:BUFTYP; VAR INTVAL:LONGINT; 
+                    VAR RETCOD2:CARDINAL);
+(*
+  GET ToKeN STRing.
+  Will get tokens only stopping at a delimiter, unlike GETTKN, and all
+  tokens are of state ALLELSE, so no state need be returned.  First will
+  call GETTKN and only if a non all else token is returned or if
+  DELIMSTATE is not a delimiter does this procedure need to do anything
+  different.  Especially useful for getting filenames that begin with digits
+  or have hyphens in the name.
+    Same return codes as from GETTKN.  The quoted string option of GETTKN
+  can be used to behave similarily, but this frees the user from having
+  to remember to quote such strings himself.
+*)
+
+PROCEDURE GETTKNEOL(VAR TOKEN : BUFTYP; VAR RETCOD : CARDINAL);
+(*
+GET ToKeN to EndOfLine.
+This will build a token that consists of every character left on the line.
+That is, it only stops at the end of line.
+*)
+
+PROCEDURE UNGETTKN(VAR RETCOD : CARDINAL);
+(*
+************************************** UNGETTKN *****************************
+UNGET TOKEN ROUTINE.
+THIS ROUTINE WILL UNGET THE LAST TOKEN FETCHED.  IT DOES THIS BY HOLDING 
+THE LAST TOKEN FETCHED IN THE LASTTKN BUFFER TYPE.  ONLY THE LAST TOKEN
+FETCHED CAN BE UNGOTTEN, SO LASTTKN IS INITIALIZED AND RESET AFTER USE TO BE
+AN INCONSISTENT TOKEN, ONE WHERE THE FIRST TOKEN CHARACTER IS A LF, AND THE
+TOKEN COUNT IS MAXCARD.  IF LASTTKN CONTAINS THIS AS ITS TOKEN, THEN THE
+UNGET OPERATION WILL FAIL WITH A NON-ZERO RETURN CODE.  IF THE OPERATION
+IS SUCCESSFUL, THEN THE RETURN CODE WILL BE ZERO.
+
+*)
+
+END TKNRTNS.
+
+
+
+
+

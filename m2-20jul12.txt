@@ -1,0 +1,481 @@
+* adams.freenode.net gives voice to Mephisto
+* Disconnected (Connection timed out).
+* drrob1 sets mode +i drrob1
+* Now talking on #modula-2
+* Topic for #modula-2 is: Discussions related to Modula-2 and Oberon-2   ·   Book list: http://www.modula2.net/resources/books.shtml   ·   Compiler list: http://www.modula2.net/resources/compilers.shtml
+* Topic for #modula-2 set by trijezdci!~trijezdci@f8a01-0357.din.or.jp at Mon Feb  1 05:10:52 2010
+-NickServ- This nickname is registered. Please choose a different nickname, or identify via /msg NickServ identify <password>.
+* trijezdci has quit (Quit: trijezdci)
+* john_metcalf (~digital_w@192.39.125.91.dyn.plus.net) has joined #modula-2
+* trijezdci (~trijezdci@194.113.59.45) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+<trijezdci> hi ttmrichter
+<trijezdci> do you want to have a laugh?
+<trijezdci> http://modula2.net/temp/what-goes-around-comes-around.txt
+<ttmrichter> Preparing to laugh.  Hold on.
+<ttmrichter> A recruiter asked you to pass on the name of a company that fucked up your interview?!
+<ttmrichter> Jesus!  That would be like that shithole outfit in Xiamen asking me for a reference.
+<ttmrichter> I'd give 'em a reference alright.
+<ttmrichter> Right between the eyes.
+<Jomu> trijezdci looks well. except I still like single whitespace more :)
+<trijezdci> ttmrichter: no, a recruiter asked if I would consider a permanent role in a company that had fucked up an interview for me last year
+<ttmrichter> A permanent role in a company that couldn't contend with a temporary one?
+<trijezdci> I said that I wasn't interested in permanent roles unless its C-level, but that I have colleagues who do not like the fact that they have to transfer to Huawei as a result of a terminated outsourcing agreement (Huawei being the new supplier of our customer) and that I may pass on the job description to anyone who tells me they would rather like to find another job than go to Huawei
+<trijezdci> when I then received the job description and became aware what the company is, I wrote this as a reply
+<trijezdci> anyway, what goes around comes around
+<trijezdci> Dimension Data is not a company I will have anything to do with
+<trijezdci> and they will not get any referrals from me
+<trijezdci> nor will they be getting any business from any of the clients I work and will work for if I am in the decision making seat
+<trijezdci> that company is on my blackhole list
+* john_metcalf has quit (Ping timeout: 252 seconds)
+* Disconnected (Connection timed out).
+* drrob1 sets mode +i drrob1
+-NickServ- This nickname is registered. Please choose a different nickname, or identify via /msg NickServ identify <password>.
+* Now talking on #modula-2
+* Topic for #modula-2 is: Discussions related to Modula-2 and Oberon-2   ·   Book list: http://www.modula2.net/resources/books.shtml   ·   Compiler list: http://www.modula2.net/resources/compilers.shtml
+* Topic for #modula-2 set by trijezdci!~trijezdci@f8a01-0357.din.or.jp at Mon Feb  1 05:10:52 2010
+* javar (~javier@87.pool85-55-50.dynamic.orange.es) has joined #modula-2
+* javar has quit (Client Quit)
+* javar (~javier@87.pool85-55-50.dynamic.orange.es) has joined #modula-2
+* trijezdci has quit (Quit: trijezdci)
+* sinuhe (~sinuhe@38.73.135.226) has joined #modula-2
+* ttmrichter has quit (Quit: Leaving)
+* trijezdci (~trijezdci@194.230.155.5) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@194.230.155.5) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Ping timeout: 240 seconds)
+* trijezdci (~trijezdci@48.80.81.79.rev.sfr.net) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* xpololz (~xpo@203.80-203-124.nextgentel.com) has joined #modula-2
+* javar has quit (Quit: javar)
+* javar (~javier@87.pool85-55-50.dynamic.orange.es) has joined #modula-2
+* javar has quit (Quit: javar)
+* Disconnected (No route to host).
+ Messaging Indicator 0.3.10 plugin unloaded.
+ Python interface unloaded
+ Tcl interface unloaded
+ 
+* Loaded log from Fri Jul 13 19:05:51 2012
+ 
+* Now talking on #modula-2
+* Topic for #modula-2 is: Discussions related to Modula-2 and Oberon-2   ·   Book list: http://www.modula2.net/resources/books.shtml   ·   Compiler list: http://www.modula2.net/resources/compilers.shtml
+* Topic for #modula-2 set by trijezdci!~trijezdci@f8a01-0357.din.or.jp at Mon Feb  1 05:10:52 2010
+* ttmrichter (~ttmrichte@58.55.124.244) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+* ttmrichter_ (~ttmrichte@61.184.205.52) has joined #modula-2
+* ChanServ gives voice to ttmrichter_
+* ttmrichter has quit (Ping timeout: 248 seconds)
+* xpololz has quit (Ping timeout: 252 seconds)
+* ttmrichter_ is now known as ttmrichter
+* javar (~javier@87.pool85-55-50.dynamic.orange.es) has joined #modula-2
+* javar has quit (Quit: javar)
+<trijezdci> Jomu, lexically, underscore is not a problem, but whitespace is
+<trijezdci> because a literal is terminated by whitespace, this would require extra lookahead
+<trijezdci> with underscore you just collect all underscores and flag an error if you find anything other than a digit after it
+<ttmrichter> Oh, you're allowing underscores in numbers?  I remember asking for that, but forgot you'd agreed.
+<trijezdci> if underscore becomes part of a number literal then underscore can no longer terminate a number literal
+<trijezdci> but if whitespace becomes part of a number literal, it will still also be able to terminate a number literal
+<trijezdci> that is a problem, so whitespace is a no no
+<trijezdci> ttmrichter: not yet, but it is under discussion
+<trijezdci> it could look like so ...
+<trijezdci> decimalNumber :
+<trijezdci>     significand ( fraction exponent? )?
+<trijezdci> significand :
+<trijezdci>     digit+ ( "_" digit+ )*
+<trijezdci> fraction :
+<trijezdci>     "." digit+ ( "_" digit+ )*
+<trijezdci> exponent :
+<trijezdci>     ( "e" | "E" ) ( "+" | "-" ) digit+ ( "_" digit+ )?
+<trijezdci> and accordingly for base 16 and base 2 literals
+<ttmrichter> That's really nice.
+<ttmrichter> That allows for digit grouping for readability.
+<trijezdci> this would only impact the lexer
+<ttmrichter> $HDEAD_BEEF
+<ttmrichter> (Or whatever the hex constants looked like again.)
+<trijezdci> more like 0xdead_beef and 0_DEAD_BEEFH
+<ttmrichter> Ah, right.
+<trijezdci> C and M2 style
+<ttmrichter> 0_CAFE_BABEH
+<trijezdci> heh
+<ttmrichter> But really, being able to group digits is a life-saver.
+<trijezdci> for embedded work using base 2 literals it is really important to have some digit separation
+<ttmrichter> In hex constants it allows you to group by 4-bit fields.
+<ttmrichter> For ... yeah, I was about to say with reference to bit fields.
+<trijezdci> underscore may not be the most beautiful solution but it has precedence
+<trijezdci> in Ada and in Mod51
+<ttmrichter> And quite a few other languages.
+<trijezdci> Mod51 implements Ada literals
+<ttmrichter> And I agree, it's not the most beautiful, but it is the most accessible.
+<trijezdci> #2#0110_1100_1010
+<ttmrichter> I think I encountered this the first time in Eiffel.
+<trijezdci> if we were to compete with COBOL, I'd do something like this
+<trijezdci> CONST amount = &(12,345,678);
+<trijezdci> CONST amount = &(12,345,678.0000);
+<trijezdci> CONST amount = &(12,345,678.000_015);
+<trijezdci> CONST amount = &(1.234,567,8.0E+123,456);
+<trijezdci> CONST amount = &( **,*12,345.000);
+<trijezdci> CONST amount = &(-**,*12,345.000);
+<trijezdci> but I think underscore should be sufficient
+<ttmrichter> Um... no.
+<ttmrichter> No fucking way.
+<ttmrichter> Absolutely no fucking way.
+<ttmrichter> I would hunt you down and slaughter you in your sleep.
+<trijezdci> like I said, this would be COBOL terrain
+<ttmrichter> Or, worse, I'd throw Indian numbering formats at you.
+<trijezdci> we could always go back to roman numerals I suppose :)
+<ttmrichter> I think Indian numbering systems would confuse you more.
+<ttmrichter> Like how they're sometimes grouped in threes, sometimes in pairs.
+<ttmrichter> With no discernable rhyme or reason to it.
+<trijezdci> Apple script had an interesting convention using whitespace in literals and identifiers when enclosing them in vertical bars
+<trijezdci> like
+<trijezdci> |this is an identifier|
+<ttmrichter> That's borrowed from Prolog and its family.
+<trijezdci> ah ok
+<ttmrichter> this_is_an_atom
+<ttmrichter> thisIsAlsoAnAtom
+<ttmrichter> 'This is an atom too'
+<ttmrichter> Within single quotes you can have *ANYTHING*.
+<trijezdci> yeah, but I didn't want to sacrifice the ' for strings
+<ttmrichter> And since all identifiers are atoms, it logically means you can have identifiers like ' ' and '  ' and '   ' giving you LOADS of room for obfuscating code!  :D
+<trijezdci> otherwise you could use 
+<trijezdci> ' as a digit separator
+<ttmrichter> Yeah, underscores are fine.
+<trijezdci> 123'456.789
+<ttmrichter> They're easily readable and they're not used in other places very much.
+<ttmrichter> Identifiers ... and that's about it, right?
+<trijezdci> yes
+<trijezdci> and of course you can have underscores inside strings too
+<ttmrichter> Well you can have anything inside strings.
+<ttmrichter> But any decent lexer generator will deal with that for you.
+<trijezdci> anything ASCII printable
+<ttmrichter> ANTLR's quite good at it, for example.
+<trijezdci> while we are doing the editorial review now, Rick is asking some funny questions once in a while
+<trijezdci> is PROCEDURE Foo ( a : CARDINAL; b : ARRAY [0..a] OF Bar); still valid?
+<trijezdci> my answer
+<trijezdci> No, because we do not have ARRAY [n..m]
+<trijezdci> there were a number of those where I had to answer int his way "No because we have thrown out this feature, rememeber?!"
+<trijezdci> of course in the above one he'll come back asking
+<trijezdci> is PROCEDURE Foo (a : CARDINAL; b : ARRAY a OF Bar) still valid
+<trijezdci> which probably doesn't make sense in a language that has strict name equivalence anyway
+<trijezdci> nothing would be compatible with b
+* xpololz (~xpo@203.80-203-124.nextgentel.com) has joined #modula-2
+* xpololz has quit (Ping timeout: 255 seconds)
+* ttmrichter has quit (Quit: Leaving)
+<trijezdci> http://www.modula2.net/resources/m2r10/M2R10.IssueTracker.20120714.pdf
+* sinuhe (~sinuhe@kaptah.deevans.net) has joined #modula-2
+* xpololz (~xpo@80.203.124.203) has joined #modula-2
+* xpololz has quit (Ping timeout: 250 seconds)
+* sinuhe has quit (Quit: leaving)
+* ttmrichter (~ttmrichte@61.184.205.204) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+<trijezdci> ttmrichter: http://www.modula2.net/resources/m2r10/M2R10.IssueTracker.20120714.pdf
+<ttmrichter> 36 outstanding issues?
+<ttmrichter> I'd say that's a wrap.  Print it and ship it.  :D
+* ttmrichter is being sarcastic about traditional software development cycles here.
+<trijezdci> heh
+<trijezdci> Rick has only reviewed up to page 60 yet
+<trijezdci> of course most of the remainder after that is not text but tables and appendices w grammar and diagrams etc
+<trijezdci> so there will be another 25 or 30 pages of text to go through
+<trijezdci> possibly leading to another 15-20 issues
+<trijezdci> anyway, those issues are almost all editorial
+<trijezdci> polishing the text, not the design
+<trijezdci> we have one issue that requires two more constants to be added to pseudo-module COMPILER
+<ttmrichter> Have you decided on 1_234_567 yet?
+<trijezdci> not yet
+<trijezdci> I don't want to distract Rick now from the document review
+<trijezdci> ttmrichter: what do you think about issue #20
+<trijezdci> ?
+<ttmrichter> I don't think array access notation implies an ordered collection myself.
+<ttmrichter> Of course I'm used to languages dating back to SNOBOL4 where arrays were associative, not sequenced.
+<trijezdci> and what about the choice of array notation instead of EXCL(set, elem) and INCL(set, elem)
+<trijezdci> ?
+<trijezdci> ttmrichter: ?
+* xpololz (~xpo@80.203.124.203) has joined #modula-2
+<ttmrichter> Sorry.  Hit by major heat fatigue here.
+<ttmrichter> I prefer the array notation.
+* ttmrichter has quit (Quit: Leaving)
+<trijezdci> http://www.modula2.net/resources/m2r10/M2R10.IssueTracker.pdf
+<trijezdci> http://www.modula2.net/resources/M2R10.pdf (updated)
+<trijezdci> http://www.modula2.net/resources/m2r10/spec.versionlog.txt
+* xpololz has quit (Ping timeout: 248 seconds)
+* Mephisto has quit ()
+* ttmrichter (~ttmrichte@60.169.25.157) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+<trijezdci> hi ttmrichter 
+* john_metcalf (~digital_w@146.90.17.56) has joined #modula-2
+* javar (~javier@87.pool85-55-50.dynamic.orange.es) has joined #modula-2
+* javar has quit (Quit: javar)
+* javar (~javier@87.pool85-55-50.dynamic.orange.es) has joined #modula-2
+* javar has quit (Quit: javar)
+* javar (~javier@87.pool85-55-50.dynamic.orange.es) has joined #modula-2
+* javar has quit (*.net *.split)
+* javar (~javier@87.pool85-55-50.dynamic.orange.es) has joined #modula-2
+* sinuhe (~sinuhe@209.51.60.107) has joined #modula-2
+* ttmrichter has quit (Quit: Leaving)
+* john_metcalf has quit (Quit: john_metcalf)
+* john_metcalf (~digital_w@146.90.17.56) has joined #modula-2
+* john_metcalf has quit (Quit: john_metcalf)
+* xpololz (~xpo@80.203.124.203) has joined #modula-2
+* javar has quit (Quit: javar)
+* javar (~javier@87.pool85-55-50.dynamic.orange.es) has joined #modula-2
+* sinuhe has quit (Quit: leaving)
+* javar has quit (Quit: javar)
+* xpololz has quit (Ping timeout: 244 seconds)
+* ttmrichter (~ttmrichte@60.169.25.155) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+* trijezdci has quit (Quit: trijezdci)
+* trijezdci (~trijezdci@80.187.201.110) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+<trijezdci> hi ttmrichter, how's the heat wave going?
+<ttmrichter> I had heat stroke the day before.
+<ttmrichter> Still having problems associated with that.
+<ttmrichter> (Headache and a nasty strep infection in the throat that got in while my defences were down.)
+* trijezdci has quit (Ping timeout: 265 seconds)
+* trijezdci (~trijezdci@80.187.201.110) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Ping timeout: 250 seconds)
+* javar (~javier@227.pool85-55-39.dynamic.orange.es) has joined #modula-2
+* javar has quit (Quit: javar)
+* javar (~javier@227.pool85-55-39.dynamic.orange.es) has joined #modula-2
+* sinuhe (~sinuhe@209.51.60.45) has joined #modula-2
+* xpololz (~xpo@80.203.124.203) has joined #modula-2
+* javar has quit (Read error: Connection reset by peer)
+* javar_ (~javier@227.pool85-55-39.dynamic.orange.es) has joined #modula-2
+* javar_ is now known as javar
+* ttmrichter has quit (Quit: Leaving)
+* trijezdci (~trijezdci@ip-109-84-0-99.web.vodafone.de) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Quit: trijezdci)
+* javar has quit (Quit: javar)
+* javar (~javier@227.pool85-55-39.dynamic.orange.es) has joined #modula-2
+* Jomu has quit (Remote host closed the connection)
+* trijezdci (~trijezdci@48.80.81.79.rev.sfr.net) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* sinuhe has quit (Quit: leaving)
+* javar has quit (Quit: javar)
+* xpololz has quit (Read error: Operation timed out)
+* ttmrichter (~ttmrichte@61.184.205.57) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+* trijezdci_ (~trijezdci@27.240.192.77.rev.sfr.net) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci_
+* trijezdci has quit (Ping timeout: 252 seconds)
+* trijezdci_ is now known as trijezdci
+* trijezdci has quit (Quit: trijezdci)
+* javar (~javier@227.pool85-55-39.dynamic.orange.es) has joined #modula-2
+* trijezdci (~trijezdci@194.230.155.13) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@194.113.59.45) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* sinuhe (~sinuhe@209.51.60.122) has joined #modula-2
+<trijezdci> http://modula2.net/m2r10.shtml
+<trijezdci> in lieu of a proper website, for now ...
+* xpololz (~xpo@80.203.124.203) has joined #modula-2
+* trijezdci has quit (Quit: trijezdci)
+* ttmrichter has quit (Quit: Leaving)
+* sinuhe has quit (Quit: leaving)
+* sinuhe (~sinuhe@209.51.60.122) has joined #modula-2
+* javar has quit (Quit: javar)
+* sinuhe has quit (Quit: leaving)
+* trijezdci (~trijezdci@27.240.192.77.rev.sfr.net) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* xpololz has quit (Ping timeout: 248 seconds)
+* ttmrichter (~ttmrichte@60.55.8.21) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+* ttmrichter_ (~ttmrichte@60.169.25.157) has joined #modula-2
+* ChanServ gives voice to ttmrichter_
+* ttmrichter_ has quit (Client Quit)
+* ttmrichter_ (~ttmrichte@60.55.8.21) has joined #modula-2
+* ChanServ gives voice to ttmrichter_
+* ttmrichter has quit (Disconnected by services)
+* ttmrichter_ is now known as ttmrichter
+* trijezdci has quit (Quit: trijezdci)
+* trijezdci (~trijezdci@194.230.155.29) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci_ (~trijezdci@194.230.159.95) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci_
+* trijezdci_ has quit (Read error: Connection reset by peer)
+* trijezdci has quit (Ping timeout: 248 seconds)
+* trijezdci (~trijezdci@194.113.59.45) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+<trijezdci> ttmrichter: it has been suggested that we should drop variadic calling convention #2 (explicit variadic counter) to reduce complexity
+<trijezdci> this is a convention only really intended for mapping to C APIs where there is a variadic counter but not immediately before the variadic list
+<trijezdci> those cases are admittedly rare in C APIs but they do exist
+<ttmrichter> Given that C is currently *the* lingua franca of computing, you should keep it.
+<ttmrichter> http://www.txt.io/t-2fw4y
+<trijezdci> I was thinking of alternatives
+<trijezdci> first, we only need to support mapping to a C function that has such an oddball signature
+<trijezdci> we do not need to support implementing such an oddball function in M2
+<trijezdci> I think
+<trijezdci> if we follow this line of thought, we could imagine a pragma to modify the semantics of the regular use case #1
+<trijezdci> for example
+<trijezdci> mapping to a C function like this:
+<trijezdci> void Foo( unsigned count, char ch, ... );
+<trijezdci> where the counter is not immediately before the variadic list
+<trijezdci> could be done with a pragma like so:
+<trijezdci> PROCEDURE Foo ( <* VCOUNT=CARDINAL *> ch : CHAR; v : VARIADIC OF INTEGER ) <* FFI="C" *>;
+<trijezdci> you could map to the C function this way, but you couldn't implement the oddball in M2
+<trijezdci> which is probably a good thing
+<trijezdci> this VCOUNT pragma would only be legal if the FFI="C" pragma is specified for the scope
+<trijezdci> what do you think of this?
+<trijezdci> ttmrichter: M2 uses quite a few lines for hello-world too
+<ttmrichter> I pointed that out.  But I also pointed out how much the ceremony *scales* is the important point.
+<ttmrichter> If, like Java or C++, every line you add involves more ceremony, then you've got a problem.
+* javar (~javier@227.pool85-55-39.dynamic.orange.es) has joined #modula-2
+<trijezdci> ttmrichter: what do you think about that pragma approach?
+<ttmrichter> I'd actually find that more complex than the use of an alternative syntax.
+<trijezdci> the downside of proper syntax is that it increases the volume of possible procedure types that must be checked for assigning procedures to procedure variables
+<trijezdci> and you need support for implementation, not just mapping to C
+<trijezdci> I like the idea of not being able to implement the oddball C use cases in M2 but only map to them
+<ttmrichter> Making C interop difficult kills languages dead, unfortunately.
+<trijezdci> a pragma seems to be better suited to a) not allowing implementation, only mapping and b) not allowing assignment to procedure variables
+<trijezdci> yeah, its a drag
+* javar has quit (Quit: javar)
+<trijezdci> another concern is that if you make this proper syntax, then users will want to use it for Modula-2 implementations
+<trijezdci> whereas this is a use case that shouldn't be implemented but only mapped to if some idiot felt they have to do such an oddball function in C
+<ttmrichter> That's a fair concern.  You could mandate that use of it outside the context of an FFI pragma is a mandatory warning?
+* javar (~javier@227.pool85-55-39.dynamic.orange.es) has joined #modula-2
+<trijezdci> well, it if was a pragma, then the pragma would only be legal if it was within the scope of an FFI="C" pragma
+<trijezdci> either module scope or procedure scope
+<ttmrichter> Actually there's a part of me that says variadic functions are unnecessary if you have, you know, arrays.  :D
+<trijezdci> not for the kind of use cases used in Cocoa with values and keys
+<ttmrichter> That's FFI.
+<trijezdci> initWithValuesAndKeys( "foo", 123, "bar", 345, "baz", 567 )
+<trijezdci> well, I am bringing this on as a legit use case for variadics
+<trijezdci> you have alternatiing types there
+<trijezdci> keysAndValues actually
+<trijezdci> but anyway
+<trijezdci> this you'd have to use an array of a record with two components
+<ttmrichter> That's where tuples would be a nice construct.
+<trijezdci> then you'd have oodles of curly braces
+<trijezdci> InitWithKeysAndValues( { {"foo", 123}, {"bar", 234}, ...})
+<ttmrichter> Or parens.  Technically you can view a function foo(a,b,c,d) as a function invocation foo with a single tuple parameter.
+<ttmrichter> With syntax sugar on the definition side for directly accessing named members.
+<trijezdci> but that requires a completely different type equivalence system
+<trijezdci> strict name equiv is out the window
+<trijezdci> which has other drawbacks
+<ttmrichter> You've got a few other structural equivalence systems in there already, no?
+<trijezdci> we do allow this {} notation for the entire variadic list though
+<trijezdci> I have looked at tuples as types and other approaches,  trust me, this one we have now is the most straightforward
+<trijezdci> the only trouble are the odd 0.00001% use cases in C
+<trijezdci> to be mapped from M2
+<trijezdci> the vast majority of uses of variadics in C use a list terminator value
+<trijezdci> we cover that nicely
+<trijezdci> its just those very very rare counter use cases where the counter isn't immediately before the variadic args
+<trijezdci> and people seem to be confused when they read the spec
+<trijezdci> because they can't easily tell the difference between 1 and 2
+<trijezdci> the immediatly before varargs and not immediately before varargs counter
+<trijezdci> plus, you can at present implement the 2nd case (not immediately before the varargs)
+<trijezdci> once this gets into the code base and becomes legacy code, you can't remove the feature easily then
+<trijezdci> and people should only be using #1 and #2 uses
+<ttmrichter> Yeah, given that you want to discourage that style in M2 proper, but need it for the weird edge cases of C APIs from Hell, perhaps the pragma approach is best then.
+<trijezdci> yeah, need to sleep over this some more
+<trijezdci> it also would allow mapping to printf and consorts
+<trijezdci> <*VCOUNT=NONE*>
+<trijezdci> you certainly wouldn't want to allow that to be implemented in M2 proper
+* xpololz (~xpo@80.203.124.203) has joined #modula-2
+<trijezdci> heh
+<trijezdci> Springer is considering printing the Modula-2 R10 spec
+<trijezdci> same publishing house as Wirth's PIM
+<trijezdci> but we may have to add a non-specification part like in Wirth's PIM
+<javar> Springer is a prestigious publisher 
+<trijezdci> indeed
+<ttmrichter> Yeah, I'd go through whatever hoops they'd want you to go through.
+<ttmrichter> Get your name published by Springer, get a lot of prestige.
+<ttmrichter> I assume the "non-specification part" is an informal discussion of the structure and semantics?
+* trijezdci has quit (Quit: trijezdci)
+* sinuhe (~sinuhe@209.51.48.72) has joined #modula-2
+* trijezdci (~trijezdci@194.230.159.95) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+<trijezdci> ttmrichter: WIrth's PIM is structured into two parts
+<trijezdci> one is a general programming text using Modula-2
+<trijezdci> the other is the language description
+<trijezdci> I guess Springer are used to that formal
+<trijezdci> format
+<ttmrichter> Yeah, that's a good format anyway.
+<trijezdci> they probably don't see themselves as an O'Reilly type publishing house
+<trijezdci> they probably want a bit more than just a technical specification
+<ttmrichter> Are you soliciting writing for the general portion?
+<trijezdci> we could do either of two things
+<trijezdci> 1) do like Wirth, add a general programming part
+<trijezdci> 2) write about how we designed the revision
+<trijezdci> what challenges we faced, what the objectives were, how we accomplished what we did
+<trijezdci> I need to wait until Springer get back to me and let me know their ideas
+<trijezdci> then I will discuss with Rick how we go about it
+<trijezdci> if there needs to be a general programming part added, I guess Rick will want to take the lead on that because that is his field, he's already written a couple of Modula-2 books
+<trijezdci> but if we can get a deal with Springer that would be fantastic
+<trijezdci> it would lend so much credibility to the project
+<trijezdci> after all that's where PIM was released
+<trijezdci> so we'd sort of get an official seal of approval to continue the PIM line
+<trijezdci> then if Wirth also agrees to write the foreword, it would seal the succession
+<trijezdci> even the ISO Modula-2 official website now lists us as a new standardisation effort
+<trijezdci> this is what I like about reviving a dead language
+<trijezdci> you get all the name recognition but don't have to worry about installed base
+<trijezdci> imagine you would do as many changes as we did but for a language still in use
+<trijezdci> and you're not the original author
+<trijezdci> you'd get quartered, hanged and shot
+<trijezdci> I think I have figured out how to map to printf and consorts
+<trijezdci> PROCEDURE printf( fmt : ARRAY OF CHAR; p :  SYSTEM.OPENARGLIST ) <* FFI="C" *>;
+<trijezdci> or maybe UNSAFEARGLIST
+<trijezdci> yeah I like that one
+<trijezdci> it has the word FEAR in it
+<trijezdci> very appropriate
+<trijezdci> PROCEDURE printf( fmt : ARRAY OF CHAR; p :  SYSTEM.UNSAFEARGLIST ) <* FFI="C" *>;
+* ttmrichter ponders updating the SNOBOL4 spec to SNOBOL2012.  :D
+* ttmrichter has quit (Quit: Leaving)
+* trijezdci has quit (Ping timeout: 245 seconds)
+* javar has quit (Read error: Connection reset by peer)
+* javar (~javier@227.pool85-55-39.dynamic.orange.es) has joined #modula-2
+* trijezdci (~trijezdci@27.240.192.77.rev.sfr.net) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* john_metcalf (~digital_w@146.90.17.56) has joined #modula-2
+<trijezdci> http://en.wikipedia.org/wiki/Variadic_function#Modula-2
+* javar has quit (Quit: javar)
+* javar (~javier@227.pool85-55-39.dynamic.orange.es) has joined #modula-2
+* sinuhe has quit (Quit: leaving)
+* javar has quit (Quit: javar)
+* xpololz has quit (Ping timeout: 252 seconds)
+* ttmrichter (~ttmrichte@61.183.22.204) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+* trijezdci has quit (Quit: trijezdci)
+* john_metcalf has quit (Ping timeout: 248 seconds)
+* trijezdci (~trijezdci@194.113.59.45) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+<trijezdci> hi ttmrichter, how are you today? recovered yet?
+<ttmrichter> Yeah.  But it's a pretty nasty day today.  Living in front of a fan and chugging tea all day.  :)
+* xpololz (~xpo@80.203.124.203) has joined #modula-2
+<trijezdci> heh, that wakes old memories
+* john_metcalf (~digital_w@146.90.17.56) has joined #modula-2
+* javar (~javier@227.pool85-55-39.dynamic.orange.es) has joined #modula-2
+<trijezdci> ttmrichter: how do you like this: http://modula2.net/resources/m2r10/M2R10.UnsafeVariadics.pdf
+<trijezdci> 1 page
+<trijezdci> look at the tracking marks
+<trijezdci> s/at/for
+* javar has quit (Quit: javar)
+* javar (~javier@227.pool85-55-39.dynamic.orange.es) has joined #modula-2
+* javar has quit (Quit: javar)
+* javar (~javier@227.pool85-55-39.dynamic.orange.es) has joined #modula-2
+* javar has quit (Quit: javar)
+* javar (~javier@227.pool85-55-39.dynamic.orange.es) has joined #modula-2
+* sinuhe (~sinuhe@209.51.60.115) has joined #modula-2
+* john_metcalf (~digital_w@146.90.17.56) has left #modula-2
+* ttmrichter has quit (Quit: Leaving)
+* javar has quit (Quit: javar)
+* javar (~javier@227.pool85-55-39.dynamic.orange.es) has joined #modula-2
+* trijezdci has quit (Quit: trijezdci)
+* javar has quit (Quit: javar)
+* sinuhe has quit (Quit: leaving)
+* trijezdci (~trijezdci@194.230.159.124) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Quit: trijezdci)
+* trijezdci (~trijezdci@194.230.159.124) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Ping timeout: 246 seconds)
+* trijezdci (~trijezdci@27.240.192.77.rev.sfr.net) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* john_metcalf (~digital_w@146.90.17.56) has joined #modula-2
+* kyuss (~slawek@91.228.56.121) has joined #modula-2
+* john_metcalf (~digital_w@146.90.17.56) has left #modula-2
+* kyuss has quit (Read error: Connection reset by peer)

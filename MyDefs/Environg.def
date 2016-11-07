@@ -1,0 +1,10 @@
+DEFINITION MODULE Environg;
+
+
+PROCEDURE GetCommandLine(VAR CommandLine : ARRAY OF CHAR);
+(* 
+  Gets the entire command line as I would get on Stony Brook under Windows.  Linux calls all only get individual 
+  arguments which is the unix standard as far back as the 70s K&R book on C.  I combine them all here.
+*)
+
+END Environg.

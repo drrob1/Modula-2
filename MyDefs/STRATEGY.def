@@ -1,0 +1,21 @@
+DEFINITION MODULE STRATEGY;
+  FROM UTILLIB IMPORT STR10TYP,STRTYP;
+
+CONST
+  OptionName : ARRAY [0..4] OF STR10TYP = {'S  ','H  ','D  ','SP ','SUR'};
+
+TYPE
+  OptionEnum = (S,H,D,SP,SUR); (* Stand, Hit, Double, Split, Surrender *)
+  OptionEnumRow = ARRAY [1..10] OF OptionEnum;
+
+VAR
+  Strategy : ARRAY [5..21] OF OptionEnumRow;
+  SoftStrategy : ARRAY [2..11] OF OptionEnumRow;
+  PairStrategy : ARRAY [1..10] OF OptionEnumRow;
+  StratErrorFlag : BOOLEAN;
+  OpenFileName,filter : STRTYP;
+
+PROCEDURE GETSTRATEGIES;
+PROCEDURE PUTSTRATEGIES;
+
+END STRATEGY.

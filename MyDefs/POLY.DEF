@@ -1,0 +1,131 @@
+DEFINITION MODULE Poly;
+
+        (********************************************************)
+        (*                                                      *)
+        (*              Polynomial arithmetic                   *)
+        (*      This version uses a vector representation       *)
+        (*                                                      *)
+        (*  Programmer:         P. Moylan                       *)
+        (*  Last edited:        29 May 1995                     *)
+        (*  Status:             OK                              *)
+        (*                                                      *)
+        (********************************************************)
+
+(************************************************************************)
+(*                      IMPORTANT CONVENTION                            *)
+(*                                                                      *)
+(* Most of the procedures in this module use "INOUT" parameters for     *)
+(* their results.  It is assumed that you are likely to want to re-use  *)
+(* variables (especially where a calculation involves temporary         *)
+(* variables for intermediate results), so it's likely that the         *)
+(* variable that will receive the result already has a valid value      *)
+(* before the call.  In such a case there is an implicit "Destroy"      *)
+(* operation that recovers the space occupied by the old value, before  *)
+(* that value is replaced by the new result.                            *)
+(*                                                                      *)
+(* The internal calculations are ordered in such a way that the new     *)
+(* result is calculated before the old value is destroyed.  This allows *)
+(* you to use operations like Add(A,B,A) safely; the old value of A     *)
+(* is fetched correctly before it is overwritten by the result.         *)
+(*                                                                      *)
+(* The price to be paid for this flexibility is that you _must_ do an   *)
+(* "Init" operation on every variable before the first time you use it. *)
+(* If you forget the "Init", this module might try to do a "DISPOSE"    *)
+(* using an invalid pointer.                                            *)
+(*                                                                      *)
+(************************************************************************)
+
+TYPE
+    Polynomial;         (* is private *)
+    CoeffType = LONGREAL;
+
+(************************************************************************)
+(*              CREATING AND DESTROYING POLYNOMIALS                     *)
+(************************************************************************)
+
+PROCEDURE Init (VAR (*OUT*) P: Polynomial);
+
+    (* This should be the first operation performed on P, since this    *)
+    (* module needs to keep track of which polynomials have already had *)
+    (* space allocated for them.  It creates the zero polynomial.       *)
+
+PROCEDURE Assign (VAR (*INOUT*) P: Polynomial;
+                                coeffs: ARRAY OF CoeffType);
+
+    (* Creates a polynomial with specified coefficients.  The previous  *)
+    (* value, if any, is lost.  The coefficients are specified from     *)
+    (* low to high degree; for example, the coefficient set specified   *)
+    (* by the array (1.0, 2.0, 3.0) gives the second-degree polynomial  *)
+    (* 1.0 + 2.0*x + 3.0*x^2.                                           *)
+
+PROCEDURE Destroy (VAR (*INOUT*) P: Polynomial);
+
+    (* Deallocates the space occupied by P.  P is still considered to   *)
+    (* exist, and its value is the zero polynomial.  The difference     *)
+    (* between Init and Destroy is that Init assumes that the input     *)
+    (* value of P is random rubbish, whereas Destroy assumes that P     *)
+    (* is properly structured as a polynomial (i.e. that an Init has    *)
+    (* previously been done on it).                                     *)
+
+(************************************************************************)
+(*                      THE BASIC OPERATIONS                            *)
+(************************************************************************)
+
+PROCEDURE Degree (P: Polynomial): INTEGER;
+
+    (* Returns the degree of P, i.e. the power of the most significant  *)
+    (* term.  The degree of a constant is 0, but the degree of the      *)
+    (* constant 0.0 is defined to be -1.                                *)
+
+PROCEDURE Negate (P: Polynomial);
+
+    (* P := -P.  This is an in-place operation, i.e. the original       *)
+    (* value of P is overwritten.                                       *)
+
+PROCEDURE Add (A, B: Polynomial;  VAR (*INOUT*) C: Polynomial);
+
+    (* Computes C := A + B. *)
+
+PROCEDURE Sub (A, B: Polynomial;  VAR (*INOUT*) C: Polynomial);
+
+    (* Computes C := A - B. *)
+
+PROCEDURE Mul (A, B: Polynomial;  VAR (*INOUT*) C: Polynomial);
+
+    (* Computes C := A*B. *)
+
+PROCEDURE Div (A, B: Polynomial;  VAR (*INOUT*) Q, R: Polynomial);
+
+    (* Computes A/B.  On return the quotient is Q and the       *)
+    (* remainder is R.                                          *)
+
+(************************************************************************)
+(*                      ROOTS OF POLYNOMIALS                            *)
+(************************************************************************)
+
+PROCEDURE Mueller (P: Polynomial;  VAR (*OUT*) root: LONGCOMPLEX);
+
+    (* Finds one root of the equation P(x) = 0 by Mu"llers method.      *)
+
+PROCEDURE Newton (P: Polynomial;  VAR (*INOUT*) root: LONGCOMPLEX);
+
+    (* Improves an initial guess at a root of the equation P(x) = 0 by  *)
+    (* Newton's method.  We assume that the input value of root is      *)
+    (* close enough to make Newton's method appropriate.                *)
+
+PROCEDURE FindRoots (P: Polynomial;  VAR (*OUT*) roots: ARRAY OF LONGCOMPLEX);
+
+    (* Finds all (we hope) the solutions to P(x) = 0. *)
+
+(************************************************************************)
+(*                          SCREEN OUTPUT                               *)
+(************************************************************************)
+
+PROCEDURE Write (P: Polynomial;  places, linesize: CARDINAL);
+
+    (* Writes P to the screen, where each coefficient is allowed to be  *)
+    (* up to "places" characters wide, and "linesize" is the number of  *)
+    (* characters allowed before we have to wrap onto a new line.       *)
+
+END Poly.
+

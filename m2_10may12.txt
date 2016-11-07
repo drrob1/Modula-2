@@ -1,0 +1,281 @@
+<sinuhe> Why was Oberon extended with Oberon-07, not Oberon-2? How does Oberon-07 affect Oberon-2?
+<sinuhe> s/extended/revised/
+<Jomu> there was oberon 2
+<Jomu> iirc
+<Jomu> oberon 07 is like oberon 2007
+<sinuhe> Oberon-07 is revised Oberon. That's the question, though. Oberon-2 seemed to be an extension. With Oberon-07 being a required revision (i.e. it replaces Oberon), does that affect Oberon-2 (being an enhancement)? Why was Oberon revised, not Oberon-2? Is it because Oberon-2 is an enhancement? Is Oberon-2 to be revised to match? Is Oberon-2 deprecated with the original Oberon? The only thing that was clear from the 07 report is that Oberon is to be repla
+<sinuhe> What is curious with Oberon-2 is the Component Pascal revision. It almost seems like Oberon-2 was a side project, and Oberon-07 is a continuation of Wirth's vision. To Wirth, it *appears* Oberon-2 is abandoned, and Oberon-07 is the intended revision, but that's all speculation.
+<Jomu> vision is good word :)
+<Jomu> oberon is not too practical, it's visiony thing :)
+<Jomu> and Component Pascal is where Wirth franchise went
+<Jomu> I don't think many people here are fans of Oberon
+<sinuhe> Jomu: It appears that Oberon-2, Active Oberon, and Component Pascal are part of what you call the franchise. (More specifically, the CS department at ETH Zurich.) However, Oberon (now Oberon-07) appears to be the official successor to Modula-2 in Wirth's eyes. Having compared by copy of PIM4 and the Oberon reports, Oberon seems more refined than Modula-2, mostly in good ways. I didn't like the loss of the for loop, but this can be expressed in other w
+<sinuhe> Well, the CS department, and the new Native Oberon company.
+<sinuhe> Why would you say that people here would not be fans of Oberon?
+<sinuhe> s/by copy/my copy/
+<Jomu> because in my opinion - we/they are not :)
+<sinuhe> Jomu: Let me rephrase the question. :) What don't you like about Oberon (as in PIO, not Oberon-2 etc.)?
+<Jomu> last time I checked, and it was long time ago. as in - very long time ago
+<Jomu> it was too simplified
+<Jomu> wirth took experimental route I did no like and did not care much for
+<Jomu> a friend of mine, also modula-2 man, and I agreed - Wirth makes mistakes, too :)
+<Jomu> pascal - good, modula - nothing special, modula-2 - good, oberon - again nothing special... :))
+<Jomu> at that point I went modula-3 way and lost interest in latest and greatest wirthian toy :)
+<Jomu> except modula-3 is blessed by wirth and came after oberon
+<Jomu> which makes it third time our observed rule worked like a charm :)
+<Jomu> I tries oberon system few times on my computers... it was interesting to look at and nothing else
+<Jomu> tried*
+<Jomu> while modula-2 and modula-3 are both excellent languages I did 100,000's of LOC in
+<sinuhe> What? Wirth makes mistakes? I protest. ;)
+<sinuhe> Oberon-2 was blessed by Wirth as well.
+<sinuhe> I'm not sure I'd consider Modula-3 blessed by Wirth, so much as allowed to use the Modula name. Oberon-2, however, I understand was actually worked on by Wirth, though he wasn't the instigator.
+<sinuhe> Oberon has some features that Modula-2 does not (at least in its PIM version), and the loss of some of the features of Modula-2 I haven't found debilitating or irritating (though I have got used to the for loop and sometimes use it anyway, then change it back when I'm done). I haven't used Oberon enough, yet, however to really be able to say one way or the other.
+<Jomu> name and intended direction. he agreed with design objectives, iirc
+<Jomu> I think no enumerated type is kind of debilitating :)
+<Jomu> but, I went different way long time ago. these days I am 90% modula-3 and 10% modula-2, in wirthian piece of my programming experience :)
+<sinuhe> Jomu: Have you looked at Zonnon?
+<Jomu> a bit
+<Jomu> neowirthian :)
+<Jomu> M: array 13, 13 of integer;
+<Jomu> why then: M[i, j] ? :)
+<Jomu> why not M i, j :)
+<Jomu> Oberonism: no interface module
+<sinuhe> Modula-2 guys and features. Pish, pish. ;)
+<Jomu> this is Zonnon :)
+<Jomu> no modula-2 :)
+<sinuhe> I was responding to the 'Oberonism'
+<Jomu> and if you think interface module is bad thing,
+<Jomu> ok, your problem :)
+<sinuhe> Heh
+<Jomu> go zonnon :)
+<Jomu> I like notion of separate compilation
+<Jomu> and for teamwork - it is crucial
+<sinuhe> Separate compilation was a Pascal problem, not an 'Oberonism'
+<Jomu> how so?
+<Jomu> separate compilation is something oberon escaped from
+<Jomu> like wirth was ashamed of concept, or something like :)
+<Jomu> also - zonnon follows oberon there
+<Jomu> it looks nice in zonnon, but it is as practical as * was in oberon
+<Jomu> or whatever they used to mark public objects
+<Jomu> oberonosmoCism :)
+<sinuhe> Whether you compile a procedure by itself, or compile it wrapped in a module, it seems the same to me.
+<Jomu> it can be so. but then you are missing some fine points of software engineering.
+<trijezdci> Folks, Oberon-2 is not Wirth's language
+<trijezdci> its Moessenboeck's baby, with supervision from Wirth
+<trijezdci> Likewise Component Pascal is not really Wirth's creation either
+<trijezdci> this is an initiative of ETHZ folk to take Oberon-2 commercial and they invited Wirth to join their board of directors
+<trijezdci> was*
+<trijezdci> if there is any Wirth Oberon-2, then it is Oberon-07
+<trijezdci> Oberon and Oberon-07 are Wirth creations
+<trijezdci> as for separation of interface and implementation, this is absolutely essential for a systems development language
+<trijezdci> for a scripting or web language, perhaps not
+<Jomu> yes - for a scripting/web
+<Jomu> I agree
+<Jomu> and for everything else - separation is essential
+<Jomu> full separation, not .h 
+<ttmrichter> Ahoy.
+<Jomu> ahoy :)
+<Jomu> I know, everybody else alread saw zonnon and discussed it... but - what a nightmare :)
+<Jomu> await on expression - meaning some kind of VM implementation or what? polling?
+<Jomu> zero based indices, so BCPL :)
+<Jomu> no static initializers, apparently
+<trijezdci> Zonnon was paid for by MSFT and is specifically designed to be .NET
+<trijezdci> and ... Ahoj to you guys :)
+<trijezdci> in Czech it can mean both "hi" and "bye"
+<ttmrichter> Ahoy is just a general greeting in English.  It can mean hi and bye here too.  :)
+<Jomu> thats because it's etymology is middle english :)
+<sinuhe> trijezdci: I think you restated what I said. Oberon-2 seems to have been absorbed into the ETH and Native Oberon culture in its Active Oberon and Component Pascal forms. It is curious, however, that the Oberon-2 report, and the printed version of Programming in Oberon includes material on Oberon-2.
+<sinuhe> (that the Oberon-2 report includes Wirth's name)
+<sinuhe> I will appeal to ignorance here, however, as I am new to the Oberon family in general.
+<Jomu> :)
+<sinuhe> I'm one of those Unix guys.
+<Jomu> :)
+<Jomu> so what?
+<Jomu> I mean, Unix
+<Jomu> is it punishable?
+<sinuhe> I was introduced to Pascal through Kernighan's Software Tools in Pascal (which was far less grating that the Fortran/Ratfor version). Love it. When I got in to Modula-2, it just seemed to fix all the Pascal problems. Oberon came on my radar with Acme when Plan 9 went open source.
+<sinuhe> I've been interested in it for awhile, but only recently obtained the Martin Reiser/Wirth PIO text.
+<Jomu> oberon is not of interest to most people doing serious work
+<Jomu> esp system level
+<Jomu> it's kind of wirth success in "teaching language" line
+<Jomu> good for teaching, probably
+<Jomu> but nothing else
+<ttmrichter> Aren't the later Oberons better in this regard?
+<sinuhe> The authoring of an operating system seems like serious work to me. As to most people, I hear that a lot from proponents of different languages.
+<Jomu> no problem. no money here in dispelling myths for you :)
+<Jomu> ttmrichter probably, but I did not care/check :)
+<Jomu> oberon was deep enough
+<Jomu> sinuhe remember DATA lines in basic?
+<Jomu> or DAT
+<Jomu> whatever it was :))
+<ttmrichter> sinuhe: Authoring a whole operating system, complete with utilities, etc. is a lot of work, yes.
+<ttmrichter> But writing a kernel isn't.
+<Jomu> kernel can be written in assembler, and it was - lot of times
+<ttmrichter> Pretty much all OSes until Unix, in fact, were written in assembler.
+<ttmrichter> Multics was in PL/1 if memory serves.
+<sinuhe> The only BASIC I touched was on an Atari 800 XL in 1982.
+<ttmrichter> Aside from that, you wrote your kernel and core utilities in assembler and then the rest in whatever high level language was in favour (often BASIC).
+<sinuhe> ttmrichter: Are you saying that you don't think the Oberon System kernel could have been written in Oberon? (I don't know much about the Oberon System.)
+<Jomu> oberon system was not much of operating system
+<Jomu> more like low level shell
+<ttmrichter> sinuhe: No, I'm saying that kernels are trivial enough that you can write one up from scratch in assembler without a great deal of difficulty.
+<sinuhe> Unix was the first system written in a high level language.
+<ttmrichter> Nonsense.
+<ttmrichter> Multics was in PL/1.
+<sinuhe> The Multics kernel was not written in assembly? Perhaps I need to go back and reread some of my old computer texts.
+<sinuhe> s/system/system kernel/
+<ttmrichter> There were *portions* of the Multics kernel written in assembly, but the same is true of Unix.
+<sinuhe> Of the earlier Unix editions, yes, but not the later ones.
+<ttmrichter> http://web.mit.edu/multics-history/source/Multics_Internet_Server/Multics_sources.html
+<ttmrichter> *ALL* versions of Unix had some assembler.
+<sinuhe> Sure enough. Looking at the Edition 7 source, I'm seeing an assembler file.
+<ttmrichter> http://www.multicians.org/pl1.html
+<ttmrichter> "During my connection with Multics there never was any doubt that we'd use a higher level language. There was no question that it was possible: Burroughs had already written the B5000's operating system in a dialect of Algol."
+<ttmrichter> So not even Multics was first as an OS in a high level language.
+<sinuhe> I'm aware of the use of PL/I in Multics.
+<sinuhe> ttmrichter: You've made your point.
+<sinuhe> The context of the conversation of Jomu insinuating that I'm wasting my time with Oberon.
+<sinuhe> s/of Jomu/is Jomu/
+<ttmrichter> I think with Oberon proper you might be.
+<ttmrichter> It was a bit of an underpowered language.
+<ttmrichter> Oberon-2 was better.
+<ttmrichter> From what little I remember of it when looking at it.
+<sinuhe> So far, it looks like Modula-2 with pieces removed, and some pieces added. Of course, I'm just beginning.
+<sinuhe> Of course, I'm comparing with PIM4, not ISO Modula-2.
+<Jomu> What platforms is Oberon-02..07 available on?
+<trijezdci> Oberon is mostly Windows
+<trijezdci> and there is that Oberon OS that has Oberon at its core
+<trijezdci> this is the problem with Oberon for serious use, its an island solution
+<trijezdci> it has very little regard for the need to interface with the rest of the world
+<trijezdci> O7 is probably a windows hosted compiler that generates code for some embedded processor
+<trijezdci> O7 was designed to write the embedded software for a model helicopter (wirth's hobby in retirement)
+<trijezdci> And ISO Modula-2 is a legacy thing now
+<trijezdci> Rick Sutcliffe (the editor of the ISO M2 standard) said that at his university the complexity of ISO M2 has contributed to abandoning M2 as a teaching language
+<trijezdci> he said that ISO file IO could not be taught to beginners because it was too complex and you needed concepts to explain the basics that are only introduced later and which require the basics to first be taught
+<trijezdci> ISO M2 is a very typical committee language
+<trijezdci> compromises and ballast
+<trijezdci> and its an entirely academic language
+<trijezdci> the prevailing notion at the committee was that once you get into system level features you can no longer be portable anyway, so system level features should be left to the implementor and no attempt should be made to standardise them
+<trijezdci> as a result the standard did not even try to standardise system level features
+<trijezdci> and that is where it lost out against C in the system development market
+<trijezdci> over time C managed to standardise system level features, even if ugly and badly but in the absence of any competitor it could afford to do so
+<trijezdci> Modula-2 did not even show up for the competition
+<sinuhe> I read one of the accounts of the ISO committee meetings for Modula-2, and it sounds like quite a few lost interest when they realized how crazy it got. I've stuck with PIM3/4 (I have the PIM4 hardcover on my shelf) for the Modula-2 work I do. I like it. It feels like Wirth Pascal, but with all irritating parts gone.
+<sinuhe> Is ISO Pascal incompatible with PIM4? In other words, if I write PIM4, will an ISO compiler be able to understand the source?
+<sinuhe> ISO Modula-2, sorry
+<sinuhe> not Pascal
+<sinuhe> (Trying to track down the -1 ISO standard doc seems impossible without paying the ISO $300)
+<sinuhe> Of course, GNU Modula-2 supports PIM4, so I haven't noticed any problems so far.
+<trijezdci> if you use SYSTEM, there are significant differences to make code editing necessary
+<trijezdci> also the IO library is totally different
+<trijezdci> some semantics are different too
+<trijezdci> for example char is compatible with array of char in ISO M2
+<trijezdci> as soon as you use the library, all compatibility will be out of the window
+<trijezdci> of course PIM4 didn't really have any library
+<trijezdci> just a few library modules which weren't really sufficient for serious development, which then caused the proliferation of different and incompatible libraries
+<trijezdci> your best bet will be to stick to using the PIM4 dialect and wait for R10 support in GM2, then move gradually to that
+<trijezdci> ISO M2 is a dead end IMO
+<trijezdci> and yes, it is true that people got simply disillusioned
+<trijezdci> I know because I was one of them ;-)
+<trijezdci> ISO M2 killed the language
+<trijezdci> now we have to work hard to revive it
+<trijezdci> BTW, there are a bunch of recommendations in PIM4 that no PIM4 compiler honours
+<trijezdci> but R10 does
+<trijezdci> for example, global variables should be read only outside the module they are defined in
+<sinuhe> That latter part I believe is a difference with Oberon. Oberon expects global variables to be available to modules.
+<sinuhe> It sounds like Modula-2 suffers from some of the same problems Pascal does, but for different reasons.
+<trijezdci> as far as I recall Oberon uses the same global variable semantics, that is, global vars can be written to, once they are imported
+<trijezdci> PIM4 recommends that global variables cannot be written to outside of the module they are defined in, they can be imported into other modules, but they are read-only when imported
+<trijezdci> Wirth recommended these semantics as preferred solution, followed by not allowing the use of global vars at all as a secondary solution
+<sinuhe> I think I must have misunderstood you, then, but you just stated what I understood.
+<sinuhe> s/but/because
+<sinuhe> Trailing slash. Sigh.
+<trijezdci> but it seems he has backtracked on this recommendation in Oberon
+<trijezdci> as in Oberon, global vars can be exported for write access
+<trijezdci> the recommendation was to provide a mutator function that alters the value of a global variable and then export that mutator function
+<trijezdci> this means the change of the variable is monopolised by the module
+<trijezdci> this is a serious advantage for safety
+<trijezdci> the only reason why you would write to a variable directly is that you are concerned about the cost of the function call
+<trijezdci> but that is an optimisation issue
+<trijezdci> an optimising compiler can very well inline the function's body if all it does is modify a variable
+<trijezdci> thus we have a case of premature optimisation in the language design when allowing write access to global vars
+<trijezdci> this flaw is fixed in R10 where Wirth's recommendation is not a recommendation but a requirement
+<trijezdci> another flaw of Oberon is the lack of structured literals
+<trijezdci> they even resorted to reintroducing BASIC's DATA statement
+<trijezdci> only that there is no DATA keyword
+<trijezdci> but in essence it is what Oberon is doing
+<trijezdci> unstructured data after the end of the program text is read in by some code within the program for initialising structured variables
+<trijezdci> this is insane
+<trijezdci> it clearly indicates that Oberon folk have acknowledged there is a need for initialisation of structured variables
+<trijezdci> but in their zealousness they reject introducing structured literals
+<trijezdci> so they resort to a way of doing it that is insane
+<trijezdci> just so the language does not add additional grammar
+<trijezdci> just so they can keep bragging rights for the smallest grammar
+<trijezdci> or smallest language spec (16 pages)
+<trijezdci> structured literals are a necessity, I would not use a language that does not have them
+<trijezdci> this was the only good thing coming out of ISO M2: structured literals
+<trijezdci> another flaw of Oberon is the lack of enumeration types
+<trijezdci> they make programs more readable, thereby better understandable and maintainable
+<trijezdci> following Knuth's philosophy of literate programming
+<trijezdci> again, I would not want to use a language that lacks enumeration types
+<trijezdci> overzealous simplicism there too
+<trijezdci> enum types were removed because the import of an enumeration type created a name conflict
+<trijezdci> there is a very simple solution to the problem: require enum elements to be qualified with the enum type name, eg colour.red, colour.green etc instead of just red and green
+<trijezdci> but Oberon simply through out enum types
+<trijezdci> R10 fixed that flaw too
+<trijezdci> the worst thing is the lack of separation of interface and implementation though
+<trijezdci> this means you cannot have interfaces for foreign implementations
+<trijezdci> Oberon is an island language, it ignores that there is a non-Oberon world that one needs to interface with
+<trijezdci> lack of unsigned integer types is another example of this island philosophy
+<trijezdci> in principle Wirth is right when he says that register sizes have become so large that an unsigned type is of little value
+<trijezdci> but in reality we have to interface with OS APIs which are C based
+<trijezdci> and if we haven't got unsigned integers in Oberon then mapping to APIs which use unsigned integers is a royal pain and error prone
+<trijezdci> Wirth seems to be obsesses with avoiding unsigned integers
+<trijezdci> his ONLY critical commentary on M2 R10 was that he would have omitted unsigned integers
+<trijezdci> anything else he was happy with
+<trijezdci> if he can convince the C folks to get rid of unsigned integers, and if we can mobilise another Y2K effort to eradicate the use of unsigned integers in legacy code, then hell yes, I would be fine with not having unsigned integers, but the real world out there is a different one
+<trijezdci> Also for a systems development language that targets embedded devices with 4 or 8 bit processors, unsigned types are just necessary
+<trijezdci> strangely Oberon-07 is aimed at embedded development
+<trijezdci> but I guess Wirth is using 32 bit embedded cpus for his model helicopters
+<trijezdci> if for some reason he'd have to use 8 bit cpus, you would see unsigned integers return to Oberon faster than you can say "unsigned"
+<sinuhe> Wow. Wall of text.
+<sinuhe> Jomu: You did warn me. ;)
+<sinuhe> I've primarily used GNU Pascal and GNU Modula-2. My Slackware systems use p2c, however. I haven't played with it much, but I know Mulley uses a modified version of it for boot strapping gm2. Have any of you used p2c with Modula-2? How does it fair with PIM3/4?
+<Jomu> data after module code is a feature :)
+<Jomu> everything-is-a-stream :)
+<Jomu> something like that
+<Jomu> crazy but with crazier system in it :)
+<trijezdci> Jomu, sure it's a feature, but insane nevertheless
+<trijezdci> sinuhe, no, have not used p2c
+<trijezdci> btw, the removal of LOOP in Oberon is IMO the smallest issue, I could live with that
+<trijezdci> it just surprises me that Wirth felt it would save enough complexity to justify removing it
+<trijezdci> I wouldn't be surprised if all he got out of its removal is saving 100 lines of code, if that
+<trijezdci> he could have saved more by removing all the other loops
+<trijezdci> because you can replace every loop construct with LOOP
+<trijezdci> its the most basic one
+<trijezdci> so logically, if removal of complexity is your prime goal, then you should remove all other loop constructs like WHILE and REPEAT, even FOR but keep LOOP around
+<trijezdci> that will save quite a bit of implementation effort
+<trijezdci> LOOP alone is not worth omitting really
+<trijezdci> of course those are structured programming features to make the source more structured and better readable => literate programming support
+<trijezdci> they are in for that
+<trijezdci> but then enums are removed
+<trijezdci> that makes no sense => inconsistent decision making
+<trijezdci> and separation of interface and implementation, while absolutely necessary for system development, it is also a literate programming feature
+<trijezdci> it helps separating the focus while developing
+<trijezdci> when you write the interface module, you put your user hat on => functional design
+<trijezdci> when you write the implementation module, you put your developer hat on => implementation of functional design
+<trijezdci> having them all in one place means there is less discipline in separating these two tasks
+<trijezdci> it also means that it is less readable for API users
+<trijezdci> if I buy a book, I look at the back of the book that gives me a summary of the content
+<trijezdci> this ought to be one page
+<trijezdci> if the author or publisher told me "No more summaries, just skim through the book and find the key locations to get your own summary" I would no longer buy books from them
+<trijezdci> its an insult to the customer
+<trijezdci> same with languages that do not separate interface and implementation
+<trijezdci> marking things with asterisks is like selling books with text where the table of contents is missing but in return certain passages are marked with a yellow marker
+<trijezdci> I do not want to have to bother skimming through a text to find things I need and figure out which are the important parts
+<trijezdci> I want a short summary that gives me ONLY the stuff I need, nothing more
+<trijezdci> separation of interface and implementation does that
+<trijezdci> and it ensures that the interface it is kept in line with the implementation
+<trijezdci> if you simply extract the interface description from the mumble bumble all in one file source, then you will eventually have an interface description that is not in sync
+<trijezdci> not separating the two is a cardinal error of software development that will one day be looked back at as "this is how things were done in the dark ages"
+<trijezdci> And apparently some Oberon folks agree with that view for there are oberon compilers which kept the separation of interface and implementation

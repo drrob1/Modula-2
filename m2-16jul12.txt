@@ -1,0 +1,481 @@
+<ttmrichter> Along with the pragma that turns them on.
+<ttmrichter> <* TurnOnCharacterChaos *>
+* john_metcalf (~digital_w@46.208.235.230) has left #modula-2
+<trijezdci> no the pragma is the one that turn UTF8 recognition on
+<trijezdci> it also has an optional tail
+<ttmrichter> Well, yeah.
+<trijezdci> <* ENCODING="UTF8" : "x"=50U, ... *>
+<ttmrichter> But I'm advocating a manufacturer extension that says "allow UTF-8 identifiers".  Called <* TurnOnCharacterChaos *>.
+<trijezdci> so if you use that and the file has no BOM to verify the encoding, then the codepoint samples in the tail of the pragma will be checked and if any don't match it causes a compiletime error
+<trijezdci> this way, you do not accidentally get weird behaviour just because the file was encoded in a different encoding than you thought
+<trijezdci> compiler switches also have the option to disallow this altogether for input files that do not have a BOM
+<trijezdci> or make the code samples mandatory by a compiler switch
+<trijezdci> m2r10c --enforceEncodingChecks
+<trijezdci> then it could reject a plain <* ENCODING="UTF8" *> pragma without tail
+* javar (~javier@90.168.70.76) has joined #modula-2
+* trijezdci has quit (Quit: trijezdci)
+* trijezdci (~trijezdci@3-254.197-178.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Ping timeout: 265 seconds)
+* trijezdci (~trijezdci@48.80.81.79.rev.sfr.net) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* sinuhe has quit (Quit: leaving)
+* ttmrichter has quit (Quit: Leaving)
+* sinuhe (~sinuhe@38.73.135.226) has joined #modula-2
+* xpololz (~xpo@80.203.124.203) has joined #modula-2
+* javar has quit (Quit: javar)
+* sinuhe has quit (Quit: leaving)
+* sinuhe (~sinuhe@38.73.135.226) has joined #modula-2
+* xpololz has quit (Ping timeout: 248 seconds)
+* sinuhe has quit (Quit: leaving)
+* ttmrichter (~ttmrichte@113.106.102.172) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+<trijezdci> hi ttmrichter 
+<ttmrichter> Hey-o.
+<trijezdci> would you rather forbid the use of non ASCII chars in strings and comments altogether?
+<ttmrichter> I'd say for strings either go ASCII or full-monty UTF-8.
+<ttmrichter> Comments should be anything that's not a newline (//) or a closing comment token (* ... *)
+<ttmrichter> If you go ASCII on strings, then it's up to compiler extensions to decide if they want to allow other characters in strings (with attendant pragmas to activate the feature).
+<trijezdci> Comments are either single line (starting with // and ending with ASCII.Newline
+<trijezdci> well, combinations of ASCII.Newline and ASCII.CR
+<trijezdci> or anything in between (* and *)
+<ttmrichter> That's what I mean.  Comments, by their nature, should be permissive.
+<ttmrichter> Begin with // and end with the end of the line, no matter what's in between.
+<trijezdci> if the pragma ENCODING specifies UTF8 then UTF8 is allowed in comments otherwise it is illegal
+<trijezdci> same for strings
+<ttmrichter> Begin with (* and end with *), keeping nesting limits in mind, where anything else, literally, should be permitted.
+<trijezdci> ASCII is default
+<ttmrichter> Strings is a can of worms.  If you permit "anything that's not a closing quote" you bring in encoding issues, etc.
+<ttmrichter> There's no real encoding issues with comments.
+<ttmrichter> Comments are whitespace in terms of functionality.
+<ttmrichter> A string has semantics.
+<trijezdci> consistency is important too
+<ttmrichter> So you can force one standard (ASCII being the universal one, but UTF-8 being a possibility) or you can abrogate responsibility (like Lua where a string is just an array of bytes with no interpretation whatsoever).
+<ttmrichter> I prefer picking one standard and, in fact, the simplest.
+<ttmrichter> So that would be ASCII.
+<ttmrichter> And if people *REALLY* want string literals that are non-ASCII, that's something a compiler vendor can look into supporting.
+<ttmrichter> 'Cause UTF-8 isn't the most popular format in, say, China or Korea or Japan.
+<trijezdci> that's what we did, just that a optional extension of <* ENCODING="UTF8" *> is there
+<trijezdci> and a compiler implementor can always add additional encodings to the ENCODING pragma
+<ttmrichter> That's acceptable too, then.  So why did you ask if I wanted to forbid the use?
+<trijezdci> because of your comments yesterday
+<trijezdci> I think what we have (optional pragma) is pretty clean and straightforward, but if people have opposing comments, I want to know anyway
+<trijezdci> I also think once we have this review and proofreading done, we need to write a style guide
+<ttmrichter> Oh, my comments are something different.
+<ttmrichter> I'd like to see a "Unicode Code Point Escape".
+<ttmrichter> Like \u12ac in some languages.
+<ttmrichter> (Not necessarily that sequence, mind.)
+<ttmrichter> It would be good to be able to insert characters by unicode code point.
+<ttmrichter> You can make it a static error if ENCODING="UTF-8" isn't active or whatever.
+<trijezdci> escapes will be totally dicouraged in the style guide
+<trijezdci> they are there solely for some measure of compatibility with C
+<trijezdci> but if you want to code in M2 style you should never use them
+<trijezdci> you can use structured literals for long sequences of unicode code points
+<trijezdci> or concatenation of quoted literals and unicode code point literals
+<trijezdci> CONST Foo = { 0FU, 20U, 7FU, ... };
+<trijezdci> or
+<trijezdci> CONST FOO = "Foo" + 20U + "Bar";
+<trijezdci> or better still use a name for the code point so the text is more readable
+<trijezdci> see in C and other untyped languages (yes, C is essentially untyped) a string may allow unicode escapes but it is not type checked then
+<trijezdci> there are code points that are illegal
+<trijezdci> a type safe language should reject those
+<trijezdci> this means the lexer needs to be doing semantic analysis
+<trijezdci> that is a crap architecture
+<trijezdci> or you have unchecked strings
+<trijezdci> that's not really desirable too
+<trijezdci> the escapes we allow are always legal, so the lexer need not care about them other than I think a single \
+<trijezdci> OTOH, if you have a code point literal, it is type checked
+<trijezdci> likewise if you have a structured literal that contains a sequence of code point literals
+<trijezdci> BTW, ttmrichter the number of chars to type is exactly the same when you use structured literals for unicode code point sequences, { and } replace " " and , replaces \
+* javar (~javier@87.pool85-55-50.dynamic.orange.es) has joined #modula-2
+* Jomu_ (~Jomu@teletec.inffo.net) has joined #modula-2
+* Jomu_ has quit (Quit: This computer has gone to sleep)
+* Jomu_ (~Jomu@89.111.245.230) has joined #modula-2
+<Jomu_> Mod51 anyone?
+* ttmrichter has quit (Quit: Leaving)
+* xpololz (~xpo@80.203.124.203) has joined #modula-2
+* Jomu_ has quit (Quit: This computer has gone to sleep)
+* Jomu_ (~Jomu@89.111.245.230) has joined #modula-2
+* Jomu_ has quit (Client Quit)
+* sinuhe (~sinuhe@38.73.135.226) has joined #modula-2
+* Jomu_ (~Jomu@89.111.245.230) has joined #modula-2
+* Jomu_ has quit (Quit: This computer has gone to sleep)
+* Jomu_ (~Jomu@adsl-44-132.teol.net) has joined #modula-2
+* Jomu_ has quit (Quit: This computer has gone to sleep)
+* Jomu_ (~Jomu@adsl-44-132.teol.net) has joined #modula-2
+* Jomu_ has quit (Quit: This computer has gone to sleep)
+* Jomu_ (~Jomu@89.111.245.230) has joined #modula-2
+* javar has quit (Quit: javar)
+* Jomu has quit (Ping timeout: 246 seconds)
+* xpololz has quit (Ping timeout: 244 seconds)
+* sinuhe has quit (Quit: leaving)
+* Mephisto has quit (Ping timeout: 248 seconds)
+* Mephisto (~Mephisto@94-226-93-189.access.telenet.be) has joined #modula-2
+* ChanServ gives voice to Mephisto
+* ttmrichter (~ttmrichte@61.184.206.221) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+* Jomu_ has quit (Quit: This computer has gone to sleep)
+* trijezdci has quit (Quit: trijezdci)
+* drrob1 has quit (Ping timeout: 246 seconds)
+* Disconnected (Remote host closed socket).
+* drrob1 sets mode +i drrob1
+-NickServ- This nickname is registered. Please choose a different nickname, or identify via /msg NickServ identify <password>.
+* Now talking on #modula-2
+* Topic for #modula-2 is: Discussions related to Modula-2 and Oberon-2   ·   Book list: http://www.modula2.net/resources/books.shtml   ·   Compiler list: http://www.modula2.net/resources/compilers.shtml
+* Topic for #modula-2 set by trijezdci!~trijezdci@f8a01-0357.din.or.jp at Mon Feb  1 05:10:52 2010
+* Disconnected (Connection reset by peer).
+* drrob1 already in use. Retrying with drrob1_...
+* drrob1_ sets mode +i drrob1_
+* Now talking on #modula-2
+* Topic for #modula-2 is: Discussions related to Modula-2 and Oberon-2   ·   Book list: http://www.modula2.net/resources/books.shtml   ·   Compiler list: http://www.modula2.net/resources/compilers.shtml
+* Topic for #modula-2 set by trijezdci!~trijezdci@f8a01-0357.din.or.jp at Mon Feb  1 05:10:52 2010
+* Disconnected (Connection timed out).
+* drrob1_ sets mode +i drrob1_
+* Now talking on #modula-2
+* Topic for #modula-2 is: Discussions related to Modula-2 and Oberon-2   ·   Book list: http://www.modula2.net/resources/books.shtml   ·   Compiler list: http://www.modula2.net/resources/compilers.shtml
+* Topic for #modula-2 set by trijezdci!~trijezdci@f8a01-0357.din.or.jp at Mon Feb  1 05:10:52 2010
+* javar has quit (Quit: javar)
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@114-0.5-85.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci_ (~trijezdci@114-0.5-85.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci_
+* trijezdci__ (~trijezdci@114-0.5-85.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci__
+* sinuhe has quit (Quit: leaving)
+* trijezdci has quit (Ping timeout: 244 seconds)
+* xpololz has quit (Ping timeout: 265 seconds)
+* trijezdci_ has quit (Ping timeout: 246 seconds)
+* trijezdci (~trijezdci@114-0.5-85.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci__ has quit (Read error: Connection reset by peer)
+* trijezdci_ (~trijezdci@114-0.5-85.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci_
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci_ is now known as trijezdci
+* trijezdci has quit (Ping timeout: 246 seconds)
+* sinuhe (~sinuhe@kaptah.deevans.net) has joined #modula-2
+* sinuhe has quit (Ping timeout: 246 seconds)
+* sinuhe (~sinuhe@kaptah.deevans.net) has joined #modula-2
+* sinuhe has quit (Ping timeout: 246 seconds)
+* trijezdci (~trijezdci@114-0.5-85.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci_ (~trijezdci@114-0.5-85.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci_
+* trijezdci (~trijezdci@114-0.5-85.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci_ has quit (Read error: Connection reset by peer)
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@114-0.5-85.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@114-0.5-85.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* You are now known as drrob1
+-NickServ- This nickname is registered. Please choose a different nickname, or identify via /msg NickServ identify <password>.
+>nickserv< identify ****
+-NickServ- You are now identified for drrob1.
+* ChanServ gives voice to drrob1
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci_ (~trijezdci@114-0.5-85.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci_
+* trijezdci_ has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@114-0.5-85.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci_ (~trijezdci@114-0.5-85.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci_
+* trijezdci (~trijezdci@114-0.5-85.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@114-0.5-85.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci_ has quit (Read error: Connection reset by peer)
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci_ (~trijezdci@114-0.5-85.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci_
+* trijezdci_ has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@114-0.5-85.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci_ (~trijezdci@114-0.5-85.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci_
+* trijezdci_ has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@114-0.5-85.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@114-0.5-85.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@114-0.5-85.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@114-0.5-85.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@114-0.5-85.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Ping timeout: 244 seconds)
+* trijezdci (~trijezdci@114-0.5-85.cust.bluewin.ch) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Quit: trijezdci)
+* trijezdci (~trijezdci@194.113.59.45) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* javar (~javier@87.pool85-55-50.dynamic.orange.es) has joined #modula-2
+* john_metcalf (~digital_w@192.39.125.91.dyn.plus.net) has left #modula-2
+* Jomu_ (~Jomu@teletec.inffo.net) has joined #modula-2
+* ttmrichter (~ttmrichte@61.184.205.205) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+* Jomu_ has quit (Quit: This computer has gone to sleep)
+* javar has quit (Read error: No route to host)
+* javar (~javier@87.pool85-55-50.dynamic.orange.es) has joined #modula-2
+* Jomu_ (~Jomu@89.111.245.230) has joined #modula-2
+* sinuhe (~sinuhe@38.73.135.226) has joined #modula-2
+* Jomu_ has quit (Quit: This computer has gone to sleep)
+* xpololz (~xpo@203.80-203-124.nextgentel.com) has joined #modula-2
+* Jomu_ (~Jomu@89.111.245.230) has joined #modula-2
+* trijezdci has quit (Quit: trijezdci)
+* ttmrichter has quit (Quit: Leaving)
+* xpololz has quit (Remote host closed the connection)
+* xpololz (~xpo@203.80-203-124.nextgentel.com) has joined #modula-2
+* Jomu_ has quit (Quit: Leaving)
+* trijezdci (~trijezdci@48.80.81.79.rev.sfr.net) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+<trijezdci> Jomu, how about ...
+<trijezdci> decimalNumber :
+<trijezdci>     significand ( fraction exponent? )?
+<trijezdci> significand :
+<trijezdci>     digit+ ( "_" digit+ )*
+<trijezdci> fraction :
+<trijezdci>     "." digit+ ( "_" digit+ )*
+<trijezdci> exponent :
+<trijezdci>     ( "e" | "E" ) ( "+" | "-" ) digit+ ( "_" digit+ )?
+<trijezdci> as an example
+* javar has quit (Quit: javar)
+* javar (~javier@87.pool85-55-50.dynamic.orange.es) has joined #modula-2
+* john_metcalf (~digital_w@192.39.125.91.dyn.plus.net) has joined #modula-2
+<trijezdci> something for amusement perhaps ...
+<trijezdci> http://modula2.net/temp/what-goes-around-comes-around.txt
+* xpololz has quit (Ping timeout: 240 seconds)
+* javar has quit (Quit: javar)
+* john_metcalf (~digital_w@192.39.125.91.dyn.plus.net) has left #modula-2
+* sinuhe has quit (Ping timeout: 248 seconds)
+* ttmrichter (~ttmrichte@61.184.205.201) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+* Mephisto has quit (*.net *.split)
+* Mephisto (~Mephisto@94-226-93-189.access.telenet.be) has joined #modula-2
+* adams.freenode.net gives voice to Mephisto
+* Disconnected (Connection timed out).
+* drrob1 sets mode +i drrob1
+* Now talking on #modula-2
+* Topic for #modula-2 is: Discussions related to Modula-2 and Oberon-2   ·   Book list: http://www.modula2.net/resources/books.shtml   ·   Compiler list: http://www.modula2.net/resources/compilers.shtml
+* Topic for #modula-2 set by trijezdci!~trijezdci@f8a01-0357.din.or.jp at Mon Feb  1 05:10:52 2010
+-NickServ- This nickname is registered. Please choose a different nickname, or identify via /msg NickServ identify <password>.
+* trijezdci has quit (Quit: trijezdci)
+* john_metcalf (~digital_w@192.39.125.91.dyn.plus.net) has joined #modula-2
+* trijezdci (~trijezdci@194.113.59.45) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+<trijezdci> hi ttmrichter
+<trijezdci> do you want to have a laugh?
+<trijezdci> http://modula2.net/temp/what-goes-around-comes-around.txt
+<ttmrichter> Preparing to laugh.  Hold on.
+<ttmrichter> A recruiter asked you to pass on the name of a company that fucked up your interview?!
+<ttmrichter> Jesus!  That would be like that shithole outfit in Xiamen asking me for a reference.
+<ttmrichter> I'd give 'em a reference alright.
+<ttmrichter> Right between the eyes.
+<Jomu> trijezdci looks well. except I still like single whitespace more :)
+<trijezdci> ttmrichter: no, a recruiter asked if I would consider a permanent role in a company that had fucked up an interview for me last year
+<ttmrichter> A permanent role in a company that couldn't contend with a temporary one?
+<trijezdci> I said that I wasn't interested in permanent roles unless its C-level, but that I have colleagues who do not like the fact that they have to transfer to Huawei as a result of a terminated outsourcing agreement (Huawei being the new supplier of our customer) and that I may pass on the job description to anyone who tells me they would rather like to find another job than go to Huawei
+<trijezdci> when I then received the job description and became aware what the company is, I wrote this as a reply
+<trijezdci> anyway, what goes around comes around
+<trijezdci> Dimension Data is not a company I will have anything to do with
+<trijezdci> and they will not get any referrals from me
+<trijezdci> nor will they be getting any business from any of the clients I work and will work for if I am in the decision making seat
+<trijezdci> that company is on my blackhole list
+* john_metcalf has quit (Ping timeout: 252 seconds)
+* Disconnected (Connection timed out).
+* drrob1 sets mode +i drrob1
+-NickServ- This nickname is registered. Please choose a different nickname, or identify via /msg NickServ identify <password>.
+* Now talking on #modula-2
+* Topic for #modula-2 is: Discussions related to Modula-2 and Oberon-2   ·   Book list: http://www.modula2.net/resources/books.shtml   ·   Compiler list: http://www.modula2.net/resources/compilers.shtml
+* Topic for #modula-2 set by trijezdci!~trijezdci@f8a01-0357.din.or.jp at Mon Feb  1 05:10:52 2010
+* javar (~javier@87.pool85-55-50.dynamic.orange.es) has joined #modula-2
+* javar has quit (Client Quit)
+* javar (~javier@87.pool85-55-50.dynamic.orange.es) has joined #modula-2
+* trijezdci has quit (Quit: trijezdci)
+* sinuhe (~sinuhe@38.73.135.226) has joined #modula-2
+* ttmrichter has quit (Quit: Leaving)
+* trijezdci (~trijezdci@194.230.155.5) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@194.230.155.5) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Ping timeout: 240 seconds)
+* trijezdci (~trijezdci@48.80.81.79.rev.sfr.net) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* xpololz (~xpo@203.80-203-124.nextgentel.com) has joined #modula-2
+* javar has quit (Quit: javar)
+* javar (~javier@87.pool85-55-50.dynamic.orange.es) has joined #modula-2
+* javar has quit (Quit: javar)
+* Disconnected (No route to host).
+ Messaging Indicator 0.3.10 plugin unloaded.
+ Python interface unloaded
+ Tcl interface unloaded
+ 
+* Loaded log from Fri Jul 13 19:05:51 2012
+ 
+* Now talking on #modula-2
+* Topic for #modula-2 is: Discussions related to Modula-2 and Oberon-2   ·   Book list: http://www.modula2.net/resources/books.shtml   ·   Compiler list: http://www.modula2.net/resources/compilers.shtml
+* Topic for #modula-2 set by trijezdci!~trijezdci@f8a01-0357.din.or.jp at Mon Feb  1 05:10:52 2010
+* ttmrichter (~ttmrichte@58.55.124.244) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+* ttmrichter_ (~ttmrichte@61.184.205.52) has joined #modula-2
+* ChanServ gives voice to ttmrichter_
+* ttmrichter has quit (Ping timeout: 248 seconds)
+* xpololz has quit (Ping timeout: 252 seconds)
+* ttmrichter_ is now known as ttmrichter
+* javar (~javier@87.pool85-55-50.dynamic.orange.es) has joined #modula-2
+* javar has quit (Quit: javar)
+<trijezdci> Jomu, lexically, underscore is not a problem, but whitespace is
+<trijezdci> because a literal is terminated by whitespace, this would require extra lookahead
+<trijezdci> with underscore you just collect all underscores and flag an error if you find anything other than a digit after it
+<ttmrichter> Oh, you're allowing underscores in numbers?  I remember asking for that, but forgot you'd agreed.
+<trijezdci> if underscore becomes part of a number literal then underscore can no longer terminate a number literal
+<trijezdci> but if whitespace becomes part of a number literal, it will still also be able to terminate a number literal
+<trijezdci> that is a problem, so whitespace is a no no
+<trijezdci> ttmrichter: not yet, but it is under discussion
+<trijezdci> it could look like so ...
+<trijezdci> decimalNumber :
+<trijezdci>     significand ( fraction exponent? )?
+<trijezdci> significand :
+<trijezdci>     digit+ ( "_" digit+ )*
+<trijezdci> fraction :
+<trijezdci>     "." digit+ ( "_" digit+ )*
+<trijezdci> exponent :
+<trijezdci>     ( "e" | "E" ) ( "+" | "-" ) digit+ ( "_" digit+ )?
+<trijezdci> and accordingly for base 16 and base 2 literals
+<ttmrichter> That's really nice.
+<ttmrichter> That allows for digit grouping for readability.
+<trijezdci> this would only impact the lexer
+<ttmrichter> $HDEAD_BEEF
+<ttmrichter> (Or whatever the hex constants looked like again.)
+<trijezdci> more like 0xdead_beef and 0_DEAD_BEEFH
+<ttmrichter> Ah, right.
+<trijezdci> C and M2 style
+<ttmrichter> 0_CAFE_BABEH
+<trijezdci> heh
+<ttmrichter> But really, being able to group digits is a life-saver.
+<trijezdci> for embedded work using base 2 literals it is really important to have some digit separation
+<ttmrichter> In hex constants it allows you to group by 4-bit fields.
+<ttmrichter> For ... yeah, I was about to say with reference to bit fields.
+<trijezdci> underscore may not be the most beautiful solution but it has precedence
+<trijezdci> in Ada and in Mod51
+<ttmrichter> And quite a few other languages.
+<trijezdci> Mod51 implements Ada literals
+<ttmrichter> And I agree, it's not the most beautiful, but it is the most accessible.
+<trijezdci> #2#0110_1100_1010
+<ttmrichter> I think I encountered this the first time in Eiffel.
+<trijezdci> if we were to compete with COBOL, I'd do something like this
+<trijezdci> CONST amount = &(12,345,678);
+<trijezdci> CONST amount = &(12,345,678.0000);
+<trijezdci> CONST amount = &(12,345,678.000_015);
+<trijezdci> CONST amount = &(1.234,567,8.0E+123,456);
+<trijezdci> CONST amount = &( **,*12,345.000);
+<trijezdci> CONST amount = &(-**,*12,345.000);
+<trijezdci> but I think underscore should be sufficient
+<ttmrichter> Um... no.
+<ttmrichter> No fucking way.
+<ttmrichter> Absolutely no fucking way.
+<ttmrichter> I would hunt you down and slaughter you in your sleep.
+<trijezdci> like I said, this would be COBOL terrain
+<ttmrichter> Or, worse, I'd throw Indian numbering formats at you.
+<trijezdci> we could always go back to roman numerals I suppose :)
+<ttmrichter> I think Indian numbering systems would confuse you more.
+<ttmrichter> Like how they're sometimes grouped in threes, sometimes in pairs.
+<ttmrichter> With no discernable rhyme or reason to it.
+<trijezdci> Apple script had an interesting convention using whitespace in literals and identifiers when enclosing them in vertical bars
+<trijezdci> like
+<trijezdci> |this is an identifier|
+<ttmrichter> That's borrowed from Prolog and its family.
+<trijezdci> ah ok
+<ttmrichter> this_is_an_atom
+<ttmrichter> thisIsAlsoAnAtom
+<ttmrichter> 'This is an atom too'
+<ttmrichter> Within single quotes you can have *ANYTHING*.
+<trijezdci> yeah, but I didn't want to sacrifice the ' for strings
+<ttmrichter> And since all identifiers are atoms, it logically means you can have identifiers like ' ' and '  ' and '   ' giving you LOADS of room for obfuscating code!  :D
+<trijezdci> otherwise you could use 
+<trijezdci> ' as a digit separator
+<ttmrichter> Yeah, underscores are fine.
+<trijezdci> 123'456.789
+<ttmrichter> They're easily readable and they're not used in other places very much.
+<ttmrichter> Identifiers ... and that's about it, right?
+<trijezdci> yes
+<trijezdci> and of course you can have underscores inside strings too
+<ttmrichter> Well you can have anything inside strings.
+<ttmrichter> But any decent lexer generator will deal with that for you.
+<trijezdci> anything ASCII printable
+<ttmrichter> ANTLR's quite good at it, for example.
+<trijezdci> while we are doing the editorial review now, Rick is asking some funny questions once in a while
+<trijezdci> is PROCEDURE Foo ( a : CARDINAL; b : ARRAY [0..a] OF Bar); still valid?
+<trijezdci> my answer
+<trijezdci> No, because we do not have ARRAY [n..m]
+<trijezdci> there were a number of those where I had to answer int his way "No because we have thrown out this feature, rememeber?!"
+<trijezdci> of course in the above one he'll come back asking
+<trijezdci> is PROCEDURE Foo (a : CARDINAL; b : ARRAY a OF Bar) still valid
+<trijezdci> which probably doesn't make sense in a language that has strict name equivalence anyway
+<trijezdci> nothing would be compatible with b
+* xpololz (~xpo@203.80-203-124.nextgentel.com) has joined #modula-2
+* xpololz has quit (Ping timeout: 255 seconds)
+* ttmrichter has quit (Quit: Leaving)
+<trijezdci> http://www.modula2.net/resources/m2r10/M2R10.IssueTracker.20120714.pdf
+* sinuhe (~sinuhe@kaptah.deevans.net) has joined #modula-2
+* xpololz (~xpo@80.203.124.203) has joined #modula-2
+* xpololz has quit (Ping timeout: 250 seconds)
+* sinuhe has quit (Quit: leaving)
+* ttmrichter (~ttmrichte@61.184.205.204) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+<trijezdci> ttmrichter: http://www.modula2.net/resources/m2r10/M2R10.IssueTracker.20120714.pdf
+<ttmrichter> 36 outstanding issues?
+<ttmrichter> I'd say that's a wrap.  Print it and ship it.  :D
+* ttmrichter is being sarcastic about traditional software development cycles here.
+<trijezdci> heh
+<trijezdci> Rick has only reviewed up to page 60 yet
+<trijezdci> of course most of the remainder after that is not text but tables and appendices w grammar and diagrams etc
+<trijezdci> so there will be another 25 or 30 pages of text to go through
+<trijezdci> possibly leading to another 15-20 issues
+<trijezdci> anyway, those issues are almost all editorial
+<trijezdci> polishing the text, not the design
+<trijezdci> we have one issue that requires two more constants to be added to pseudo-module COMPILER
+<ttmrichter> Have you decided on 1_234_567 yet?
+<trijezdci> not yet
+<trijezdci> I don't want to distract Rick now from the document review
+<trijezdci> ttmrichter: what do you think about issue #20
+<trijezdci> ?
+<ttmrichter> I don't think array access notation implies an ordered collection myself.
+<ttmrichter> Of course I'm used to languages dating back to SNOBOL4 where arrays were associative, not sequenced.
+<trijezdci> and what about the choice of array notation instead of EXCL(set, elem) and INCL(set, elem)
+<trijezdci> ?
+<trijezdci> ttmrichter: ?
+* xpololz (~xpo@80.203.124.203) has joined #modula-2
+<ttmrichter> Sorry.  Hit by major heat fatigue here.
+<ttmrichter> I prefer the array notation.
+* ttmrichter has quit (Quit: Leaving)
+<trijezdci> http://www.modula2.net/resources/m2r10/M2R10.IssueTracker.pdf
+<trijezdci> http://www.modula2.net/resources/M2R10.pdf (updated)
+<trijezdci> http://www.modula2.net/resources/m2r10/spec.versionlog.txt
+* xpololz has quit (Ping timeout: 248 seconds)
+* Mephisto has quit ()
+* ttmrichter (~ttmrichte@60.169.25.157) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+<trijezdci> hi ttmrichter 
+* john_metcalf (~digital_w@146.90.17.56) has joined #modula-2
+* javar (~javier@87.pool85-55-50.dynamic.orange.es) has joined #modula-2
+* javar has quit (Quit: javar)
+* javar (~javier@87.pool85-55-50.dynamic.orange.es) has joined #modula-2
+* javar has quit (Quit: javar)
+* javar (~javier@87.pool85-55-50.dynamic.orange.es) has joined #modula-2
+* javar has quit (*.net *.split)
+* javar (~javier@87.pool85-55-50.dynamic.orange.es) has joined #modula-2

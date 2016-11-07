@@ -1,0 +1,299 @@
+10/17/2013 5:29:31 PM
+                        Copied from GM2.txt, which is the first file in which I entered notes about gdb.
+
+gdb -> the Gnu debugger.  A CLI interface debugger.
+
+My notes from ibm.com/developerworks/library/l-gdb/
+
+Starting up:
+gdb <filename> [core] --> if there is a core file from a previous crash.
+               [PID] --> can attach a running process this way.
+file <filename --> if not given on command line
+
+Ending:
+quit
+
+Commands:
+<enter> --> repeat last command
+run --> start program
+list [<proc name>] --> if no proc name, it will list ~10 lines of code at current position
+print <var name> --> variable must be visible in current scope
+break [<line #>] | [ IF <cond expr>] -->  break 7 if diff==0  is a watchpoint at line #7.
+info locals --> print all local variables
+     break --> print all defined breakpoints
+     watch --> print all watchpoints
+
+continue --> until next breakpoint or error
+next --> single step over
+step --> single step into
+disable <breakpoint #>
+enable  <breakpoint #>
+condition <breakpoint #> [ <cond expr>] --> if no expr given, then remove expression attached to that breakpoint #
+delete <breakpoint #>
+bt --> back trace for printing the callstack
+set <variable assignment statement> --> dynamically change a variable's value.
+================================================================================
+GDB, DDD and xxgdb.
+The last 2 are installed via synaptic.  xxgdb is a gui front end to gdb that is faster and less powerful than ddd.
+
+Notes from the book I'm reading via Safari thru acm.org
+
+The Art of Debugging with gdb and ddd.  By Norman Matloff and Peter Jay Saltzman, (c) 2008, published by O'Reilly
+
+NoStarch.com for No Starch Press is involved in some way also.
+
+Eclipse can be installed via apt-get, or d/l and unzipped into a dir like /usr/local.
+
+Both gnat and gnat-gps are in /usr/bin on p5q.  It does not look like eclipse is installed.  Perhaps I can go thru
+the same steps I did under virtual centos to install the adacore stuff.  Not yet.
+
+ddd and xxgdb are also in /usr/bin on p5q.
+
+backtrace shows the sequence of function calls up to the current call that generated the error.
+
+The interrupt command is to find and fix infinite loops.  After interrupting and inspecting, the execution
+can be resumed.
+
+Watchpoints are used to stop execution when a variable has a value in a specific range.  Can also be used for the
+control variable of a loop to see when things go wrong in a loop.
+
+This book's focus is C-family.  Sometimes compilation errors are triggered far from the bad code.  If you are having
+trouble finding the bad code, can remove or comment out half of the code to see which code needs to be removed for
+the C-family code to compile.  I don't think I've ever seen this issue in the more strongly typed languages I've been
+using for so long.
+
+gdb allows unambiguous abbreviations.
+Like b for break, bt for backtrace, p for print, c for continue, n for next, s for step, q for quit.
+
+In ddd, to set a breakpoint, to the left of the line to be set, either double-click, right-click and select Set Breakpoint,
+or single-click and click the Break icon at the top of the window.
+------------------------------------------------------------------
+Side-bar from gbd-refcard
+[location] -> can take form of [file:]function, or [file:]line#, or +offset in lines
+break  -> set breakpoint at current line.  Abbrev b
+break [location] if cond -> cond has to evaluate to non-zero in the C sense.
+rbreak (regex) -> same as break but for all rtn's that match the grep style regex.  Not perl style regex, btw.
+cond n (expr) -> set a new condition on breakpoint n.  If no expr, then it clears the cond on breakpoint n.
+watch [(expr)] -> set a watchpoint the expr.  A watchpoint breaks when the var changes value.
+info break \ show defined watch and breakpoints.  Abbrev i b
+info watch /                                      Abbrev i w
+info func [regex] \ show names and types of functions or global variables
+info var [regex]  / that match the regex, or all if no regex
+info locals -> shows all variables in local stack frame
+clear [file]:function|line#
+clear -> current breakpoint (the one just stopped on)
+delete n -> delete breakpoint n
+delete -> delete ALL breakpoints
+disable/enable n
+commands n ... end -> execute command-list every time breakpoint n is reached.  Another commands with same n will overwrite the previous one.
+silent -> first command in a commands group to suppress some verbosity.
+catch exception -> as posted in Usenet about my tokenizea op bug.  The gdb response was    Catchpoint 1: all Ada exceptions, then (gdb) run
+list [file:]function
+list [file:]line#
+continue [n] -> to next breakpoint until error or pgm ends, [skipping n breakpoints]
+step [count] -> single step into, abbrev s
+next [count] -> single step over, abbrev n
+finish -> run until this stack frame returns.  IE, when this routine finishes.  Abbrev fin
+return [expr] -> pop stack frame without executing [setting return value]
+set var= [expr] -> evaluate expr without displaying.  Used to alter pgm execution
+until [location] -> run until next instruction [or location].  Abbrev u.  Used to resume after a loop finishes.  [location] is same notation as allowed by break.
+print expr -> abbrev p, and is used to inspect variables.
+printf -> example printf "rtn was passed %d.\n", n   It behaves as in C-ish
+define ... end
+call [user defined routine in code to be debugged]
+
+
+automatic display is a facility in which expr is evaluated each time the program stops.
+display [/f] expr -> /f is a formating option c for char, s for string, f for float.     Abbrev disp
+display -> without an expr means to display all enabled expressions
+undisplay n
+info display -> numbered list of display expressions.
+
+
+(expr) -> includes evaluating function calls in the language being debugged.
+file::name -> variable or function defined in file
+$ -> most recently displayed value
+$n -> n-th most recently displayed value
+$$ -> display value previous to $, ie, same as $2
+show values [n] -> show last n values.  Default n=10
+
+GDB scripts
+source <script> -> read and execute commands in the named script file.
+define <commandlistname> ... end -> define a new command list
+show user -> all defined macros are printed to the screen.
+
+Controlling GDB
+set <param> <value>
+show <param>
+           <value> table
+           height -> number of lines before a pause in the display
+           language auto|c|modula-2
+           listsize n
+
+END sidebar
+-----------------------------------------------------------
+
+Looks like eclipse can also be a front end to gdb.
+
+DDD has a console that can be used to enter gdb commands directly.
+
+To clear a breakpoint in DDD, click the stopsign, then click CLEAR on the toolbar.
+
+Steping thru code is much easier in ddd than gdb.
+
+However, debugging a program that has a GUI can clash w/ the gui of ddd.  Keystrokes and mouse stuff
+may behave differently within ddd than without it.  For these kinds of programs, gdb may work better.
+
+gdb is described to have a Terminal User Interface in which the terminal is split to show both running code
+lines and the usual console interface, side-by-side.  Can use the command line option -tui to start this mode,
+or the key sequence ctrl-X-A from within an already started gdb.  The key sequence will toggle in and out of
+the TUI mode. Ctrl-P and ctrl-N can be used to scroll thru the command buffer to edit and reuse commands.
+
+In ddd, hovering the mouse over any instance of a variable will get the value shown as a tip for a few secs.
+
+In ddd, setting a watchpoint is done by clicking on the variable and then clicking the Watch icon.
+
+The frame command is to help see the stack frame of a routine so local var's can be examined.  That is,
+it is possible to see local variables of a routine other than the current one, as long as that routine
+is in the calling chain to the current routine.  That is, the target routine is still loaded and running,
+elsewhere in the stack of frames.
+
+backtrace (bt) will show the entire frames stack.
+
+If keep gdb running while editing and recompiling, it will detect that the source has changed and will
+re-read everything.  But this will keep breakpoints.  Don't yet know how this would effect line# breakpoints.
+
+Eclipse: file -> new -> project.  Then enter the code.  Then Executable -> Finish.  To build the project,
+ie, compile and link, Project -> Build Project.
+
+The first time you run/debug a program, you need run and debug configurations.  The config specifies the name
+of the executable, the project it belongs to, command line arguments, shell environment if needed, debugger
+of choice.  A run config profile will run outside of the debugger, and a debug config profile will be needed
+to run in a debugger.  Create both config's in that order as follows:
+1. Run -> Open Run Dialog,
+2. right-click the language and select new.
+3. select Main tab and fill in the run configuration.  Check the Connect process input and output to a terminal to capture terminal I/O.
+4. Click the arguments or environments tabs and fill in as needed.
+5. Select the debugger tab and confirm it's gdb.
+6. Hit apply and close.
+7. Debug configuration.  Run -> Open Debug Dialog.  Fill in, hit apply and close.
+
+To start debugging session, Window -> Open Perspective -> Debug.
+
+First time to actually run, Run -> Open Run Dialog.  After that, Run -> Run.  Will use same configuration setup.
+First time to actually debug, Run -> Open Debug Dialog.  After that, Run -> debug.  Will use same configuration setup.
+
+To break out of a possible infinite loop, hit Suspend (uses a Pause icon symbol).
+
+There is such a thing as a gdb startup script file, by default called .gdbinit.  The contents of this script file will
+be discussed in the next chapter.  Gdb will read this script from your home dir first, then the executable, and then the
+local startup file in the local dir.
+  gdb -command=z x
+
+This will run commands in the script file z on the executable named x.
+
+DDD is a front-end for gdb so it will have the same behavior.  Can customize DDD from Edit -> preferences.
+Customizing eclipse is from Window -> preferences.
+
+In ddd, source -> breakpoints gets to that window to list them all, like info breakpoints for gdb.
+
+Looks like the [file:] designation is not always needed if you are setting breakpoint by name.  In the case of
+overloaded proc's, all procs w/ the same name get a breakpoint set.  From the examples in the book, if the
+debugger can find the rtn by name, you don't need to specify the file.
+
+
+
+3/2/2014 11:37:40 AM
+Breakpoints are set by address regardless of how you specify one.  As the code is edited and reloaded into the debugger,
+the code lines move but the breakpoints do not.  ddd has a way to click and drag a breakpoint to another line, but in
+gdb you have to separately delete and make a new one.
+
+DDD has an undo.  Select Edit -> Undo [Delete|Run|Next|Step|etc], or click UnDo in the command tool, but going thru the
+edit menu will show you what kind of command will be undone.
+
+Remember, breakpoints can be disabled w/o deleting them.
+
+There is an option to set temp break/watch points which are only enabled once.  There is also an enable once command
+that works on disabled points.
+
+If in a recursive function, the finish command will stop at the next level up in the recursion.  This is because
+each recursive call is considered a function call in its own right since each one has its own stack frame.
+To resume after all recursive function calls have finished, can use until.  Or, may have to set a separate temp breakpoint.
+
+The Until command is used to run until the current loop finishes.  But since compilers put the conditional at the end
+of the loop even if the language puts it at the top, the first use of until may put you back at the top of a loop.  If
+this happens, just use the until command again and then it will do as expected.
+
+
+DDD has buttons for next, step, until and finish.  Can left-click source window to bring up "continue until here" option
+which really sets a tbreak.  Will need to use the console window to use commands with a param, like next 3.
+
+
+Conditional breakpoint vs watchpoint
+A watchpoint breaks whenever a variable changes value.  A conditional breakpoint is at a particular line, and is more useful
+when the break only happens when the variable takes on a bad value.
+
+
+In ddd a conditional breakpoint is set by a right click on the stopsign -> properties -> a popup text entry window
+for condition is used.
+
+
+Macro Scripts
+A more general way to have a commands list as a script can be reused as needed.
+
+define print_and_go
+printf $arg1, $arg1
+continue
+end
+
+Then to use this macro
+commands 1
+silent
+print_and_go "routine was passes %d.\n" n
+end
+
+Note that there is no comma in the commands list.  The comma is in the definition of the macro.
+
+And macros can be defined in a .gbdinit file
+
+
+show user -> list all macros that are defined.
+
+DDD has Data -> Display Local variables which will open a window devoted to all local variables, and will update their
+values as needed.
+
+
+There is a linux command, file, that can indicate which program generated the core file.
+  file core
+
+Near the end of its output, it should say   from 'pgm name'
+
+Bash allows the control of core files
+  ulimit -c n -> where n is the max number of KB for the core dump.
+  ulimit -c unlimited -> syntax to do what it says.
+
+On p5q, I just did
+  ulimit
+
+And it responded unlimited.  So I will see core dump files when I create them.
+
+
+Section 6.2 discusses curses debugging.  Since this book (c) 2008, I will assume that the info still applies to ncurses.
+Mainly, it has to set up a separate window to run gdb and the ncurses based program.
+================================================
+8/31/2014 11:15:47 AM
+
+starting gdb now for ada, I am refered to /etc/sysctl.d/10-ptrace.conf
+Something about blocking attaching to processes.  For just this session I will do
+sudo echo 0 | tee /proc/sys/kernel/yama/ptrace_scope
+
+
+
+
+
+
+
+
+
+
+

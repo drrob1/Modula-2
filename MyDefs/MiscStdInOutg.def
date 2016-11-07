@@ -1,0 +1,130 @@
+DEFINITION MODULE MiscStdInOutg;
+
+(*
+  Revision History
+  ----------------
+  25 Sep 07 -- Made MiscM2 use std i/o and renamed module
+   3 Apr 13 -- Added WriteLongCard
+   5 Oct 13 -- converted to gm2
+  10 Oct 13 -- Added WriteLongInt.
+  16 Oct 13 -- Added FormatLongRealAsFloat.
+*)
+
+
+FROM SYSTEM IMPORT ADDRESS;
+
+(*****************************************************************************)
+PROCEDURE LongRealToFixedString (x: LONGREAL; VAR buffer: ARRAY OF CHAR; fieldsize: CARDINAL);
+    (* Converts the number to a decimal character string in array       *)
+    (* "buffer", right-justified in a field of fieldsize characters.    *)
+    (* The format depends on the size of the number relative to the     *)
+    (* size of the buffer.                                              *)
+(*****************************************************************************)
+
+PROCEDURE LongRealToFloatString (x: LONGREAL; VAR buffer: ARRAY OF CHAR; fieldsize: CARDINAL);
+(*****************************************************************************)
+
+PROCEDURE LongRealToEngString (x: LONGREAL; VAR buffer: ARRAY OF CHAR; fieldsize: CARDINAL);
+(*****************************************************************************)
+
+PROCEDURE LongRealToString (x: LONGREAL; VAR buffer: ARRAY OF CHAR; fieldsize: CARDINAL);
+(* Uses FpuIO converstion routine *)
+(*****************************************************************************)
+
+PROCEDURE LongRealToStr (x: LONGREAL; VAR buffer: ARRAY OF CHAR);
+(* Uses LongStr ISO conversion routine *)
+(*****************************************************************************)
+
+PROCEDURE StringToLongReal (s: ARRAY OF CHAR; VAR x: LONGREAL);
+(*****************************************************************************)
+
+PROCEDURE LongCardToString(LC: LONGCARD; VAR str: ARRAY OF CHAR);
+(*****************************************************************************)
+
+PROCEDURE CardToString(c: CARDINAL; VAR str: ARRAY OF CHAR);
+(*****************************************************************************)
+
+PROCEDURE IntToString(i: INTEGER; VAR str: ARRAY OF CHAR);
+(*****************************************************************************)
+
+PROCEDURE LongIntToString(LI: LONGINT; VAR str: ARRAY OF CHAR);
+(*****************************************************************************)
+
+PROCEDURE StringToCard(s: ARRAY OF CHAR; VAR c: CARDINAL);
+(*****************************************************************************)
+
+PROCEDURE StringToLongCard(s: ARRAY OF CHAR; VAR LC: LONGCARD);
+(*****************************************************************************)
+
+PROCEDURE StringToInt(s: ARRAY OF CHAR; VAR i: INTEGER);
+(*****************************************************************************)
+
+PROCEDURE StringToLongInt(s: ARRAY OF CHAR; VAR LI: LONGINT);
+(*****************************************************************************)
+
+PROCEDURE FormatLongRealAsFloat(x: LONGREAL; VAR str: ARRAY OF CHAR; sigfig: CARDINAL);
+(*****************************************************************************)
+PROCEDURE GetExponent(R: LONGREAL; VAR n: INTEGER);
+
+(************************************************************************)
+PROCEDURE ADDCOMMAS(VAR STR : ARRAY OF CHAR);
+
+(************************************************************************)
+(*                          SCREEN OUTPUT                               *)
+(************************************************************************)
+PROCEDURE CLS;
+
+PROCEDURE WriteChar(ch : CHAR);
+
+PROCEDURE WriteString (s: ARRAY OF CHAR);
+
+PROCEDURE WriteLn;
+
+PROCEDURE PressAnyKey;
+
+PROCEDURE Error (message: ARRAY OF CHAR);
+
+PROCEDURE WriteLongInt(i: LONGINT);
+PROCEDURE WriteLongCard (n : LONGCARD);
+
+PROCEDURE WriteCard (N: CARDINAL);
+
+PROCEDURE WriteInt (i: INTEGER);
+
+PROCEDURE WriteRJCard (number, fieldsize: CARDINAL);
+    (* Like WriteCard, but the result is right justified in a field     *)
+    (* of fieldsize characters.                                         *)
+
+PROCEDURE WriteReal (x: REAL;  places: CARDINAL);
+
+PROCEDURE WriteLongRealFixed (x: LONGREAL;  fieldsize: CARDINAL);
+
+PROCEDURE WriteLongRealFloat (x: LONGREAL; fieldsize: CARDINAL);
+
+PROCEDURE WriteLongRealEng (x: LONGREAL; fieldsize: CARDINAL);
+
+PROCEDURE WriteLongReal (x: LONGREAL);
+
+PROCEDURE WriteCx (Z: LONGCOMPLEX);
+(* Writes a complex number to the terminal *)
+
+PROCEDURE RtJust(VAR str : ARRAY OF CHAR; width : CARDINAL);
+
+(************************************************************************)
+(*                         KEYBOARD INPUT                               *)
+(************************************************************************)
+PROCEDURE ReadChar(VAR ch : CHAR);
+
+PROCEDURE ReadString(VAR s : ARRAY OF CHAR);
+
+PROCEDURE SkipLine;
+  (* Removes successive items from the default input stream up to and including the next line mark or until the end of input is reached.
+     The read result is set to the value allRight, or endOfInput. *)
+
+PROCEDURE ReadAllChars(VAR s: ARRAY OF CHAR);
+
+PROCEDURE ReadCard (VAR (*OUT*) N: CARDINAL);
+
+PROCEDURE ReadLongReal(VAR lr: LONGREAL);
+
+END MiscStdInOutg.

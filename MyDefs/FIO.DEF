@@ -1,0 +1,198 @@
+DEFINITION MODULE FIO;
+
+  FROM FileSystem IMPORT File;
+  FROM UTILLIB IMPORT BUFSIZ, BUFTYP, STRTYP;
+  FROM SYSTEM IMPORT WORD;
+  EXPORT QUALIFIED EOFMARKER,DRIVESEP,SUBDIRSEP,EXTRACTDRVPTH,MYFILTYP,
+    IOSTATE,FRESET,FPURGE,FCLOSE,FREAD,FRDTXLN,FWRTX,FWRTXLN,RETBLKBUF,
+    FWRBL,FWRSTR,FWRLN,FCLOSEDUP,COPYDPIF,FAPPEND;
+
+CONST
+    IOBUFSIZ = 10 * 1024;
+    IOBUFSIZMAX = IOBUFSIZ + BUFSIZ + 1;
+    EOFMARKER = 032C; (* CHR(26) OR CTRL-Z *)
+    DRIVESEP  = ':';
+    SUBDIRSEP = '\';
+
+TYPE 
+  IOBUFTYP = ARRAY [1..IOBUFSIZMAX] OF CHAR;
+  MYFILTYP = RECORD
+    FILE                      : File;
+    IOBUF                     : POINTER TO IOBUFTYP;
+    NXTPOSN,LASTPOSN,BYTESRED : CARDINAL;
+    FILENAME                  : STRTYP;
+    LineTermCH                : CHAR;
+  END(*RECORD*);
+  IOSTATE = (RD,WR);
+
+PROCEDURE RETBLKBUF(CNT : WORD; VAR BUF : BUFTYP);
+(*
+******************************* RETBLKBUF ***********************************
+RETURN BLANK BUFFER.
+THIS ROUTINE IS USED TO RETURN A BLANK BUFFER THAT IS USED TO INDENT THE OUTPUT
+LINE BY AS MANY SPACES AS NEEDED.  ROUTINE IS NEEDED PRIMARILY FOR WRRTN AND
+ANWORD'S MAIN BODY.
+
+INPUT FROM GBLVAR'S : BLANK, BUFSIZ
+*)
+
+PROCEDURE FWRBL(VAR F : MYFILTYP; CNT : WORD);
+(*
+******************************* FWRBL ***********************************
+Fast file WRite Blanks.
+This routine is used to write CNT number of blanks to file F.
+
+INPUT FROM GBLVAR'S : BLANK, BUFSIZ
+*)
+
+PROCEDURE EXTRACTDRVPTH(BUF:BUFTYP; VAR DRVPATH:BUFTYP);
+(*
+****************************** EXTRACTDRVPTH *******************************
+EXTRACT DRIVE AND PATH PROCEDURE.
+THIS PROCEDURE EXTRACTS THE DRIVE AND PATH SPECIFICATION PRESENT IN BUF AND
+TRANSFERS THEM TO THE DRVPATH PARAM.
+
+*)
+
+PROCEDURE FWRSTR(VAR F : MYFILTYP; CHARRAY : ARRAY OF CHAR);
+(*
+************************* FWRSTR ********************************************
+File WRITE STRING.
+THE PURPOSE OF THIS ROUTINE IS TO ALLOW EASY OUTPUT OF STRINGS.  IT IS
+IMPLEMENTED WITH CALLS TO CONBUF AND FWRTX, BUT PUTTING IT HERE SIMPLIFIES
+THE I/O FOR THE USER.
+
+*)
+
+PROCEDURE FWRLN(VAR F : MYFILTYP);
+(*
+************************* FWRLN *********************************************
+File WRITE LINE.
+THIS ROUTINE WILL WRITE A <CR>, <LF> SEQUENCE BY CREATING AN EMPTY BUFFER
+AND THEN CALLING FWRTXLN.
+
+*)
+
+PROCEDURE FRESET(VAR F:MYFILTYP; VAR FILNAM:BUFTYP; RDWRSTATE:IOSTATE);
+(*
+************************ FRESET **************************************
+FAST RESET ROUTINE.
+THIS PROCEDURE OPENS THE FILE FOR I/O, USING THE LOGITECH PROCEDURES LOOKUP
+AND RESET.  FILNAM IS THE FILE NAME AS BUILT BY GETFNM.  UNLIKE THE PASCAL 
+PROCEDURE OF THE SAME NAME, THIS ROUTINES OPENS AND RESETS FILES FOR BOTH
+READING AND WRITING.  RDWRSTATE IS EITHER RD FOR OPEN A FILE FOR READING,
+OR WR FOR OPEN A FILE FOR WRITING.
+
+*)
+
+PROCEDURE FREAD(VAR F:MYFILTYP; VAR EOFFLG:BOOLEAN);
+(*
+****************************** FREAD *************************************
+Fast READ.
+This procedure will read the proper number of characters into the IOBUF.
+
+*)
+
+PROCEDURE FRDTXLN(VAR F:MYFILTYP; VAR BUF:BUFTYP; LNMAX:CARDINAL;
+                                                         VAR EOFFLG:BOOLEAN);
+(*
+****************************** FRDTXLN *******************************
+File READ TEXT LINE.
+THIS ROUTINE FUNCTIONS LIKE ITS SLOWER COUNTERPART, ONLY IT GETS ITS
+TEXT LINE FROM THE I/O BUFFER AND NOT FROM THE CURRENT INPUT DEVICE.            
+LIKE ITS SLOWER COUNTERPART, THIS ROUTINE MORE CLOSELY APPROXIMATES
+THE READ OF FORTRAN, WITH ITS READING AN ENTIRE LINE, AND TESTING FOR
+THE END OF FILE CONDITION.
+
+F  --THE FILE VARIABLE FOR THE FILE TO WHICH DATA IS TO BE WRITTEN.
+BUF--THE BUFFER OF CHARS TO BE WRITTEN TO FILE F.
+LNMAX-- Max amt of chars allowed per text line buffer.
+EOFFLG--FLAG INDICATING WHETHER THE END OF FILE HAS BEEN FOUND.
+*)
+
+PROCEDURE FWRTX(VAR F : MYFILTYP; BUF : BUFTYP); 
+(*
+****************************** FWRTX **************************************
+File WRITE TEXT LINE.
+THIS ROUTINE FUNCTIONS LIKE ITS SLOWER COUNTERPART, ONLY IT PUTS ITS
+TEXT LINE INTO THE I/O BUFFER AND NOT TO THE CURRENT OUTPUT DEVICE.            
+LIKE ITS SLOWER COUNTERPART, THIS ROUTINE MORE CLOSELY APPROXIMATES
+THE WRITE OF FORTRAN, WITH ITS WRITING AN ENTIRE LINE, AND TESTING FOR
+THE END OF FILE CONDITION.  ALSO, IT DIFFERS FROM FWRTXLN IN THAT THE
+<CR> AND <LF> CHAR'S ARE NOT WRITTEN TO IOBUF.
+
+F  --THE FILE VARIABLE FOR THE FILE TO WHICH DATA IS TO BE WRITTEN.
+BUF--THE BUFFER OF CHARS TO BE WRITTEN TO FILE F.
+*) 
+
+PROCEDURE FPURGE(VAR F : MYFILTYP);
+(*
+**************************** FPURGE *************************************
+Fast Purge.
+This routine will unconditionally write the IOBUF out to disk.
+
+*)
+
+PROCEDURE FWRTXLN(VAR F : MYFILTYP; BUF : BUFTYP); 
+(*
+****************************** FWRTXLN **************************************
+File WRITE TEXT LINE.
+THIS ROUTINE FUNCTIONS LIKE ITS SLOWER COUNTERPART, ONLY IT PUTS ITS
+TEXT LINE INTO THE I/O BUFFER AND NOT TO THE CURRENT OUTPUT DEVICE.            
+LIKE ITS SLOWER COUNTERPART, THIS ROUTINE MORE CLOSELY APPROXIMATES
+THE WRITE OF FORTRAN, WITH ITS WRITING AN ENTIRE LINE, AND TESTING FOR
+THE END OF FILE CONDITION.
+
+F  --THE FILE VARIABLE FOR THE FILE TO WHICH DATA IS TO BE WRITTEN.
+BUF--THE BUFFER OF CHARS TO BE WRITTEN TO FILE F.
+*) 
+
+PROCEDURE FCLOSE(F : MYFILTYP);
+(*
+******************************* FCLOSE **************************************
+File CLOSE.
+THIS ROUTINE WILL CLOSE THE FILE INPUT AS ITS FORMAL PARAMETER.  IF THE BUFFER
+IS A WRITE BUFFER, THE BUFFER WILL BE WRITTEN BEFORE CLOSURE.
+*)
+
+PROCEDURE FCLOSEDUP(VAR F:MYFILTYP);
+(*
+******************************** FCLOSEDUP ******************************
+File CLOSE DUPlicate file handle.
+  This procedure will purge the I/O buffer, create a duplicate file handle
+and then close this duplicate.  This will transfer the filesize, etc to
+the directory.
+*)
+
+PROCEDURE COPYDPIF(INFNAM : BUFTYP; VAR OUTFNAM : BUFTYP);
+(*
+**************************** COPYDPIF ***********************************
+COPY Drive and Path IF there is no drive or path already there.  That is,
+this procedure will first check to see of the output file name has a drive
+or path specification.  If so, then nothing else is done.  If not, then
+the drive and path specification used for the input file will be copied to
+the output file name.
+*)
+
+PROCEDURE FAPPEND(VAR F:MYFILTYP; VAR FILNAM:BUFTYP);
+(*
+*********************** FAPPEND *****************************************
+File APPEND.
+This procedure will open the file given in FILNAM as an output file, and
+whatever is written to this file is appended to the file, instead of
+overwriting it.
+*)
+
+END FIO.
+
+
+
+
+
+
+
+
+
+
+
+

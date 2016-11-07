@@ -1,0 +1,25 @@
+Subject: Re: SBM2 does not install on top of itself
+From: Chris Braid <cbraid@spamcop.net>
+Newsgroups: comp.lang.modula2
+
+In article <MPG.1b6ce18ec99367639896c0@news.supernews.com>,
+ Robert Solomon <rob@drrob1.com> wrote:
+
+> Hi.  I've noticed that later builds of the Stony Brook Modula2 compiler 
+> and environment do not install on top of earlier ones.  That is, the 
+> libraries do not build when a new build is installed on top of an old 
+> one.  Has anyone experiemented to find out exactly what the conflicts 
+> are, and what I have to delete to get the new to install in the same 
+> directory as the old?
+> 
+> I wish to preserve my own directories which I added to the M2 tree.
+> 
+> Thanks
+
+Recent builds of SBM2 seem to get confused when the sources and .SYM 
+files get out of sync for whatever reason. 
+
+The workaround I've been using is to first delete all the old .SYM 
+files, then re-compile everything.
+
+   - Chris

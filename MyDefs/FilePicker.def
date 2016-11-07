@@ -1,0 +1,7 @@
+DEFINITION MODULE FilePicker;
+  FROM FileFunc IMPORT EOL, FileSpecString, NameString;
+
+PROCEDURE FileNamePicker(VAR OUT ns:NameString);
+
+END FilePicker.
+

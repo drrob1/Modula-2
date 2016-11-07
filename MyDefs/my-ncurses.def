@@ -1,0 +1,2671 @@
+DEFINITION MODULE FOR "C" ncurses ;
+
+EXPORT UNQUALIFIED COLORS, COLOR_PAIRS, ACS_MAP, stdscr, curscr, newscr, LINES, COLS, TABSIZE, ESCDELAY,
+    curses_version, define_key, keyok, resizeterm, use_default_colors, wresize, ttytype, baudrate, beep,
+    can_change_color, cbreak, clearok, color_content, copywin, curs_set, def_prog_mode, def_shell_mode,
+    delay_output, delscreen, delwin, doupdate, echo, endwin, erasechar, filter, flash, flushinp,
+    halfdelay, has_colors, has_ic, has_il, idcok, idlok, immedok, init_color, init_pair, intrflush,
+    isendwin, is_linetouched,
+;
+;
+
+	(*
+    Copyright (c) 1998 by Michael Van Canneyt
+    member of the Free Pascal development team
+
+    Unit to access the ncurses library
+
+    See the file COPYING.FPC included in this distribution,
+    for details about the copyright.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+ **********************************************************************)
+
+(*{
+  Many thanks to Ken Wright for his patches !
+*)
+(*
+{$packrecords C}
+{$linklib ncurses}
+{$linklib c}
+*)
+FROM System IMPORT BYTE, ADDRESS;
+
+(* Manually Added types *)
+CONST
+  NCURSES_VERSION_MAJOR = 5;
+  NCURSES_VERSION_MINOR = 0;
+  NCURSES_VERSION_PATCH = 19991023;
+  NCURSES_VERSION = '5.0';
+  CXX_BUILTIN_BOOL = 1;
+       COLOR_BLACK = 0;
+       COLOR_RED = 1;
+       COLOR_GREEN = 2;
+       COLOR_YELLOW = 3;
+       COLOR_BLUE = 4;
+       COLOR_MAGENTA = 5;
+       COLOR_CYAN = 6;
+       COLOR_WHITE = 7;
+
+TYPE
+  BOOL = BYTE;
+  pINTEGER = POINTER TO INTEGER;
+  pLONGINT = POINTER TO LONGINT;
+  pFILE = POINTER TO ADDRESS;  (* for now *)
+
+  CHTYPE  = LONGINT;
+(*  PCHTYPE = PCHAR; *)
+  pCHTYPE = POINTER TO CHTYPE;
+  CXX_TYPE_OF_BOOL = CHAR;
+
+  TACS_MAP = ARRAY [0 .. 255] OF CHTYPE;
+  PACS_MAP = POINTER TO TACS_MAP;
+
+  CharArrayType = ARRAY [0 .. 255] OF CHAR;
+  PCharType = POINTER TO CharArrayType;
+  PCHAR = ADDRESS; (* not sure what this should be, so I'll punt *)
+  ttytype = ADDRESS;  (* defined as char ttytype [], so I'll punt this one also *)
+
+
+VAR
+  COLORS, COLOR_PAIRS : LONGINT;
+
+  ACS_MAP : TACS_MAP;
+
+    PROCEDURE ACS_ULCORNER : CHTYPE;
+    PROCEDURE ACS_LLCORNER : CHTYPE;
+    PROCEDURE ACS_URCORNER : CHTYPE;
+    PROCEDURE ACS_LRCORNER : CHTYPE;
+    PROCEDURE ACS_LTEE : CHTYPE;
+    PROCEDURE ACS_RTEE : CHTYPE;
+    PROCEDURE ACS_BTEE : CHTYPE;
+    PROCEDURE ACS_TTEE : CHTYPE;
+    PROCEDURE ACS_HLINE : CHTYPE;
+    PROCEDURE ACS_VLINE : CHTYPE;
+    PROCEDURE ACS_PLUS : CHTYPE;
+    PROCEDURE ACS_S1      : CHTYPE;
+    PROCEDURE ACS_S9      : CHTYPE;
+    PROCEDURE ACS_DIAMOND : CHTYPE;
+    PROCEDURE ACS_CKBOARD : CHTYPE;
+    PROCEDURE ACS_DEGREE : CHTYPE;
+    PROCEDURE ACS_PLMINUS : CHTYPE;
+    PROCEDURE ACS_BULLET : CHTYPE;
+    PROCEDURE ACS_LARROW : CHTYPE;
+    PROCEDURE ACS_RARROW : CHTYPE;
+    PROCEDURE ACS_DARROW : CHTYPE;
+    PROCEDURE ACS_UARROW : CHTYPE;
+    PROCEDURE ACS_BOARD : CHTYPE;
+    PROCEDURE ACS_LANTERN : CHTYPE;
+    PROCEDURE ACS_BLOCK : CHTYPE;
+    PROCEDURE ACS_S3      : CHTYPE;
+    PROCEDURE ACS_S7      : CHTYPE;
+    PROCEDURE ACS_LEQUAL : CHTYPE;
+    PROCEDURE ACS_GEQUAL : CHTYPE;
+    PROCEDURE ACS_PI      : CHTYPE;
+    PROCEDURE ACS_NEQUAL : CHTYPE;
+    PROCEDURE ACS_STERLING : CHTYPE;
+    (*
+       Line drawing ACS names are of the form ACS_trbl, where t is the top, r
+       is the right, b is the bottom, and l is the left.  t, r, b, and l might
+       be B (blank), S (single), D (double), or T (thick).  The subset defined
+       here only uses B and S.
+     *)
+    (*
+                        #define ACS_BSSB    ACS_ULCORNER
+                        #define ACS_SSBB    ACS_LLCORNER
+                        #define ACS_BBSS    ACS_URCORNER
+                        #define ACS_SBBS    ACS_LRCORNER
+                        #define ACS_SBSS    ACS_RTEE
+                        #define ACS_SSSB    ACS_LTEE
+                        #define ACS_SSBS    ACS_BTEE
+                        #define ACS_BSSS    ACS_TTEE
+                        #define ACS_BSBS    ACS_HLINE
+                        #define ACS_SBSB    ACS_VLINE
+                        #define ACS_SSSS    ACS_PLUS
+    *)
+    CONST
+       ERR = -(1);
+       OK = 0;
+       _SUBWIN = 01H;
+       _ENDLINE = 02H;
+       _FULLWIN = 04H;
+       _SCROLLWIN = 08H;
+       _ISPAD = 10H;
+       _HASMOVED = 20H;
+       _WRAPPED = 40H;
+    (*
+       this value is used in the firstchar and lastchar fields to mark unchanged lines
+     *)
+       _NOCHANGE = -(1);
+    (*
+       this value is used in the oldindex field to mark lines created by insertions and scrolls.
+     *)
+       _NEWINDEX = -(1);
+    (*
+    typedef struct screen  SCREEN;
+    typedef struct _win_st WINDOW;
+    *)
+
+    TYPE
+
+       ATTR_T = CHTYPE;
+       LDAT = RECORD
+            TEXT :  PCHTYPE;
+            FIRSTCHAR : INTEGER;
+            LASTCHAR : INTEGER;
+            OLDINDEX : INTEGER;
+         END;
+
+       _WIN_ST = RECORD
+            _CURY : INTEGER;
+            _CURX : INTEGER;
+            _MAXY : INTEGER;
+            _MAXX : INTEGER;
+            _BEGY : INTEGER;
+            _BEGX : INTEGER;
+            _FLAGS : INTEGER;
+            _ATTRS : ATTR_T;
+            _BKGD : CHTYPE;
+            _NOTIMEOUT : BOOL;
+            _CLEAR : BOOL;
+            _LEAVEOK : BOOL;
+            _SCROLL : BOOL;
+            _IDLOK : BOOL;
+            _IDCOK : BOOL;
+            _IMMED : BOOL;
+            _SYNC : BOOL;
+            _USE_KEYPAD : BOOL;
+            _DELAY : LONGINT;
+            _LINE : ^LDAT;
+            _REGTOP : INTEGER;
+            _REGBOTTOM : INTEGER;
+            _PARX : LONGINT;
+            _PARY : LONGINT;
+            _PARENT : ^WINDOW;
+            _PAD : RECORD
+                 _PAD_Y : INTEGER;
+                 _PAD_X : INTEGER;
+                 _PAD_TOP : INTEGER;
+                 _PAD_LEFT : INTEGER;
+                 _PAD_BOTTOM : INTEGER;
+                 _PAD_RIGHT : INTEGER;
+              END;
+            _YOFFSET : INTEGER;
+         END;
+       WINDOW = _WIN_ST;
+       pWINDOW = POINTER TO WINDOW;
+       SCREEN = WINDOW;
+       pSCREEN = pWINDOW;
+
+      VAR
+       stdscr  : PWINDOW; (*external name 'stdscr'; *)
+       curscr  : PWINDOW; (* external name 'curscr'; *)
+       newscr  : PWINDOW; (* external name 'newscr'; *)
+       LINES   : LONGINT; (* external name 'LINES'; *)
+       COLS    : LONGINT; (* external name 'COLS'; *)
+       TABSIZE : LONGINT; (* external name 'TABSIZE'; *)
+       ESCDELAY: LONGINT; (* external name 'ESCDELAY'; *)
+
+    PROCEDURE curses_version : PCHAR;
+    PROCEDURE define_key(_para1:PCHAR; _para2:LONGINT):LONGINT;
+    PROCEDURE keyok(_para1:LONGINT; _para2:BOOL):LONGINT;
+    PROCEDURE resizeterm(_para1:LONGINT; _para2:LONGINT):LONGINT;
+    PROCEDURE use_default_colors:LONGINT;
+    PROCEDURE wresize(_para1:pWINDOW; _para2:LONGINT; _para3:LONGINT):LONGINT;
+    (*
+    extern char ttytype[];
+    *)
+    PROCEDURE baudrate:LONGINT;
+    PROCEDURE beep:LONGINT;
+    PROCEDURE can_change_color:BOOL;
+    PROCEDURE cbreak:LONGINT;
+    PROCEDURE clearok(_para1:pWINDOW; _para2:BOOL):LONGINT;
+    PROCEDURE color_content(_para1:LONGINT; _para2:pLONGINT; _para3:pLONGINT; _para4:pLONGINT):LONGINT;
+
+    PROCEDURE copywin(_para1:pWINDOW; _para2:pWINDOW; _para3:LONGINT; _para4:LONGINT; _para5:LONGINT;
+               _para6:LONGINT; _para7:LONGINT; _para8:LONGINT; _para9:LONGINT):LONGINT;
+    PROCEDURE curs_set(_para1:LONGINT):LONGINT;
+    PROCEDURE def_prog_mode:LONGINT;
+    PROCEDURE def_shell_mode:LONGINT;
+    PROCEDURE delay_output(_para1:LONGINT):LONGINT;
+    PROCEDURE delscreen(_para1:pSCREEN);
+    PROCEDURE delwin(_para1:pWINDOW):LONGINT;
+
+    PROCEDURE doupdate:LONGINT;
+
+    PROCEDURE echo:LONGINT;
+    PROCEDURE endwin:LONGINT;
+    PROCEDURE erasechar:char;
+    PROCEDURE filter;
+    PROCEDURE flash:LONGINT;
+    PROCEDURE flushinp:LONGINT;
+
+    PROCEDURE halfdelay(_para1:LONGINT):LONGINT;
+    PROCEDURE has_colors:BOOL;
+    PROCEDURE has_ic:LONGINT;
+    PROCEDURE has_il:LONGINT;
+    PROCEDURE idcok(_para1:pWINDOW; _para2:BOOL);
+    PROCEDURE idlok(_para1:pWINDOW; _para2:BOOL):LONGINT;
+    PROCEDURE immedok(_para1:pWINDOW; _para2:BOOL);
+
+    PROCEDURE init_color(_para1:LONGINT; _para2:LONGINT; _para3:LONGINT; _para4:LONGINT):LONGINT;
+    PROCEDURE init_pair(_para1:LONGINT; _para2:LONGINT; _para3:LONGINT):LONGINT;
+    PROCEDURE intrflush(_para1:pWINDOW; _para2:BOOL):LONGINT;
+    PROCEDURE isendwin:LONGINT;
+    PROCEDURE is_linetouched(_para1:pWINDOW; _para2:LONGINT):LONGINT;
+    PROCEDURE is_wintouched(_para1:pWINDOW):LONGINT;
+
+
+    PROCEDURE keypad(_para1:pWINDOW; _para2:BOOL):LONGINT;
+    PROCEDURE killchar:char;
+    PROCEDURE leaveok(_para1:pWINDOW; _para2:BOOL):LONGINT;
+
+    PROCEDURE meta(_para1:pWINDOW; _para2:BOOL):LONGINT;
+    PROCEDURE mvcur(_para1:LONGINT; _para2:LONGINT; _para3:LONGINT; _para4:LONGINT):LONGINT;
+    PROCEDURE mvderwin(_para1:pWINDOW; _para2:LONGINT; _para3:LONGINT):LONGINT;
+    (*
+    extern int mvprintw(int,int,const char  ,...)
+                GCC_PRINTFLIKE(3,4);
+    extern int mvscanw(int,int,const char  ,...)
+                GCC_SCANFLIKE(3,4);
+    *)
+    PROCEDURE mvwin(_para1:pWINDOW; _para2:LONGINT; _para3:LONGINT):LONGINT;
+    (*
+    extern int mvwprintw(WINDOW ,int,int,const char  ,...)
+                GCC_PRINTFLIKE(4,5);
+    extern int mvwscanw(WINDOW  ,int,int,const char  ,...)
+                GCC_SCANFLIKE(4,5);
+    *)
+    PROCEDURE napms(_para1:LONGINT):LONGINT;
+
+    PROCEDURE nl:LONGINT;
+    PROCEDURE nocbreak:LONGINT;
+    PROCEDURE nodelay(_para1:pWINDOW; _para2:BOOL):LONGINT;
+    PROCEDURE noecho:LONGINT;
+    PROCEDURE nonl:LONGINT;
+    PROCEDURE noqiflush:LONGINT;
+    PROCEDURE noraw:LONGINT;
+    PROCEDURE notimeout(_para1:pWINDOW; _para2:BOOL):LONGINT;
+
+    PROCEDURE overlay(_para1:pWINDOW; _para2:pWINDOW):LONGINT;
+
+    PROCEDURE overwrite(_para1:pWINDOW; _para2:pWINDOW):LONGINT;
+    PROCEDURE pair_content(_para1:LONGINT; _para2:pLONGINT; _para3:pLONGINT):LONGINT;
+
+    PROCEDURE pechochar(_para1:pWINDOW; _para2:CHTYPE):LONGINT;
+    PROCEDURE pnoutrefresh(_para1:pWINDOW; _para2:LONGINT; _para3:LONGINT; _para4:LONGINT; _para5:LONGINT;
+               _para6:LONGINT; _para7:LONGINT):LONGINT;
+    PROCEDURE prefresh(_para1:pWINDOW; _para2:LONGINT; _para3:LONGINT; _para4:LONGINT; _para5:LONGINT;
+               _para6:LONGINT; _para7:LONGINT):LONGINT;
+    (*
+    extern int printw(const char  ,...)
+                GCC_PRINTFLIKE(1,2);
+    *)
+    PROCEDURE putp(_para1:pchar):LONGINT;
+    PROCEDURE putwin(_para1:pWINDOW; _para2:pFILE):LONGINT;
+    PROCEDURE qiflush:LONGINT;
+    PROCEDURE raw:LONGINT;
+    PROCEDURE resetty:LONGINT;
+    PROCEDURE reset_prog_mode:LONGINT;
+    PROCEDURE reset_shell_mode:LONGINT;
+(*
+    PROCEDURE ripoffline(_para1:LONGINT; init:PROCEDURE (_para1:pWINDOW; _para2:LONGINT):LONGINT):LONGINT;
+*)
+    PROCEDURE savetty:LONGINT;
+    (*
+    extern int scanw(const char  ,...)
+                GCC_SCANFLIKE(1,2);
+    *)
+    PROCEDURE scr_dump(_para1:pchar):LONGINT;
+
+    PROCEDURE scr_init(_para1:pchar):LONGINT;
+    PROCEDURE scrollok(_para1:pWINDOW; _para2:BOOL):LONGINT;
+
+    PROCEDURE scr_restore(_para1:pchar):LONGINT;
+
+    PROCEDURE scr_set(_para1:pchar):LONGINT;
+
+
+    PROCEDURE slk_attroff(_para1:attr_t):LONGINT;
+
+    PROCEDURE slk_attron(_para1:attr_t):LONGINT;
+
+    PROCEDURE slk_attrset(_para1:attr_t):LONGINT;
+    PROCEDURE slk_attr:attr_t;
+    PROCEDURE slk_clear:LONGINT;
+    PROCEDURE slk_init(_para1:LONGINT):LONGINT;
+
+    PROCEDURE slk_noutrefresh:LONGINT;
+    PROCEDURE slk_refresh:LONGINT;
+    PROCEDURE slk_restore:LONGINT;
+
+    PROCEDURE slk_set(_para1:LONGINT; _para2:pchar; _para3:LONGINT):LONGINT;
+    PROCEDURE slk_touch:LONGINT;
+    PROCEDURE start_color:LONGINT;
+
+    PROCEDURE syncok(_para1:pWINDOW; _para2:BOOL):LONGINT;
+    PROCEDURE termattrs:CHTYPE;
+
+    PROCEDURE tigetflag(_para1:PCHAR):LONGINT;
+
+    PROCEDURE tigetnum(_para1:PCHAR):LONGINT;
+
+    PROCEDURE derwin (_para1:pWINDOW; _para2:LONGINT; _para3:LONGINT; _para4:LONGINT; _para5:LONGINT):pWINDOW;
+    PROCEDURE dupwin (_para1:pWINDOW):pWINDOW;
+    PROCEDURE getwin (_para1:pFILE):pWINDOW;
+    PROCEDURE initscr :pWINDOW;
+    PROCEDURE keyname  (_para1:LONGINT):pchar;
+    PROCEDURE longname :pchar;
+    PROCEDURE newpad (_para1:LONGINT; _para2:LONGINT):PWINDOW;
+    PROCEDURE newterm (_para1:pchar; _para2:pFILE; _para3:pFILE):PSCREEN;
+    PROCEDURE newwin  (_para1:LONGINT; _para2:LONGINT; _para3:LONGINT; _para4:LONGINT):PWINDOW;
+    PROCEDURE set_term (_para1:pSCREEN):PSCREEN;
+    PROCEDURE slk_label (_para1:LONGINT):pchar;
+    PROCEDURE subpad (_para1:pWINDOW; _para2:LONGINT; _para3:LONGINT; _para4:LONGINT; _para5:LONGINT):PWINDOW;
+    PROCEDURE subwin (_para1:pWINDOW; _para2:LONGINT; _para3:LONGINT; _para4:LONGINT; _para5:LONGINT):PWINDOW;
+    PROCEDURE termname :pchar;
+    PROCEDURE tigetstr (_para1:pchar):pchar;
+    PROCEDURE typeahead(_para1:LONGINT):LONGINT;
+    PROCEDURE ungetch(_para1:LONGINT):LONGINT;
+    procedure use_env(_para1:BOOL);
+    PROCEDURE vidattr(_para1:CHTYPE):LONGINT;
+{
+    PROCEDURE vidputs(_para1:CHTYPE; _para2:PROCEDURE (_para1:LONGINT):LONGINT):LONGINT;
+}
+{
+    PROCEDURE vwprintw(_para1:pWINDOW; _para2:pchar; _para3:va_list):LONGINT;
+    PROCEDURE vwscanw(_para1:pWINDOW; _para2:pchar; _para3:va_list):LONGINT;
+}
+    PROCEDURE waddch(_para1:pWINDOW; _para2:CHTYPE):LONGINT;
+    PROCEDURE waddchnstr(_para1:pWINDOW; _para2:pCHTYPE; _para3:LONGINT):LONGINT;
+    PROCEDURE waddnstr(_para1:pWINDOW; _para2:pchar; _para3:LONGINT):LONGINT;
+    PROCEDURE wattr_on(_para1:pWINDOW; _para2:attr_t):LONGINT;
+    PROCEDURE wattr_off(_para1:pWINDOW; _para2:attr_t):LONGINT;
+    PROCEDURE wattr_set(win : pwindow; at : LONGINT) : LONGINT;
+    PROCEDURE wattron(win : pwindow;at : LONGINT) : LONGINT;
+    PROCEDURE wattroff(win : pwindow;at : LONGINT) : LONGINT;
+    PROCEDURE wattrset(win : pwindow;at : LONGINT) : LONGINT;
+    PROCEDURE wbkgd(_para1:pWINDOW; _para2:CHTYPE):LONGINT;
+    procedure wbkgdset(_para1:pWINDOW; _para2:CHTYPE);
+    PROCEDURE wborder(_para1:pWINDOW; _para2:CHTYPE; _para3:CHTYPE; _para4:CHTYPE; _para5:CHTYPE;
+               _para6:CHTYPE; _para7:CHTYPE; _para8:CHTYPE; _para9:CHTYPE):LONGINT;
+    PROCEDURE wchgat(_para1:pWINDOW; _para2:LONGINT; _para3:attr_t; _para4:LONGINT; _para5:pointer):LONGINT;
+    PROCEDURE wclear(_para1:pWINDOW):LONGINT;
+    PROCEDURE wclrtobot(_para1:pWINDOW):LONGINT;
+    PROCEDURE wclrtoeol(_para1:pWINDOW):LONGINT;
+    procedure wcursyncup(_para1:pWINDOW);
+    PROCEDURE wdelch(_para1:pWINDOW):LONGINT;
+    PROCEDURE wechochar(_para1:pWINDOW; _para2:CHTYPE):LONGINT;
+    PROCEDURE werase(_para1:pWINDOW):LONGINT;
+    PROCEDURE wgetch(_para1:pWINDOW):LONGINT;
+    PROCEDURE wgetnstr(_para1:pWINDOW; _para2:pchar; _para3:LONGINT):LONGINT;
+    PROCEDURE whline(_para1:pWINDOW; _para2:CHTYPE; _para3:LONGINT):LONGINT;
+    PROCEDURE winch (win : PWindow) : LONGINT;
+    PROCEDURE winchnstr(_para1:pWINDOW; _para2:pCHTYPE; _para3:LONGINT):LONGINT;
+    PROCEDURE winnstr(_para1:pWINDOW; _para2:pchar; _para3:LONGINT):LONGINT;
+    PROCEDURE winsch(_para1:pWINDOW; _para2:CHTYPE):LONGINT;
+    PROCEDURE winsdelln(_para1:pWINDOW; _para2:LONGINT):LONGINT;
+    PROCEDURE winsnstr(_para1:pWINDOW; _para2:pchar; _para3:LONGINT):LONGINT;
+    PROCEDURE wmove(_para1:pWINDOW; _para2:LONGINT; _para3:LONGINT):LONGINT;
+    PROCEDURE wnoutrefresh(_para1:pWINDOW):LONGINT;
+    {
+    extern int wprintw(WINDOW  ,const char  ,...)
+                GCC_PRINTFLIKE(2,3);
+    }
+    PROCEDURE wredrawln(_para1:pWINDOW; _para2:LONGINT; _para3:LONGINT):LONGINT;
+    PROCEDURE wrefresh(_para1:pWINDOW):LONGINT;
+    {
+    extern int wscanw(WINDOW  ,const char  ,...)
+                GCC_SCANFLIKE(2,3);
+    }
+    PROCEDURE wscrl(_para1:pWINDOW; _para2:LONGINT):LONGINT;
+    PROCEDURE wsetscrreg(_para1:pWINDOW; _para2:LONGINT; _para3:LONGINT):LONGINT;
+    procedure wsyncdown(_para1:pWINDOW);
+    procedure wsyncup(_para1:pWINDOW);
+    PROCEDURE wtimeout(_para1:pWINDOW; _para2:LONGINT):LONGINT;
+    PROCEDURE wtouchln(_para1:pWINDOW; _para2:LONGINT; _para3:LONGINT; _para4:LONGINT):LONGINT;
+    PROCEDURE wvline(_para1:pWINDOW; _para2:CHTYPE; _para3:LONGINT):LONGINT;
+    PROCEDURE mvwchgat(_para1:pWINDOW; _para2:LONGINT; _para3:LONGINT;
+                      _para4:LONGINT; _para5:LONGINT; _para6:LONGINT;
+                      _para7:LONGINT):LONGINT;
+    PROCEDURE PAIR_NUMBER(_para1:LONGINT):LONGINT;
+
+    const
+           A_NORMAL = 0;
+           A_ATTRIBUTES = (not 0) shl 8;
+           A_CHARTEXT=(1 shl (0 + 8)) - 1;
+           A_COLOR=((1 shl 8) - 1) shl 8;
+           A_STANDOUT = 1 shl (8 + 8);
+           A_UNDERLINE = 1 shl (9 + 8);
+           A_REVERSE = 1 shl (10 + 8);
+           A_BLINK = 1 shl (11 + 8);
+           A_DIM = 1 shl (12 + 8);
+           A_BOLD = 1 shl (13 + 8);
+           A_ALTCHARSET = 1 shl (14 + 8);
+           A_INVIS = 1 shl (15 + 8);
+           A_PROTECT = 1 shl (16 + 8);
+           A_HORIZONTAL = 1 shl (17 + 8);
+           A_LEFT = 1 shl (18 + 8);
+           A_LOW = 1 shl (19 + 8);
+           A_RIGHT = 1 shl (20 + 8);
+           A_TOP = 1 shl (21 + 8);
+           A_VERTICAL = 1 shl (22 + 8);
+     PROCEDURE color_pair(n : LONGINT): LONGINT;
+{
+           PAIR_NUMBER = (a(@(A_COLOR))) shr 8;
+}
+
+    {
+       pseudo functions
+     }
+    PROCEDURE wgetstr(w : pwindow;s : pchar) : LONGINT;
+    PROCEDURE getnstr(s : pchar;n : LONGINT) : LONGINT;
+    PROCEDURE setterm(term : LONGINT) : LONGINT;
+    PROCEDURE fixterm : LONGINT;
+    PROCEDURE resetterm : LONGINT;
+    PROCEDURE saveterm : LONGINT;
+    PROCEDURE crmode : LONGINT;
+    PROCEDURE nocrmode : LONGINT;
+    procedure getyx   (win : pwindow; var y,x : LONGINT);
+    procedure getbegyx(win : pwindow; var y,x : LONGINT);
+    procedure getmaxyx(win : pwindow; var y,x : LONGINT);
+    procedure getparyx(win : pwindow; var y,x : LONGINT);
+    Procedure getsyx  (var y,x : LONGINT);
+    procedure setsyx (y,x : LONGINT);
+    PROCEDURE getattrs(win : pwindow) : LONGINT;
+    PROCEDURE getcurx(win : pwindow) : LONGINT;
+    PROCEDURE getcury(win : pwindow) : LONGINT;
+    PROCEDURE getbegx(win : pwindow) : LONGINT;
+    PROCEDURE getbegy(win : pwindow) : LONGINT;
+    PROCEDURE getmaxx(win : pwindow) : LONGINT;
+    PROCEDURE getmaxy(win : pwindow) : LONGINT;
+    PROCEDURE getparx(win : pwindow) : LONGINT;
+    PROCEDURE getpary(win : pwindow) : LONGINT;
+    PROCEDURE wstandout(win : pwindow) : LONGINT;
+    PROCEDURE wstandend(win : pwindow) : LONGINT;
+{kjw, 08/24/2000, changed to cdecl; external
+    PROCEDURE wattr_set(win : pwindow; at : LONGINT) : LONGINT;
+    PROCEDURE wattron(win : pwindow;at : LONGINT) : LONGINT;
+    PROCEDURE wattroff(win : pwindow;at : LONGINT) : LONGINT;
+    PROCEDURE wattrset(win : pwindow;at : LONGINT) : LONGINT;
+}
+    PROCEDURE scroll(win : pwindow) : LONGINT;
+    PROCEDURE touchwin(win : pwindow) : LONGINT;
+    PROCEDURE touchline(win : pwindow;s,c : LONGINT) : LONGINT;
+    PROCEDURE untouchwin(win : pwindow) : LONGINT;
+    PROCEDURE box(win : pwindow;v,h : LONGINT) : LONGINT;
+    PROCEDURE border(ls,rs,ts,bs,tl,tr,bl,br : LONGINT) : LONGINT;
+    PROCEDURE hline(ch,n : LONGINT) : LONGINT;
+    PROCEDURE vline(ch,n : LONGINT) : LONGINT;
+    PROCEDURE winstr(w : pwindow;s : pchar) : LONGINT;
+    PROCEDURE winchstr(w : pwindow;s : pchar) : LONGINT;
+    PROCEDURE winsstr(w : pwindow;s : pchar) : LONGINT;
+    PROCEDURE redrawwin(w : pwindow) : LONGINT;
+    PROCEDURE waddstr(win : pwindow;st : pchar) : LONGINT;
+    PROCEDURE waddchstr(win : pwindow;st : pchar) : LONGINT;
+    {
+       pseudo functions for standard screen
+     }
+    PROCEDURE addch(ch : LONGINT) : LONGINT;
+    PROCEDURE addchnstr(st : pchar;n : LONGINT) : LONGINT;
+    PROCEDURE addchstr(st : pchar) : LONGINT;
+    PROCEDURE addnstr(st : pchar;n : LONGINT) : LONGINT;
+    PROCEDURE addstr(st : pchar) : LONGINT;
+    PROCEDURE attroff(at : LONGINT) : LONGINT;
+    PROCEDURE attron(at : LONGINT) : LONGINT;
+    PROCEDURE attrset(at : LONGINT) : LONGINT;
+    PROCEDURE bkgd(ch : LONGINT) : LONGINT;
+    procedure bkgdset(ch : LONGINT);
+    PROCEDURE clear : LONGINT;
+    PROCEDURE clrtobot : LONGINT;
+    PROCEDURE clrtoeol : LONGINT;
+    PROCEDURE delch : LONGINT;
+    PROCEDURE deleteln : LONGINT;
+    PROCEDURE echochar(c : LONGINT) : LONGINT;
+    PROCEDURE erase : LONGINT;
+    PROCEDURE getch : LONGINT;
+    PROCEDURE getstr(st : pchar) : LONGINT;
+    PROCEDURE inch : LONGINT;
+    PROCEDURE inchnstr(s : pchar;n : LONGINT) : LONGINT;
+    PROCEDURE inchstr(s : pchar) : LONGINT;
+    PROCEDURE innstr(s : pchar;n : LONGINT) : LONGINT;
+    PROCEDURE insch(c : LONGINT) : LONGINT;
+    PROCEDURE insdelln(n : LONGINT) : LONGINT;
+    PROCEDURE insertln : LONGINT;
+    PROCEDURE insnstr(s : pchar;n : LONGINT) : LONGINT;
+    PROCEDURE insstr(s : pchar) : LONGINT;
+    PROCEDURE instr(s : pchar) : LONGINT;
+    PROCEDURE move(y,x : LONGINT) : LONGINT;
+    PROCEDURE refresh : LONGINT;
+    PROCEDURE scrl(n : LONGINT) : LONGINT;
+    PROCEDURE setscrreg(t,b : LONGINT) : LONGINT;
+    PROCEDURE standend : LONGINT;
+    PROCEDURE standout : LONGINT;
+    PROCEDURE timeout(delay : LONGINT) : LONGINT;
+    PROCEDURE wdeleteln(win : pwindow) : LONGINT;
+    PROCEDURE winsertln(win : pwindow) : LONGINT;
+    {
+       mv functions
+     }
+    PROCEDURE  mvwaddch(win : pwindow;y,x : LONGINT; ch : CHTYPE) : LONGINT;
+    PROCEDURE  mvwaddchnstr(win : pwindow;y,x : LONGINT;st : pchar;n : LONGINT) : LONGINT;
+    PROCEDURE  mvwaddchstr(win : pwindow;y,x : LONGINT;st : pchar) : LONGINT;
+    PROCEDURE  mvwaddnstr(win : pwindow;y,x : LONGINT;st : pchar;n : LONGINT) : LONGINT;
+    PROCEDURE  mvwaddstr(win : pwindow;y,x : LONGINT;st : pchar) : LONGINT;
+    PROCEDURE  mvwdelch(win : pwindow;y,x : LONGINT) : LONGINT;
+    PROCEDURE  mvwgetch(win : pwindow;y,x : LONGINT) : LONGINT;
+    PROCEDURE  mvwgetnstr(win : pwindow;y,x : LONGINT;st : pchar;n: LONGINT) : LONGINT;
+    PROCEDURE  mvwgetstr(win : pwindow;y,x : LONGINT;st: pchar) : LONGINT;
+    PROCEDURE  mvwhline(win : pwindow;y,x : LONGINT;c : CHTYPE;n : LONGINT) : LONGINT;
+    PROCEDURE  mvwinch(win : pwindow;y,x : LONGINT) : LONGINT;
+    PROCEDURE  mvwinchnstr(win : pwindow;y,x : LONGINT;s : pchar; n : LONGINT) : LONGINT;
+    PROCEDURE  mvwinchstr(win : pwindow;y,x : LONGINT;s : pchar) : LONGINT;
+    PROCEDURE  mvwinnstr(win : pwindow;y,x : LONGINT;s : pchar;n : LONGINT) : LONGINT;
+    PROCEDURE  mvwinsch(win : pwindow;y,x : LONGINT;c : CHTYPE) : LONGINT;
+    PROCEDURE  mvwinsnstr(win : pwindow;y,x : LONGINT;s : pchar;n : LONGINT) : LONGINT;
+    PROCEDURE  mvwinsstr(win : pwindow;y,x : LONGINT;s : pchar) : LONGINT;
+    PROCEDURE  mvwinstr(win : pwindow;y,x : LONGINT;s : pchar) : LONGINT;
+    PROCEDURE  mvwvline(win : pwindow;y,x : LONGINT;c : CHTYPE;n : LONGINT) : LONGINT;
+    PROCEDURE mvaddch(y,x,ch : LONGINT) : LONGINT;
+    PROCEDURE mvaddchnstr(y,x : LONGINT; st: pchar;n : LONGINT) : LONGINT;
+    PROCEDURE mvaddchstr(y,x : LONGINT; st : pchar) : LONGINT;
+    PROCEDURE mvaddnstr(y,x : LONGINT; st : pchar;n : LONGINT) : LONGINT;
+    PROCEDURE mvaddstr(y,x : LONGINT; st : pchar) : LONGINT;
+    PROCEDURE mvdelch(y,x : LONGINT) : LONGINT;
+    PROCEDURE mvgetch(y,x : LONGINT) : LONGINT;
+    PROCEDURE mvgetnstr(y,x : LONGINT; st : pchar;n : LONGINT) : LONGINT;
+    PROCEDURE mvgetstr(y,x : LONGINT; st : pchar) : LONGINT;
+    PROCEDURE mvhline(y,x : LONGINT;c : CHTYPE;n : LONGINT) : LONGINT;
+    PROCEDURE mvinch(y,x : LONGINT) : LONGINT;
+    PROCEDURE mvinchnstr(y,x : LONGINT; s : pchar;n : LONGINT) : LONGINT;
+    PROCEDURE mvinchstr(y,x : LONGINT; s : pchar) : LONGINT;
+    PROCEDURE mvinnstr(y,x : LONGINT; s : pchar;n : LONGINT) : LONGINT;
+    PROCEDURE mvinsch(y,x: LONGINT;c : CHTYPE) : LONGINT;
+    PROCEDURE mvinsnstr(y,x : LONGINT; s : pchar;n : LONGINT) : LONGINT;
+    PROCEDURE mvinsstr(y,x : LONGINT; s : pchar) : LONGINT;
+    PROCEDURE mvinstr(y,x : LONGINT; s : pchar) : LONGINT;
+    PROCEDURE mvvline(y,x,c,n : LONGINT) : LONGINT;
+    PROCEDURE attr_get : LONGINT;
+    PROCEDURE attr_off(a : LONGINT) : LONGINT;
+    PROCEDURE attr_on(a : LONGINT) : LONGINT;
+    PROCEDURE attr_set(a : LONGINT) : LONGINT;
+    PROCEDURE chgat(n,a,c,o : LONGINT) : LONGINT;
+    PROCEDURE getbkgd(win : pwindow) : LONGINT;
+    PROCEDURE slk_attr_off(a : LONGINT) : LONGINT;
+    PROCEDURE slk_attr_on(a : LONGINT) : LONGINT;
+    PROCEDURE slk_attr_set(a : LONGINT) : LONGINT;
+    PROCEDURE vid_attr(a : LONGINT) : LONGINT;
+    PROCEDURE wattr_get(win : pwindow) : LONGINT;
+    {
+       Pseudo-character tokens outside ASCII range.  The curses wgetch() function
+       will return any given one of these only if the corresponding k- capability
+       is defined in your terminal's terminfo entry.
+     }
+    const                       {octal}
+       KEY_CODE_YES = 256;      {0400}
+       KEY_MIN = 257;           {0401}
+       KEY_BREAK = 257;         {0401}
+       KEY_DOWN = 258;          {0402}
+       KEY_UP = 259;            {0403}
+       KEY_LEFT = 260;          {0404}
+       KEY_RIGHT = 261;         {0405}
+       KEY_HOME = 262;          {0406}
+       KEY_BACKSPACE = 263;     {0407}
+       KEY_F0 = 264;            {0410}
+    PROCEDURE KEY_F(n : LONGINT) : LONGINT;
+
+    const
+       KEY_DL = 328;            {0510}
+       KEY_IL = 329;            {0511}
+       KEY_DC = 330;            {0512}
+       KEY_IC = 331;            {0513}
+       KEY_EIC = 332;           {0514}
+       KEY_CLEAR = 333;         {0515}
+       KEY_EOS = 334;           {0516}
+       KEY_EOL = 335;           {0517}
+       KEY_SF = 336;            {0520}
+       KEY_SR = 337;            {0521}
+       KEY_NPAGE = 338;         {0522}
+       KEY_PPAGE = 339;         {0523}
+       KEY_STAB = 340;          {0524}
+       KEY_CTAB = 341;          {0525}
+       KEY_CATAB = 342;         {0526}
+       KEY_ENTER = 343;         {0527}
+       KEY_SRESET = 344;        {0530}
+       KEY_RESET = 345;         {0531}
+       KEY_PRINT = 346;         {0532}
+       KEY_LL = 347;            {0533}
+       KEY_A1 = 348;            {0534}
+       KEY_A3 = 349;            {0535}
+       KEY_B2 = 350;            {0536}
+       KEY_C1 = 351;            {0537}
+       KEY_C3 = 352;            {0540}
+       KEY_BTAB = 353;          {0541}
+       KEY_BEG = 354;           {0542}
+       KEY_CANCEL = 355;        {0543}
+       KEY_CLOSE = 356;         {0544}
+       KEY_COMMAND = 357;       {0545}
+       KEY_COPY = 358;          {0546}
+       KEY_CREATE = 359;        {0547}
+       KEY_END = 360;           {0550}
+       KEY_EXIT = 361;          {0551}
+       KEY_FIND = 362;          {0552}
+       KEY_HELP = 363;          {0553}
+       KEY_MARK = 364;          {0554}
+       KEY_MESSAGE = 365;       {0555}
+       KEY_MOVE = 366;          {0556}
+       KEY_NEXT = 367;          {0557}
+       KEY_OPEN = 368;          {0560}
+       KEY_OPTIONS = 369;       {0561}
+       KEY_PREVIOUS = 370;      {0562}
+       KEY_REDO = 371;          {0563}
+       KEY_REFERENCE = 372;     {0564}
+       KEY_REFRESH = 373;       {0565}
+       KEY_REPLACE = 374;       {0566}
+       KEY_RESTART = 375;       {0567}
+       KEY_RESUME = 376;        {0570}
+       KEY_SAVE = 377;          {0571}
+       KEY_SBEG = 378;          {0572}
+       KEY_SCANCEL = 379;       {0573}
+       KEY_SCOMMAND = 380;      {0574}
+       KEY_SCOPY = 381;         {0575}
+       KEY_SCREATE = 382;       {0576}
+       KEY_SDC = 383;           {0577}
+       KEY_SDL = 384;           {0600}
+       KEY_SELECT = 385;        {0601}
+       KEY_SEND = 386;          {0602}
+       KEY_SEOL = 387;          {0603}
+       KEY_SEXIT = 388;         {0604}
+       KEY_SFIND = 389;         {0605}
+       KEY_SHELP = 390;         {0606}
+       KEY_SHOME = 391;         {0607}
+       KEY_SIC = 392;           {0610}
+       KEY_SLEFT = 393;         {0611}
+       KEY_SMESSAGE = 394;      {0612}
+       KEY_SMOVE = 395;         {0613}
+       KEY_SNEXT = 396;         {0614}
+       KEY_SOPTIONS = 397;      {0615}
+       KEY_SPREVIOUS = 398;     {0616}
+       KEY_SPRINT = 399;        {0617}
+       KEY_SREDO = 400;         {0620}
+       KEY_SREPLACE = 401;      {0621}
+       KEY_SRIGHT = 402;        {0622}
+       KEY_SRSUME = 403;        {0623}
+       KEY_SSAVE = 404;         {0624}
+       KEY_SSUSPEND = 405;      {0625}
+       KEY_SUNDO = 406;         {0626}
+       KEY_SUSPEND = 407;       {0627}
+       KEY_UNDO = 408;          {0630}
+       KEY_MOUSE = 409;         {0631}
+       KEY_RESIZE = 410;        {0632}
+       KEY_MAX = 511;           {0777}
+
+    PROCEDURE mcprint(_para1:pchar; _para2:LONGINT):LONGINT;
+    PROCEDURE has_key(_para1:LONGINT):LONGINT;
+
+implementation
+
+PROCEDURE wgetstr(w : pwindow;s : pchar) : LONGINT;
+begin
+  wgetstr:=wgetnstr(w,s,-(1));
+end;
+
+PROCEDURE getnstr(s : pchar;n : LONGINT) : LONGINT;
+begin
+  getnstr:=wgetnstr(stdscr,s,n);
+end;
+
+PROCEDURE setterm(term : LONGINT) : LONGINT;
+begin
+  {
+  setterm:=setupterm(term,1,pLONGINT(0));
+  }
+  setterm:=0;
+end;
+
+PROCEDURE fixterm : LONGINT;
+begin
+  fixterm:=reset_prog_mode;
+end;
+
+PROCEDURE resetterm : LONGINT;
+begin
+  resetterm:=reset_shell_mode;
+end;
+
+PROCEDURE saveterm : LONGINT;
+begin
+  saveterm:=def_prog_mode;
+end;
+
+PROCEDURE crmode : LONGINT;
+begin
+  crmode:=cbreak;
+end;
+
+PROCEDURE nocrmode : LONGINT;
+begin
+  nocrmode:=nocbreak;
+end;
+
+procedure getsyx(var y,x : LONGINT);
+begin
+  getyx(stdscr,y,x);
+end;
+
+PROCEDURE getattrs(win : pwindow) : LONGINT;
+var
+  if_local1 : LONGINT;
+begin
+  if win<>nil then
+    if_local1:=win^._attrs
+  else
+    if_local1:=A_NORMAL;
+  getattrs:=if_local1;
+end;
+
+PROCEDURE getcurx(win : pwindow) : LONGINT;
+var
+  if_local1 : LONGINT;
+begin
+  if win<>nil then
+    if_local1:=win^._curx
+  else
+    if_local1:=ERR;
+  getcurx:=if_local1;
+end;
+
+PROCEDURE getcury(win : pwindow) : LONGINT;
+var
+  if_local1 : LONGINT;
+begin
+  if win<>Nil then
+    if_local1:=win^._cury
+  else
+    if_local1:=ERR;
+  getcury:=if_local1;
+end;
+PROCEDURE getbegx(win : pwindow) : LONGINT;
+var
+  if_local1 : LONGINT;
+
+begin
+  if win<>Nil then
+    if_local1:=win^._begx
+  else
+    if_local1:=ERR;
+  getbegx:=if_local1;
+end;
+
+PROCEDURE getbegy(win : pwindow) : LONGINT;
+var
+  if_local1 : LONGINT;
+begin
+  if win<>Nil then
+    if_local1:=win^._begy
+  else
+    if_local1:=ERR;
+  getbegy:=if_local1;
+end;
+
+PROCEDURE getmaxx(win : pwindow) : LONGINT;
+var
+  if_local1 : LONGINT;
+begin
+  if win<>Nil then
+    if_local1:=(win^._maxx) + 1
+  else
+    if_local1:=ERR;
+  getmaxx:=if_local1;
+end;
+
+PROCEDURE getmaxy(win : pwindow) : LONGINT;
+var
+  if_local1 : LONGINT;
+begin
+  if win<>Nil then
+    if_local1:=(win^._maxy) + 1
+  else
+    if_local1:=ERR;
+  getmaxy:=if_local1;
+end;
+
+PROCEDURE getparx(win : pwindow) : LONGINT;
+var
+  if_local1 : LONGINT;
+begin
+  if win<>Nil then
+    if_local1:=win^._parx
+  else
+    if_local1:=ERR;
+  getparx:=if_local1;
+end;
+
+PROCEDURE getpary(win : pwindow) : LONGINT;
+var
+  if_local1 : LONGINT;
+begin
+  if win<>Nil then
+    if_local1:=win^._pary
+  else
+    if_local1:=ERR;
+  getpary:=if_local1;
+end;
+
+PROCEDURE wstandout(win : pwindow) : LONGINT;
+begin
+  wstandout:=wattr_set(win,A_STANDOUT);
+end;
+
+PROCEDURE wstandend(win : pwindow) : LONGINT;
+begin
+  wstandend:=wattr_set(win,A_NORMAL);
+end;
+
+(*
+PROCEDURE wattron(win : pwindow;at : LONGINT) : LONGINT;
+begin
+  wattron:=wattr_on(win,at);
+end;
+
+PROCEDURE wattroff(win : pwindow;at : LONGINT) : LONGINT;
+begin
+  wattroff:=wattr_off(win,at);
+end;
+
+PROCEDURE wattrset(win : pwindow;at : LONGINT) : LONGINT;
+begin
+  wattrset:=wattr_set(win,at);
+end;
+*)
+PROCEDURE scroll(win : pwindow) : LONGINT;
+begin
+  scroll:=wscrl(win,1);
+end;
+
+PROCEDURE touchwin(win : pwindow) : LONGINT;
+begin
+  touchwin:=wtouchln(win,0,getmaxy(win),1);
+end;
+
+PROCEDURE touchline(win : pwindow;s,c : LONGINT) : LONGINT;
+begin
+  touchline:=wtouchln(win,s,c,1);
+end;
+
+PROCEDURE untouchwin(win : pwindow) : LONGINT;
+begin
+  untouchwin:=wtouchln(win,0,getmaxy(win),0);
+end;
+
+PROCEDURE box(win : pwindow;v,h : LONGINT) : LONGINT;
+begin
+  box:=wborder(win,v,v,h,h,0,0,0,0);
+end;
+
+PROCEDURE border(ls,rs,ts,bs,tl,tr,bl,br : LONGINT) : LONGINT;
+begin
+  border:=wborder(stdscr,ls,rs,ts,bs,tl,tr,bl,br);
+end;
+
+PROCEDURE hline(ch,n : LONGINT) : LONGINT;
+begin
+  hline:=whline(stdscr,ch,n);
+end;
+
+PROCEDURE vline(ch,n : LONGINT) : LONGINT;
+begin
+  vline:=wvline(stdscr,ch,n);
+end;
+
+PROCEDURE winstr(w : pwindow;s : pchar) : LONGINT;
+begin
+  winstr:=winnstr(w,s,-(1));
+end;
+
+PROCEDURE winchstr(w : pwindow;s : pchar) : LONGINT;
+begin
+  winchstr:=winchnstr(w,s,-1);
+end;
+
+PROCEDURE winsstr(w : pwindow;s : pchar) : LONGINT;
+begin
+  winsstr:=winsnstr(w,s,-(1));
+end;
+
+PROCEDURE redrawwin(w : pwindow) : LONGINT;
+begin
+  redrawwin:=wredrawln(w,0,(w^._maxy) + 1);
+end;
+
+PROCEDURE waddstr(win : pwindow;st : pchar) : LONGINT;
+begin
+  waddstr:=waddnstr(win,st,-1);
+end;
+
+PROCEDURE waddchstr(win : pwindow;st : pchar) : LONGINT;
+begin
+  waddchstr:=waddchnstr(win,st,-1);
+end;
+
+PROCEDURE addch(ch : LONGINT) : LONGINT;
+begin
+  addch:=waddch(stdscr,ch);
+end;
+
+PROCEDURE addchnstr(st : pchar;n : LONGINT) : LONGINT;
+begin
+  addchnstr:=waddchnstr(stdscr,st,n);
+end;
+
+PROCEDURE addchstr(st : pchar) : LONGINT;
+begin
+  addchstr:=waddchstr(stdscr,st);
+end;
+
+PROCEDURE addnstr(st : pchar;n : LONGINT) : LONGINT;
+begin
+  addnstr:=waddnstr(stdscr,st,n);
+end;
+
+PROCEDURE addstr(st : pchar) : LONGINT;
+begin
+  addstr:=waddnstr(stdscr,st,-1);
+end;
+
+PROCEDURE attroff(at : LONGINT) : LONGINT;
+begin
+  attroff:=wattroff(stdscr,at);
+end;
+
+PROCEDURE attron(at : LONGINT) : LONGINT;
+begin
+  attron:=wattron(stdscr,at);
+end;
+
+PROCEDURE attrset(at : LONGINT) : LONGINT;
+begin
+  attrset:=wattrset(stdscr,at);
+end;
+
+PROCEDURE bkgd(ch : LONGINT) : LONGINT;
+begin
+  bkgd:=wbkgd(stdscr,ch);
+end;
+
+procedure bkgdset(ch : LONGINT);
+begin
+  wbkgdset(stdscr,ch);
+end;
+
+PROCEDURE clear : LONGINT;
+begin
+  clear:=wclear(stdscr);
+end;
+
+PROCEDURE clrtobot : LONGINT;
+begin
+  clrtobot:=wclrtobot(stdscr);
+end;
+
+PROCEDURE clrtoeol : LONGINT;
+begin
+  clrtoeol:=wclrtoeol(stdscr);
+end;
+
+PROCEDURE delch : LONGINT;
+begin
+  delch:=wdelch(stdscr);
+end;
+
+PROCEDURE deleteln : LONGINT;
+begin
+  deleteln:=winsdelln(stdscr,-1);
+end;
+
+PROCEDURE echochar(c : LONGINT) : LONGINT;
+begin
+  echochar:=wechochar(stdscr,c);
+end;
+
+PROCEDURE erase : LONGINT;
+begin
+  erase:=werase(stdscr);
+end;
+
+PROCEDURE getch : LONGINT;
+begin
+  getch:=wgetch(stdscr);
+end;
+
+PROCEDURE getstr(st : pchar) : LONGINT;
+begin
+  getstr:=wgetstr(stdscr,st);
+end;
+
+PROCEDURE inch : LONGINT;
+begin
+  inch:=winch(stdscr);
+end;
+
+PROCEDURE inchnstr(s : pchar;n : LONGINT) : LONGINT;
+begin
+  inchnstr:=winchnstr(stdscr,s,n);
+end;
+
+PROCEDURE inchstr(s : pchar) : LONGINT;
+begin
+  inchstr:=winchstr(stdscr,s);
+end;
+
+PROCEDURE innstr(s : pchar;n : LONGINT) : LONGINT;
+begin
+  innstr:=winnstr(stdscr,s,n);
+end;
+
+PROCEDURE insch(c : LONGINT) : LONGINT;
+begin
+  insch:=winsch(stdscr,c);
+end;
+
+PROCEDURE insdelln(n : LONGINT) : LONGINT;
+begin
+  insdelln:=winsdelln(stdscr,n);
+end;
+
+PROCEDURE insertln : LONGINT;
+begin
+  insertln:=winsdelln(stdscr,1);
+end;
+
+PROCEDURE insnstr(s : pchar;n : LONGINT) : LONGINT;
+begin
+  insnstr:=winsnstr(stdscr,s,n);
+end;
+
+PROCEDURE insstr(s : pchar) : LONGINT;
+begin
+  insstr:=winsstr(stdscr,s);
+end;
+
+PROCEDURE instr(s : pchar) : LONGINT;
+begin
+  instr:=winstr(stdscr,s);
+end;
+
+PROCEDURE move(y,x : LONGINT) : LONGINT;
+begin
+  move:=wmove(stdscr,y,x);
+end;
+
+PROCEDURE refresh : LONGINT;
+begin
+  refresh:=wrefresh(stdscr);
+end;
+
+PROCEDURE scrl(n : LONGINT) : LONGINT;
+begin
+  scrl:=wscrl(stdscr,n);
+end;
+
+PROCEDURE setscrreg(t,b : LONGINT) : LONGINT;
+begin
+  setscrreg:=wsetscrreg(stdscr,t,b);
+end;
+
+PROCEDURE standend : LONGINT;
+begin
+  standend:=wstandend(stdscr);
+end;
+
+PROCEDURE standout : LONGINT;
+begin
+  standout:=wstandout(stdscr);
+end;
+
+PROCEDURE timeout(delay : LONGINT) : LONGINT;
+begin
+  timeout:=wtimeout(stdscr,delay);
+end;
+
+PROCEDURE wdeleteln(win : pwindow) : LONGINT;
+begin
+  wdeleteln:=winsdelln(win,-1);
+end;
+
+PROCEDURE winsertln(win : pwindow) : LONGINT;
+begin
+  winsertln:=winsdelln(win,1);
+end;
+
+PROCEDURE mvaddch(y,x,ch : LONGINT) : LONGINT;
+begin
+  mvaddch:=mvwaddch(stdscr,y,x,ch);
+end;
+
+PROCEDURE mvaddchnstr(y,x: LONGINT;st : pchar;n : LONGINT) : LONGINT;
+begin
+  mvaddchnstr:=mvwaddchnstr(stdscr,y,x,st,n);
+end;
+
+PROCEDURE mvaddchstr(y,x : LONGINT;st : pchar) : LONGINT;
+begin
+  mvaddchstr:=mvwaddchstr(stdscr,y,x,st);
+end;
+
+PROCEDURE mvaddnstr(y,x: LONGINT;st : pchar; n : LONGINT) : LONGINT;
+begin
+  mvaddnstr:=mvwaddnstr(stdscr,y,x,st,n);
+end;
+
+PROCEDURE mvaddstr(y,x : LONGINT;st : pchar) : LONGINT;
+begin
+  mvaddstr:=mvwaddstr(stdscr,y,x,st);
+end;
+
+PROCEDURE mvdelch(y,x : LONGINT) : LONGINT;
+begin
+  mvdelch:=mvwdelch(stdscr,y,x);
+end;
+
+PROCEDURE mvgetch(y,x : LONGINT) : LONGINT;
+begin
+  mvgetch:=mvwgetch(stdscr,y,x);
+end;
+
+PROCEDURE mvgetnstr(y,x : LONGINT;st : pchar;n : LONGINT) : LONGINT;
+begin
+  mvgetnstr:=mvwgetnstr(stdscr,y,x,st,n);
+end;
+
+PROCEDURE mvgetstr(y,x: LONGINT;st : pchar) : LONGINT;
+begin
+  mvgetstr:=mvwgetstr(stdscr,y,x,st);
+end;
+
+PROCEDURE mvhline(y,x : LONGINT;c : CHTYPE;n : LONGINT) : LONGINT;
+begin
+  mvhline:=mvwhline(stdscr,y,x,c,n);
+end;
+
+PROCEDURE mvinch(y,x : LONGINT) : LONGINT;
+begin
+  mvinch:=mvwinch(stdscr,y,x);
+end;
+
+PROCEDURE mvinchnstr(y,x : LONGINT;s : pchar;n : LONGINT) : LONGINT;
+begin
+  mvinchnstr:=mvwinchnstr(stdscr,y,x,s,n);
+end;
+
+PROCEDURE mvinchstr(y,x : LONGINT;s : pchar) : LONGINT;
+begin
+  mvinchstr:=mvwinchstr(stdscr,y,x,s);
+end;
+
+PROCEDURE mvinnstr(y,x : LONGINT;s : pchar;n : LONGINT) : LONGINT;
+begin
+  mvinnstr:=mvwinnstr(stdscr,y,x,s,n);
+end;
+
+PROCEDURE mvinsch(y,x: LONGINT;c : CHTYPE) : LONGINT;
+begin
+  mvinsch:=mvwinsch(stdscr,y,x,c);
+end;
+
+PROCEDURE mvinsnstr(y,x : LONGINT;s : pchar;n : LONGINT) : LONGINT;
+begin
+  mvinsnstr:=mvwinsnstr(stdscr,y,x,s,n);
+end;
+
+PROCEDURE mvinsstr(y,x : LONGINT;s : pchar) : LONGINT;
+begin
+  mvinsstr:=mvwinsstr(stdscr,y,x,s);
+end;
+
+PROCEDURE mvinstr(y,x : LONGINT;s : pchar) : LONGINT;
+begin
+  mvinstr:=mvwinstr(stdscr,y,x,s);
+end;
+
+PROCEDURE mvvline(y,x,c,n : LONGINT) : LONGINT;
+begin
+  mvvline:=mvwvline(stdscr,y,x,c,n);
+end;
+
+PROCEDURE attr_get : LONGINT;
+begin
+  attr_get:=wattr_get(stdscr);
+end;
+
+PROCEDURE attr_off(a : LONGINT) : LONGINT;
+begin
+  attr_off:=wattr_off(stdscr,a);
+end;
+
+PROCEDURE attr_on(a : LONGINT) : LONGINT;
+begin
+  attr_on:=wattr_on(stdscr,a);
+end;
+
+PROCEDURE attr_set(a : LONGINT) : LONGINT;
+begin
+  attr_set:=wattr_set(stdscr,a);
+end;
+
+PROCEDURE chgat(n,a,c,o : LONGINT) : LONGINT;
+begin
+ chgat:=wchgat(stdscr,n,a,c,pointer(o));
+end;
+
+PROCEDURE getbkgd(win : pwindow) : LONGINT;
+begin
+  getbkgd:=win^._bkgd;
+end;
+
+PROCEDURE mvchgat(y,x,n,a,c,o : LONGINT) : LONGINT;
+begin
+  mvchgat:=mvwchgat(stdscr,y,x,n,a,c,o);
+end;
+
+PROCEDURE slk_attr_off(a : LONGINT) : LONGINT;
+begin
+  slk_attr_off:=slk_attroff(a);
+end;
+
+PROCEDURE slk_attr_on(a : LONGINT) : LONGINT;
+begin
+  slk_attr_on:=slk_attron(a);
+end;
+
+PROCEDURE slk_attr_set(a : LONGINT) : LONGINT;
+begin
+  slk_attr_set:=slk_attrset(a);
+end;
+
+PROCEDURE vid_attr(a : LONGINT) : LONGINT;
+begin
+  vid_attr:=vidattr(a);
+end;
+
+PROCEDURE wattr_get(win : pwindow) : LONGINT;
+begin
+  wattr_get:=win^._attrs;
+end;
+
+PROCEDURE KEY_F(n : LONGINT) : LONGINT;
+begin
+  KEY_F:=KEY_F0 + n;
+end;
+
+procedure getyx(win : pwindow; var y,x : LONGINT);
+begin
+  X:=ERR;
+  Y:=ERR;
+  if Win<>Nil then
+   begin
+     Y:=win^._cury;
+     X:=Win^._curx;
+   end;
+end;
+
+procedure getbegyx(win : pwindow; var y,x : LONGINT);
+begin
+  X:=ERR;
+  Y:=ERR;
+  if Win<>Nil then
+   begin
+     Y:=win^._begy;
+     X:=Win^._begx;
+   end;
+end;
+
+procedure getmaxyx(win : pwindow; var y,x : LONGINT);
+begin
+  X:=ERR;
+  Y:=ERR;
+  if Win<>Nil then
+   begin
+     Y:=win^._maxy+1;
+     X:=Win^._maxx+1;
+   end;
+end;
+
+procedure getparyx(win : pwindow; var y,x : LONGINT);
+begin
+  X:=ERR;
+  Y:=ERR;
+  if Win<>Nil then
+   begin
+     Y:=win^._pary;
+     X:=Win^._parx;
+   end;
+end;
+(* kjw, 08/23/2000, external in v4.2
+PROCEDURE winch (win : PWindow) : LONGINT;
+begin
+  if win<>nil then
+   winch:=win^._line[win^._cury].text[Win^ ._curx]
+  else
+   winch:=0;
+end;
+
+PROCEDURE wattr_set(win : pwindow; at : LONGINT) : LONGINT;
+begin
+  If win<>nil then
+   begin
+     win^._attrs := at;
+     wattr_set:=at;
+   end
+  else
+   wattr_set:=0;
+end;
+*)
+procedure setsyx (y,x : LONGINT);
+begin
+  stdscr^._cury := y;
+  stdscr^._curx := x;
+end;
+
+PROCEDURE  mvwaddch(win : pwindow;y,x : LONGINT; ch : CHTYPE) : LONGINT;
+begin
+  if wmove(win,y,x) = ERR then
+   exit(ERR)
+  else
+   exit(waddch(win,ch))
+end;
+
+PROCEDURE  mvwaddchnstr(win : pwindow;y,x : LONGINT;st : pchar;n : LONGINT) : LONGINT;
+begin
+  if wmove (win,y,x)=ERR then
+   exit(ERR)
+  else
+   exit(waddchnstr(win,st,n))
+end;
+
+PROCEDURE  mvwaddchstr(win : pwindow;y,x : LONGINT;st : pchar) : LONGINT;
+begin
+  if wmove (win,y,x)=ERR then
+   exit(ERR)
+  else
+   exit(waddchnstr(win,st,-1))
+end;
+
+PROCEDURE  mvwaddnstr(win : pwindow;y,x : LONGINT;st : pchar;n : LONGINT) : LONGINT;
+begin
+  if wmove (win,y,x)=ERR then
+   exit(ERR)
+  else
+   exit(waddnstr(win,st,n))
+end;
+
+PROCEDURE  mvwaddstr(win : pwindow;y,x : LONGINT;st : pchar) : LONGINT;
+begin
+  if wmove (win,y,x)=ERR then
+   exit(ERR)
+  else
+   exit(waddnstr(win,st,-1))
+end;
+
+PROCEDURE  mvwdelch(win : pwindow;y,x : LONGINT) : LONGINT;
+begin
+  if wmove (win,y,x)=ERR then
+   exit(ERR)
+  else
+   exit(wdelch(win))
+end;
+
+PROCEDURE  mvwgetch(win : pwindow;y,x : LONGINT) : LONGINT;
+begin
+  if wmove (win,y,x)=ERR then
+   exit(ERR)
+  else
+   exit(wgetch(win))
+end;
+
+PROCEDURE  mvwgetnstr(win : pwindow;y,x : LONGINT;st : pchar;n: LONGINT) : LONGINT;
+begin
+  if wmove (win,y,x)=ERR then
+   exit(ERR)
+  else
+   exit(wgetnstr(win,st,n))
+end;
+
+PROCEDURE  mvwgetstr(win : pwindow;y,x : LONGINT;st: pchar) : LONGINT;
+begin
+  if wmove (win,y,x)=ERR then
+   exit(ERR)
+  else
+   exit(wgetstr(win,st))
+end;
+
+PROCEDURE  mvwhline(win : pwindow;y,x : LONGINT;c : CHTYPE;n : LONGINT) : LONGINT;
+begin
+  if wmove (win,y,x)=ERR then
+   exit(ERR)
+  else
+   exit(whline(win,c,n))
+end;
+
+PROCEDURE  mvwinch(win : pwindow;y,x : LONGINT) : LONGINT;
+begin
+  if wmove (win,y,x)=ERR then
+   exit(ERR)
+  else
+   exit(winch(win))
+end;
+
+PROCEDURE  mvwinchnstr(win : pwindow;y,x : LONGINT;s : pchar; n : LONGINT) : LONGINT;
+begin
+  if wmove (win,y,x)=ERR then
+   exit(ERR)
+  else
+   exit(winchnstr(win,s,n))
+end;
+
+PROCEDURE  mvwinchstr(win : pwindow;y,x : LONGINT;s : pchar) : LONGINT;
+begin
+  if wmove (win,y,x)=ERR then
+   exit(ERR)
+  else
+   exit(winchstr(win,s))
+end;
+
+PROCEDURE  mvwinnstr(win : pwindow;y,x : LONGINT;s : pchar;n : LONGINT) : LONGINT;
+begin
+  if wmove (win,y,x)=ERR then
+   exit(ERR)
+  else
+   exit(winnstr(win,s,n))
+end;
+
+PROCEDURE  mvwinsch(win : pwindow;y,x : LONGINT;c : CHTYPE) : LONGINT;
+begin
+  if wmove (win,y,x)=ERR then
+   exit(ERR)
+  else
+   exit(winsch(win,c))
+end;
+
+PROCEDURE  mvwinsnstr(win : pwindow;y,x : LONGINT;s : pchar;n : LONGINT) : LONGINT;
+begin
+  if wmove (win,y,x)=ERR then
+   exit(ERR)
+  else
+   exit(winsnstr(win,s,n))
+end;
+
+PROCEDURE  mvwinsstr(win : pwindow;y,x : LONGINT;s : pchar) : LONGINT;
+begin
+  if wmove (win,y,x)=ERR then
+   exit(ERR)
+  else
+   exit(winsstr(win,s))
+end;
+
+PROCEDURE  mvwinstr(win : pwindow;y,x : LONGINT;s : pchar) : LONGINT;
+begin
+  if wmove (win,y,x)=ERR then
+   exit(ERR)
+  else
+   exit(winstr(win,s))
+end;
+
+PROCEDURE  mvwvline(win : pwindow;y,x : LONGINT;c : CHTYPE;n : LONGINT) : LONGINT;
+begin
+  if wmove (win,y,x)=ERR then
+   exit(ERR)
+  else
+   exit(wvline(win,c,n))
+end;
+
+PROCEDURE color_pair(n : LONGINT): LONGINT;
+begin
+  color_pair:=n shl 8;
+end;
+
+PROCEDURE ACS_ULCORNER : CHTYPE;
+begin
+  ACS_ULCORNER:=acs_map['l'];
+end;
+
+PROCEDURE ACS_LLCORNER : CHTYPE;
+begin
+  ACS_LLCORNER:=acs_map['m'];
+end;
+
+PROCEDURE ACS_URCORNER : CHTYPE;
+begin
+  ACS_URCORNER:=acs_map['k'];
+end;
+
+PROCEDURE ACS_LRCORNER : CHTYPE;
+begin
+  ACS_LRCORNER:=acs_map['j'];
+end;
+
+PROCEDURE ACS_LTEE : CHTYPE;
+begin
+  ACS_LTEE:=acs_map['t'];
+end;
+
+PROCEDURE ACS_RTEE : CHTYPE;
+begin
+  ACS_RTEE:=acs_map['u'];
+end;
+
+PROCEDURE ACS_BTEE : CHTYPE;
+begin
+  ACS_BTEE:=acs_map['v'];
+end;
+
+PROCEDURE ACS_TTEE : CHTYPE;
+begin
+  ACS_TTEE:=acs_map['w'];
+end;
+
+PROCEDURE ACS_HLINE : CHTYPE;
+begin
+  ACS_HLINE:=acs_map['q'];
+end;
+
+PROCEDURE ACS_VLINE : CHTYPE;
+begin
+  ACS_VLINE:=acs_map['x'];
+end;
+
+PROCEDURE ACS_PLUS : CHTYPE;
+begin
+  ACS_PLUS:=acs_map['n'];
+end;
+
+PROCEDURE ACS_S1      : CHTYPE;
+begin
+  ACS_S1    :=acs_map['o'];
+end;
+
+PROCEDURE ACS_S9      : CHTYPE;
+begin
+  ACS_S9    :=acs_map['s'];
+end;
+
+PROCEDURE ACS_DIAMOND : CHTYPE;
+begin
+  ACS_DIAMOND:=acs_map['`'];
+end;
+
+PROCEDURE ACS_CKBOARD : CHTYPE;
+begin
+  ACS_CKBOARD:=acs_map['a'];
+end;
+
+PROCEDURE ACS_DEGREE : CHTYPE;
+begin
+  ACS_DEGREE:=acs_map['f'];
+end;
+
+PROCEDURE ACS_PLMINUS : CHTYPE;
+begin
+  ACS_PLMINUS:=acs_map['g'];
+end;
+
+PROCEDURE ACS_BULLET : CHTYPE;
+begin
+  ACS_BULLET:=acs_map['~'];
+end;
+
+PROCEDURE ACS_LARROW : CHTYPE;
+begin
+  ACS_LARROW:=acs_map[','];
+end;
+
+PROCEDURE ACS_RARROW : CHTYPE;
+begin
+  ACS_RARROW:=acs_map['+'];
+end;
+
+PROCEDURE ACS_DARROW : CHTYPE;
+begin
+  ACS_DARROW:=acs_map['.'];
+end;
+
+PROCEDURE ACS_UARROW : CHTYPE;
+begin
+  ACS_UARROW:=acs_map['-'];
+end;
+
+PROCEDURE ACS_BOARD : CHTYPE;
+begin
+  ACS_BOARD:=acs_map['h'];
+end;
+
+PROCEDURE ACS_LANTERN : CHTYPE;
+begin
+  ACS_LANTERN:=acs_map['i'];
+end;
+
+PROCEDURE ACS_BLOCK : CHTYPE;
+begin
+  ACS_BLOCK:=acs_map['0'];
+end;
+
+PROCEDURE ACS_S3      : CHTYPE;
+begin
+  ACS_S3    :=acs_map['p'];
+end;
+
+PROCEDURE ACS_S7      : CHTYPE;
+begin
+  ACS_S7    :=acs_map['r'];
+end;
+
+PROCEDURE ACS_LEQUAL : CHTYPE;
+begin
+  ACS_LEQUAL:=acs_map['y'];
+end;
+
+PROCEDURE ACS_GEQUAL : CHTYPE;
+begin
+  ACS_GEQUAL:=acs_map['z'];
+end;
+
+PROCEDURE ACS_PI      : CHTYPE;
+begin
+  ACS_PI    :=acs_map['{'];
+end;
+
+PROCEDURE ACS_NEQUAL : CHTYPE;
+begin
+  ACS_NEQUAL:=acs_map['|'];
+end;
+
+PROCEDURE ACS_STERLING : CHTYPE;
+begin
+  ACS_STERLING:=acs_map['}'];
+end;
+
+end.
+{
+  $ Log: ncurses.pp,v $
+  Revision 1.7  2000/05/31 09:36:26  jonas
+    * restored (version included with ncrt 2.06 was outdated)
+
+  Revision 1.5  2000/02/27 14:40:41  peter
+    * removed warnings/notes
+
+}
+
+
+
+(* Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010
+                 Free Software Foundation, Inc. *)
+(* This file is part of GNU Modula-2.
+
+GNU Modula-2 is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation; either version 3, or (at your option) any later
+version.
+
+GNU Modula-2 is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+You should have received a copy of the GNU General Public License along
+with gm2; see the file COPYING.  If not, write to the Free Software
+Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+REVISION HISTORY
+----------------
+17 Dec 10 -- My initial attempts at doing this.
+
+*)
+
+DEFINITION MODULE FOR "C" ncurses ;
+
+(*
+    Title      : ncurses
+    System     : GNU Modula-2
+    Description: provides an interface file to the ncurses library.
+*)
+
+FROM SYSTEM IMPORT ADDRESS ;
+
+(* From #Modula-2 IRC channel, char = 1 byte, short is 2 or 4 bytes, int is 2 or 4 bytes, long is 4 or more bytes *)
+
+CONST
+   Black   = 0 ;
+   Red     = 1 ;
+   Green   = 2 ;
+   Yellow  = 3 ;
+   Blue    = 4 ;
+   Magenta = 5 ;
+   Cyan    = 6 ;
+   White   = 7 ;
+   CCHARW_MAX = 5;
+   LineSize = 1024;
+
+(* values for the _flags member *)
+   SUBWIN =        01h;	(* is this a sub-window? *)
+   ENDLINE =       02h;	(* is the window flush right? *)
+   FULLWIN  =      04h;	(* is the window full-screen? *)
+   SCROLLWIN =     08h;	(* bottom edge is at screen bottom? *)
+   ISPAD	=        10h;	(* is this window a pad? *)
+   HASMOVED =      20h;	(* has cursor moved since last refresh? *)
+   WRAPPED =       40h;	(* cursor was just wrappped *)
+
+(*
+ * this value is used in the firstchar and lastchar fields to mark
+ * unchanged lines
+ *)
+   NOCHANGE =      -1;
+
+(*
+ * this value is used in the oldindex field to mark lines created by insertions
+ * and scrolls.
+ *)
+   NEWINDEX =	-1;
+   CCHARW_MAX = 5;    (* #define CCHARW_MAX	5 *)
+
+(*
+typedef struct screen  SCREEN;
+typedef struct _win_st WINDOW;
+*)
+TYPE
+	CHTYPE = CHAR;    (* typedef	CHTYPE	attr_t;		/* ...must be at least as wide as CHTYPE */ *)
+  wchar_t, wint_t = CARDINAL;                 (* typedef unsigned short wchar_t; *)
+                                              (* typedef unsigned int wint_t;    *)
+(* typedef struct
+{
+    attr_t	attr;
+    wchar_t	chars[CCHARW_MAX];
+#if 0
+#undef NCURSES_EXT_COLORS
+#define NCURSES_EXT_COLORS 20090803
+    int		ext_color;	/* color pair, must be more than 16-bits */
+#endif
+}
+cchar_t;
+*)
+  ccchar_t = RECORD
+               attr : attr_t;
+               wchar : ARRAY [0 .. CCHARW_MAX] of CHAR;
+
+TYPE
+   WINDOW = ADDRESS ;
+   CHTYPE = LONGCARD ;
+   chstring = ADDRESS ;
+   ATTRIBUTE = CHAR ;
+   COLORPAIR = SHORTCARD ;
+   mmask_t = LONGCARD ;   (* note to self, maybe I should use bitset type here.  I'll have to see *)
+   wchar_t = CARDINAL;  (* I'm assuming that an unsigned short = unsigned int *)
+   wint_t = CARDINAL;   (* and both are a CARDINAL32                          *)
+   attr_t = CARDINAL;    (* #define NCURSES_ATTR_T int                         *)
+(*
+   typedef unsigned char NCURSES_BOOL;
+   typedef unsigned short wchar_t;  wchar_t is a wide character type.  I'm going to ignore that.
+   typedef unsigned int wint_t;
+   #define	NCURSES_SIZE_T short
+   typedef unsigned long CHTYPE;
+   typedef unsigned long mmask_t;
+   typedef unsigned short wchar_t;
+   typedef unsigned int wint_t;
+/*
+ * cchar_t stores an array of CCHARW_MAX wide characters.  The first is
+ * normally a spacing character.  The others are non-spacing.  If those
+ * (spacing and nonspacing) do not fill the array, a null L'\0' follows.
+ * Otherwise, a null is assumed to follow when extracting via getcchar().
+ */
+
+*)
+   ldat;  (* opaque type from ncurses *)
+   cchar_t = RECORD
+                attr : CARDINAL;
+                chars : ARRAY [0..CCHARW_MAX] OF CHAR;
+                ext_color : CARDINAL;  (* color pair, must be more than a 16-bit type *)
+              END;
+(* struct ldat;  opaque type in C *)
+(* struct ldat * _line; /* the actual line data */  Hope my translation is right *)
+   ldatPtr = POINTER TO ldat;  (* _line *)
+   PadData = RECORD
+	           pad_y, pad_x, pad_top, pad_left, pad_bottom, pad_right : CARDINAL;
+	         END;
+
+                 (* win_st was orig name for this when it was a C struct *)
+   Window_State = RECORD (* NCURSES_SIZE_T is a short, and I made it a CARDINAL *)
+               cury, curx : CARDINAL; (* current cursor position *)
+                                      (* window location and size *)
+               maxy, maxx : CARDINAL; (* maximums of x and y, NOT window size *)
+               begy, begx : CARDINAL; (* screen coords of upper-left-hand corner *)
+               flags : CARDINAL;      (* window state flags *)
+                                      (* attribute tracking *)
+               attrs : CARDINAL;      (* current attribute for non-space character *)
+               bkgd  : LONGCARD;      (* current background char/attribute pair *)
+                                      (* option values set by user *)
+               notimeout : BOOLEAN;   (* no time out on function-key entry? *)
+               clear : BOOLEAN;       (* consider all data in the window invalid? *)
+               leaveok : BOOLEAN;     (* OK to not reset cursor on exit? *)
+               scroll : BOOLEAN;      (* OK to scroll this window? *)
+               idlok : BOOLEAN;       (* OK to use insert/delete line? *)
+               idcok : BOOLEAN;	      (* OK to use insert/delete char? *)
+               immed : BOOLEAN;       (* window in immed mode? (not yet used) *)
+               sync : BOOLEAN;        (* window in sync mode? *)
+               use_keypad : BOOLEAN;  (* process PROCEDURE keys into KEY_ symbols? *)
+               delay : INTEGER;       (* 0 = nodelay, <0 = blocking, >0 = delay *)
+               line  : ldatPtr;      (* struct ldat * _line; /* the actual line data */ *)
+                                      (* global screen state *)
+	             regtop : CARDINAL;     (* top line of scrolling region *)
+               regbottom : CARDINAL;  (* bottom line of scrolling region *)
+                                      (* these are used only if this is a sub-window *)
+               parx : INTEGER;        (* x coordinate of this window in parent *)
+               pary : INTEGER;        (* y coordinate of this window in parent *)
+               parent : WINDOW;       (* pointer to parent if a sub-window *)
+                                      (* these are used only if this is a pad *)
+               pad    : PadData;
+
+               yoffset: CARDINAL;     (* real begy is _begy + _yoffset *)
+
+               bkgrnd : cchar_t;      (* current background char/attribute pair *)
+               color  :INTEGER;       (* current color-pair for non-space character *)
+            END;
+
+
+VAR
+   LINES, COLS, TABSIZE, ESCDELAY, COLORS, COLOR_PAIRS   : INTEGER ;
+   stdscr, curscr, newscr : WINDOW ;
+   ttytype                : ADDRESS ;
+   BOOL                   : BOOLEAN;
+
+
+PROCEDURE   curses_version ()                            : ADDRESS ;
+PROCEDURE   assume_default_colors (a, b: INTEGER)        : INTEGER ;
+PROCEDURE   use_default_colors ()                        : INTEGER ;
+PROCEDURE   start_color ()                               : INTEGER ;
+PROCEDURE   resizeterm (x: INTEGER; y: INTEGER)          : INTEGER ;
+PROCEDURE   wresize (w: WINDOW; x: INTEGER; y: INTEGER)  : INTEGER ;
+PROCEDURE   addch (ch: CHTYPE)                           : INTEGER ;
+PROCEDURE   addchnstr (s: chstring; n: INTEGER)		 : INTEGER ;
+PROCEDURE   addchstr (s: chstring)                       : INTEGER ;
+PROCEDURE   addnstr (s: chstring; n: INTEGER)            : INTEGER ;
+PROCEDURE   addstr (s: chstring)                         : INTEGER ;
+PROCEDURE   has_colors ()                                : BOOLEAN ;
+PROCEDURE   getch ()                                     : INTEGER ;
+
+(*
+PROCEDURE   wattr_on (w: WINDOW; attr_t, void: ADDRESS)  : INTEGER ;
+PROCEDURE   wattr_off (w: WINDOW; attr_t, void: ADDRESS) : INTEGER ;
+PROCEDURE   wattr_set (w: WINDOW;
+                       a: ATTRIBUTE; c: COLORPAIR;
+                       void: ADDRESS)  : INTEGER ;
+PROCEDURE   wattr_get (w: WINDOW;
+                       VAR a: ATTRIBUTE;
+                       VAR c: COLORPAIR; void: ADDRESS) : INTEGER ;
+*)
+
+(***********
+PROCEDURE   attr_get (attr_t *, short *, void * )         : INTEGER ;
+PROCEDURE   attr_off (attr_t, void * )                    : INTEGER ;
+PROCEDURE   attr_on (attr_t, void * )                     : INTEGER ;
+PROCEDURE   attr_set (attr_t, short, void * )             : INTEGER ;
+***********)
+
+PROCEDURE   baudrate () : INTEGER ;
+PROCEDURE   beep  ()    : INTEGER ;
+PROCEDURE   bkgd (ch: CHTYPE) : INTEGER ;
+PROCEDURE   bkgdset (ch: CHTYPE) ;
+PROCEDURE   border (a, b, c, d, e, f, g, h: CHTYPE) : INTEGER ;
+PROCEDURE   box (w: WINDOW; a, b: CHTYPE)  : INTEGER ;
+PROCEDURE   can_change_color () : BOOLEAN ;
+PROCEDURE   cbreak () : INTEGER ;
+
+(* PROCEDURE   chgat (INTEGER; attr_t, short, void * ) : INTEGER ; *)
+
+PROCEDURE   clear () : INTEGER ;
+PROCEDURE   wclear (w: WINDOW) : INTEGER ;
+PROCEDURE   wrefresh (w: WINDOW) : INTEGER ;
+PROCEDURE   wmove (w: WINDOW; y, x: INTEGER) : INTEGER ;
+PROCEDURE   waddch (w: WINDOW; ch: CHTYPE)   : INTEGER ;
+PROCEDURE   wcolor_set (w: WINDOW; p: SHORTCARD; nil: ADDRESS) : INTEGER ;
+
+
+(*
+PROCEDURE   clearok (w: WINDOW,NCURSES_BOOL );			 : INTEGER ;
+PROCEDURE   clrtobot ();				 : INTEGER ;
+PROCEDURE   clrtoeol ();				 : INTEGER ;
+PROCEDURE   color_content (short,short*,short*,short* );	 : INTEGER ;
+PROCEDURE   color_set (short,void* );			 : INTEGER ;
+PROCEDURE   COLOR_PAIR (INTEGER);				 : INTEGER ;
+PROCEDURE   copywin (WINDOW*,WINDOW*,INTEGER;INTEGER;INTEGER;INTEGER;INTEGER;INTEGER;INTEGER);	 : INTEGER ;
+PROCEDURE   curs_set (INTEGER);				 : INTEGER ;
+PROCEDURE   def_prog_mode ();			 : INTEGER ;
+PROCEDURE   def_shell_mode ();			 : INTEGER ;
+PROCEDURE   delay_output (INTEGER);				 : INTEGER ;
+PROCEDURE   delch ();				 : INTEGER ;
+PROCEDURE   delscreen (SCREEN * );
+
+PROCEDURE   deleteln ();				 : INTEGER ;
+PROCEDURE   derwin (w: WINDOW,INTEGER;INTEGER;INTEGER;INTEGER)            : WINDOW ;
+PROCEDURE   doupdate ();				 : INTEGER ;
+PROCEDURE   dupwin (w: WINDOW);			         : WINDOW ;
+PROCEDURE   getwin (FILE * );			         : WINDOW ;
+*)
+
+PROCEDURE   initscr ()  : WINDOW ;
+PROCEDURE   savetty ()  : INTEGER ;
+PROCEDURE   resetty ()  : INTEGER ;
+PROCEDURE   delwin (w: WINDOW) : INTEGER ;
+PROCEDURE   endwin ()  : INTEGER ;
+PROCEDURE   isendwin () : BOOLEAN ;
+PROCEDURE   init_pair (pair: COLORPAIR;
+                       fg, bg: SHORTCARD)                : INTEGER ;
+PROCEDURE   echo () : INTEGER ;
+PROCEDURE   noecho ()	: INTEGER ;
+PROCEDURE   nonl ()	: INTEGER ;
+
+
+(*
+extern NCURSES_EXPORT(int) echo (void);
+extern NCURSES_EXPORT(int) echochar (const CHTYPE);
+extern NCURSES_EXPORT(int) erase (void);
+extern NCURSES_EXPORT(char) erasechar (void);
+extern NCURSES_EXPORT(void) filter (void);
+extern NCURSES_EXPORT(int) flash (void);
+extern NCURSES_EXPORT(int) flushinp (void);
+extern NCURSES_EXPORT(CHTYPE) getbkgd (WINDOW * );
+extern NCURSES_EXPORT(int) getch (void);
+extern NCURSES_EXPORT(int) getnstr (char *, int);
+extern NCURSES_EXPORT(int) getstr (char * );
+extern NCURSES_EXPORT(WINDOW * ) getwin (FILE * );
+extern NCURSES_EXPORT(int) halfdelay (int);
+extern NCURSES_EXPORT(BOOL) has_ic (void);
+extern NCURSES_EXPORT(BOOL) has_il (void);
+extern NCURSES_EXPORT(int) hline (CHTYPE, int);
+extern NCURSES_EXPORT(void) idcok (WINDOW *, BOOL);
+extern NCURSES_EXPORT(int) idlok (WINDOW *, BOOL);
+extern NCURSES_EXPORT(void) immedok (WINDOW *, BOOL);
+extern NCURSES_EXPORT(CHTYPE) inch (void);
+extern NCURSES_EXPORT(int) inchnstr (CHTYPE *, int);
+extern NCURSES_EXPORT(int) inchstr (CHTYPE * );
+*)
+
+(****************
+PROCEDURE   init_color (short,short,short,short);	 : INTEGER ;
+PROCEDURE   innstr (char *, INTEGER);			 : INTEGER ;
+PROCEDURE   insch (CHTYPE);				 : INTEGER ;
+PROCEDURE   insdelln (n: INTEGER)                        : INTEGER ;
+PROCEDURE   insertln ();				 : INTEGER ;
+PROCEDURE   insnstr (char *, INTEGER);			 : INTEGER ;
+PROCEDURE   insstr (char * );			 : INTEGER ;
+PROCEDURE   instr (char * );				 : INTEGER ;
+PROCEDURE   intrflush (w: WINDOW,NCURSES_BOOL );			 : INTEGER ;
+extern    NCURSES_BOOL      isendwin ();
+extern    NCURSES_BOOL      is_linetouched (w: WINDOW,INTEGER);
+extern    NCURSES_BOOL      is_wintouched (w: WINDOW);
+extern     char *     keyname (INTEGER);
+PROCEDURE   keypad (w: WINDOW,NCURSES_BOOL );			 : INTEGER ;
+PROCEDURE   killchar ()                                          : CHAR ;
+PROCEDURE   leaveok (w: WINDOW,NCURSES_BOOL );			 : INTEGER ;
+extern    char *     longname ();
+PROCEDURE   meta (w: WINDOW,NCURSES_BOOL );			 : INTEGER ;
+PROCEDURE   move (INTEGER; INTEGER);				 : INTEGER ;
+PROCEDURE   mvaddch (INTEGER; INTEGER; CHTYPE);		 : INTEGER ;
+PROCEDURE   mvaddchnstr (INTEGER; INTEGER; s: chstring, INTEGER);	 : INTEGER ;
+PROCEDURE   mvaddchstr (INTEGER; INTEGER; s: chstring);	 : INTEGER ;
+PROCEDURE   mvaddnstr (INTEGER; INTEGER; char *, INTEGER);	 : INTEGER ;
+PROCEDURE   mvaddstr (INTEGER; INTEGER; char * );		 : INTEGER ;
+PROCEDURE   mvchgat (INTEGER; INTEGER; INTEGER; attr_t, short, void * );	 : INTEGER ;
+PROCEDURE   mvcur (INTEGER;INTEGER;INTEGER;INTEGER);			 : INTEGER ;
+PROCEDURE   mvdelch (INTEGER; INTEGER);				 : INTEGER ;
+PROCEDURE   mvderwin (w: WINDOW, INTEGER; INTEGER);		 : INTEGER ;
+PROCEDURE   mvgetch (INTEGER; INTEGER);				 : INTEGER ;
+PROCEDURE   mvgetnstr (INTEGER; INTEGER; char *, INTEGER);		 : INTEGER ;
+PROCEDURE   mvgetstr (INTEGER; INTEGER; char * );			 : INTEGER ;
+PROCEDURE   mvhline (INTEGER; INTEGER; CHTYPE, INTEGER);		 : INTEGER ;
+extern    CHTYPE     mvinch (INTEGER; INTEGER);
+PROCEDURE   mvinchnstr (INTEGER; INTEGER; s: chstring, INTEGER);	 : INTEGER ;
+PROCEDURE   mvinchstr (INTEGER; INTEGER; s: chstring);		 : INTEGER ;
+PROCEDURE   mvinnstr (INTEGER; INTEGER; char *, INTEGER);		 : INTEGER ;
+PROCEDURE   mvinsch (INTEGER; INTEGER; CHTYPE);			 : INTEGER ;
+PROCEDURE   mvinsnstr (INTEGER; INTEGER; char *, INTEGER);	 : INTEGER ;
+PROCEDURE   mvinsstr (INTEGER; INTEGER; char * );		 : INTEGER ;
+PROCEDURE   mvinstr (INTEGER; INTEGER; char * );			 : INTEGER ;
+PROCEDURE   mvprintw (INTEGER;INTEGER;  char *,...)	 : INTEGER ;
+PROCEDURE   mvscanw (INTEGER;INTEGER;  char *,...)	 : INTEGER ;
+		 ;
+PROCEDURE   mvvline (INTEGER; INTEGER; CHTYPE, INTEGER);		 : INTEGER ;
+PROCEDURE   mvwaddch (w: WINDOW, INTEGER; INTEGER; CHTYPE);	 : INTEGER ;
+PROCEDURE   mvwaddchnstr (w: WINDOW, INTEGER; INTEGER; s: chstring, INTEGER); : INTEGER ;
+PROCEDURE   mvwaddchstr (w: WINDOW, INTEGER; INTEGER; s: chstring);	 : INTEGER ;
+PROCEDURE   mvwaddnstr (w: WINDOW, INTEGER; INTEGER; char *, INTEGER);	 : INTEGER ;
+PROCEDURE   mvwaddstr (w: WINDOW, INTEGER; INTEGER; char * );	 : INTEGER ;
+PROCEDURE   mvwchgat (w: WINDOW, INTEGER; INTEGER; INTEGER; attr_t, short, void * ); : INTEGER ;
+PROCEDURE   mvwdelch (w: WINDOW, INTEGER; INTEGER);		 : INTEGER ;
+PROCEDURE   mvwgetch (w: WINDOW, INTEGER; INTEGER);		 : INTEGER ;
+PROCEDURE   mvwgetnstr (w: WINDOW, INTEGER; INTEGER; char *, INTEGER);	 : INTEGER ;
+PROCEDURE   mvwgetstr (w: WINDOW, INTEGER; INTEGER; char * );	 : INTEGER ;
+PROCEDURE   mvwhline (w: WINDOW, INTEGER; INTEGER; CHTYPE, INTEGER);	 : INTEGER ;
+PROCEDURE   mvwin (w: WINDOW,INTEGER;INTEGER);			 : INTEGER ;
+extern    CHTYPE     mvwinch (w: WINDOW, INTEGER; INTEGER);
+PROCEDURE   mvwinchnstr (w: WINDOW, INTEGER; INTEGER; s: chstring, INTEGER);	 : INTEGER ;
+PROCEDURE   mvwinchstr (w: WINDOW, INTEGER; INTEGER; s: chstring);		 : INTEGER ;
+PROCEDURE   mvwinnstr (w: WINDOW, INTEGER; INTEGER; char *, INTEGER);		 : INTEGER ;
+PROCEDURE   mvwinsch (w: WINDOW, INTEGER; INTEGER; CHTYPE);		 : INTEGER ;
+PROCEDURE   mvwinsnstr (w: WINDOW, INTEGER; INTEGER; char *, INTEGER);	 : INTEGER ;
+PROCEDURE   mvwinsstr (w: WINDOW, INTEGER; INTEGER; char * );		 : INTEGER ;
+PROCEDURE   mvwinstr (w: WINDOW, INTEGER; INTEGER; char * );		 : INTEGER ;
+PROCEDURE   mvwprintw (WINDOW*,INTEGER;INTEGER;  char *,...)	 : INTEGER ;
+PROCEDURE   mvwscanw (w: WINDOW,INTEGER;INTEGER;  char *,...)	 : INTEGER ;
+PROCEDURE   mvwvline (w: WINDOW,INTEGER; INTEGER; CHTYPE, INTEGER);	 : INTEGER ;
+PROCEDURE   napms (INTEGER);					 : INTEGER ;
+PROCEDURE   nl ();					 : INTEGER ;
+PROCEDURE   nocbreak ();				 : INTEGER ;
+PROCEDURE   nodelay (w: WINDOW,NCURSES_BOOL );			 : INTEGER ;
+PROCEDURE   noqiflush ();
+PROCEDURE   noraw ();				 : INTEGER ;
+PROCEDURE   notimeout (w: WINDOW,NCURSES_BOOL );			 : INTEGER ;
+PROCEDURE   overlay (WINDOW*,w: WINDOW);		 : INTEGER ;
+PROCEDURE   overwrite (WINDOW*,w: WINDOW);		 : INTEGER ;
+PROCEDURE   pair_content (short,short*,short* );		 : INTEGER ;
+PROCEDURE   PAIR_NUMBER (INTEGER);				 : INTEGER ;
+PROCEDURE   pechochar (w: WINDOW, CHTYPE);		 : INTEGER ;
+PROCEDURE   pnoutrefresh (WINDOW*,INTEGER;INTEGER;INTEGER;INTEGER;INTEGER;INTEGER); : INTEGER ;
+PROCEDURE   prefresh (w: WINDOW,INTEGER;INTEGER;INTEGER;INTEGER;INTEGER;INTEGER);	 : INTEGER ;
+PROCEDURE   printw ( char *,...)		 : INTEGER ;
+		 ;
+PROCEDURE   putp (char * );				 : INTEGER ;
+PROCEDURE   putwin (w: WINDOW, FILE * );			 : INTEGER ;
+extern    void     qiflush ();
+PROCEDURE   raw ();					 : INTEGER ;
+PROCEDURE   redrawwin (w: WINDOW);			 : INTEGER ;
+PROCEDURE   refresh ();				 : INTEGER ;
+
+PROCEDURE   reset_prog_mode ();			 : INTEGER ;
+PROCEDURE   reset_shell_mode ();			 : INTEGER ;
+PROCEDURE   ripoffline (INTEGER; int ( *init)(w: WINDOW, INTEGER));	 : INTEGER ;
+
+PROCEDURE   scanw ( char *,...)		 : INTEGER ;
+
+PROCEDURE   scr_dump (char * );			 : INTEGER ;
+PROCEDURE   scr_init (char * );			 : INTEGER ;
+PROCEDURE   scrl (INTEGER);					 : INTEGER ;
+PROCEDURE   scroll (w: WINDOW);				 : INTEGER ;
+PROCEDURE   scrollok (w: WINDOW,NCURSES_BOOL );			 : INTEGER ;
+PROCEDURE   scr_restore (char * );			 : INTEGER ;
+PROCEDURE   scr_set (char * );			 : INTEGER ;
+PROCEDURE   setscrreg (INTEGER;INTEGER);				 : INTEGER ;
+extern    SCREEN *     set_term (SCREEN * );
+PROCEDURE   slk_attroff (CHTYPE);			 : INTEGER ;
+PROCEDURE   slk_attr_off (attr_t, void * );		 : INTEGER ;
+PROCEDURE   slk_attron (CHTYPE);			 : INTEGER ;
+PROCEDURE   slk_attr_on (attr_t,void* );			 : INTEGER ;
+PROCEDURE   slk_attrset (CHTYPE);			 : INTEGER ;
+extern    attr_t     slk_attr ();
+PROCEDURE   slk_attr_set (attr_t,short,void* );	 : INTEGER ;
+PROCEDURE   slk_clear ();				 : INTEGER ;
+PROCEDURE   slk_color (short);				 : INTEGER ;
+PROCEDURE   slk_init (INTEGER);				 : INTEGER ;
+extern    char *     slk_label (INTEGER);
+PROCEDURE   slk_noutrefresh ();			 : INTEGER ;
+PROCEDURE   subpad (w: WINDOW, INTEGER; INTEGER; INTEGER; INTEGER);	         : WINDOW ;
+PROCEDURE   subwin (w: WINDOW,INTEGER;INTEGER;INTEGER;INTEGER);	         : WINDOW ;
+PROCEDURE   syncok (w: WINDOW, NCURSES_BOOL );			 : INTEGER ;
+extern    CHTYPE     termattrs ();
+extern    attr_t     term_attrs ();
+extern    char *     termname ();
+PROCEDURE   tigetflag ( char * );		 : INTEGER ;
+PROCEDURE   tigetnum ( char * );		 : INTEGER ;
+extern    char *     tigetstr ( char * );
+PROCEDURE   timeout (INTEGER);
+PROCEDURE   touchline (w: WINDOW, INTEGER; INTEGER);		 : INTEGER ;
+PROCEDURE   touchwin (w: WINDOW);				 : INTEGER ;
+extern    char *     tparm ( char *, ...);
+PROCEDURE   typeahead (INTEGER);				 : INTEGER ;
+PROCEDURE   ungetch (INTEGER);				 : INTEGER ;
+PROCEDURE   untouchwin (w: WINDOW);			 : INTEGER ;
+PROCEDURE   use_env (NCURSES_BOOL );
+PROCEDURE   vidattr (CHTYPE);				 : INTEGER ;
+PROCEDURE   vid_attr (attr_t, short, void * );		 : INTEGER ;
+PROCEDURE   vidputs (CHTYPE, int ( * )(INTEGER));		 : INTEGER ;
+PROCEDURE   vline (CHTYPE, INTEGER);				 : INTEGER ;
+PROCEDURE   vwprintw (w: WINDOW,  char *,va_list);	 : INTEGER ;
+PROCEDURE   vw_printw (w: WINDOW,  char *,va_list);	 : INTEGER ;
+PROCEDURE   vwscanw (w: WINDOW,  char *,va_list);	 : INTEGER ;
+PROCEDURE   vw_scanw (w: WINDOW,  char *,va_list);	 : INTEGER ;
+
+PROCEDURE   waddchnstr (w: WINDOW,s: chstringconst,INTEGER);  : INTEGER ;
+PROCEDURE   waddchstr (w: WINDOW,s: chstring);		 : INTEGER ;
+PROCEDURE   waddnstr (w: WINDOW,char *const,INTEGER);	 : INTEGER ;
+PROCEDURE   waddstr (w: WINDOW,char * );		 : INTEGER ;
+PROCEDURE   wattron (w: WINDOW, INTEGER);			 : INTEGER ;
+PROCEDURE   wattroff (w: WINDOW, INTEGER);			 : INTEGER ;
+PROCEDURE   wattrset (w: WINDOW, INTEGER);			 : INTEGER ;
+PROCEDURE   wattr_get (w: WINDOW, attr_t *, short *, void * );	 : INTEGER ;
+PROCEDURE   wattr_on (w: WINDOW,  attr_t, void * );	 : INTEGER ;
+PROCEDURE   wattr_off (w: WINDOW,  attr_t, void * );	 : INTEGER ;
+PROCEDURE   wattr_set (w: WINDOW, attr_t, short, void * );		 : INTEGER ;
+PROCEDURE   wbkgd (w: WINDOW,CHTYPE);		 : INTEGER ;
+PROCEDURE   wbkgdset (w: WINDOW,CHTYPE);
+PROCEDURE   wborder (w: WINDOW,CHTYPE,CHTYPE,CHTYPE,CHTYPE,CHTYPE,CHTYPE,CHTYPE,CHTYPE);	 : INTEGER ;
+PROCEDURE   wchgat (w: WINDOW, INTEGER; attr_t, short, void * ); : INTEGER ;
+PROCEDURE   wclrtobot (w: WINDOW);			 : INTEGER ;
+PROCEDURE   wclrtoeol (w: WINDOW);			 : INTEGER ;
+PROCEDURE   wcolor_set (WINDOW*,short,void* );		 : INTEGER ;
+PROCEDURE   wcursyncup (w: WINDOW);
+PROCEDURE   wdelch (w: WINDOW);				 : INTEGER ;
+PROCEDURE   wdeleteln (w: WINDOW);			 : INTEGER ;
+PROCEDURE   wechochar (w: WINDOW, CHTYPE);		 : INTEGER ;
+PROCEDURE   werase (w: WINDOW);				 : INTEGER ;
+PROCEDURE   wgetch (w: WINDOW);				 : INTEGER ;
+PROCEDURE   wgetnstr (w: WINDOW,char *,INTEGER);		 : INTEGER ;
+PROCEDURE   wgetstr (w: WINDOW, char * );			 : INTEGER ;
+PROCEDURE   whline (w: WINDOW, CHTYPE, INTEGER);		 : INTEGER ;
+extern    CHTYPE     winch (w: WINDOW);
+PROCEDURE   winchnstr (w: WINDOW, s: chstring, INTEGER);		 : INTEGER ;
+PROCEDURE   winchstr (w: WINDOW, s: chstring);		 : INTEGER ;
+PROCEDURE   winnstr (w: WINDOW, char *, INTEGER);		 : INTEGER ;
+PROCEDURE   winsch (w: WINDOW, CHTYPE);			 : INTEGER ;
+PROCEDURE   winsdelln (w: WINDOW,INTEGER);			 : INTEGER ;
+PROCEDURE   winsertln (w: WINDOW);			 : INTEGER ;
+PROCEDURE   winsnstr (w: WINDOW, char *,INTEGER);	 : INTEGER ;
+PROCEDURE   winsstr (w: WINDOW, char * );		 : INTEGER ;
+PROCEDURE   winstr (w: WINDOW, char * );			 : INTEGER ;
+PROCEDURE   wnoutrefresh (w: WINDOW);			 : INTEGER ;
+PROCEDURE   wprintw (w: WINDOW,  char *,...)	 : INTEGER ;
+PROCEDURE   wredrawln (w: WINDOW,INTEGER;INTEGER);		 : INTEGER ;
+
+PROCEDURE   wscanw (w: WINDOW, f: ARRAY OF CHAR ,...)	 : INTEGER ;
+PROCEDURE   wscrl (w: WINDOW,INTEGER);			 : INTEGER ;
+PROCEDURE   wsetscrreg (w: WINDOW,INTEGER;INTEGER);		 : INTEGER ;
+PROCEDURE   wstandout (w: WINDOW);			 : INTEGER ;
+PROCEDURE   wstandend (w: WINDOW);			 : INTEGER ;
+PROCEDURE   wsyncdown (w: WINDOW);
+PROCEDURE   wsyncup (w: WINDOW);
+PROCEDURE   wtimeout (w: WINDOW,INTEGER);
+PROCEDURE   wtouchln (w: WINDOW,INTEGER;INTEGER;INTEGER);		 : INTEGER ;
+PROCEDURE   wvline (w: WINDOW; ch: CHTYPE; INTEGER);		 : INTEGER ;
+
+Procedures below I an trying to write the definitions for as they were not
+already done.
+********************)
+PROCEDURE   insdelln (n: INTEGER) : INTEGER ;
+PROCEDURE   insertln ()	: INTEGER ;
+PROCEDURE   killchar () : CHAR ;
+PROCEDURE   keypad (w: WINDOW; BOOL: BOOLEAN ) : INTEGER ;
+PROCEDURE   killchar () : CHAR ;
+PROCEDURE   nl () : INTEGER ;
+PROCEDURE   nocbreak () : INTEGER ;
+PROCEDURE   nodelay (w: WINDOW; BOOL: BOOLEAN ) : INTEGER ;
+PROCEDURE   noqiflush ();
+PROCEDURE   noraw () : INTEGER ;
+(* PROCEDURE   printw ( char *,...)		 : INTEGER ; *)
+(* PROCEDURE   putp (char * );				 : INTEGER ; *)
+PROCEDURE   printw ( a: ARRAY OF CHAR; ...) : INTEGER ;
+PROCEDURE   putp (a: ARRAY OF CHAR ) : INTEGER ;
+PROCEDURE   raw () : INTEGER ;
+PROCEDURE   redrawwin (w: WINDOW) : INTEGER ;
+PROCEDURE   refresh () : INTEGER ;
+PROCEDURE   reset_prog_mode () : INTEGER ;
+PROCEDURE   reset_shell_mode () : INTEGER ;
+PROCEDURE   scroll (w: WINDOW) : INTEGER ;
+PROCEDURE   winsertln (w: WINDOW) : INTEGER ;
+PROCEDURE   wstandout (w: WINDOW) : INTEGER ;
+PROCEDURE   wstandend (w: WINDOW) : INTEGER ;
+PROCEDURE   wsyncdown (w: WINDOW);
+PROCEDURE   wsyncup (w: WINDOW);
+
+PROCEDURE   trace (d: INTEGER);
+
+
+END ncurses.
+
+(*
+Example 1. The Hello World !!! Program
+#include <ncurses.h>
+
+int main()
+{
+        initscr();                      /* Start curses mode              */
+        printw("Hello World !!!");      /* Print Hello World              */
+        refresh();                      /* Print it on to the real screen */
+        getch();                        /* Wait for user input */
+        endwin();                       /* End curses mode                */
+        return 0;
+}
+
+*)
+(*
+struct _win_st
+{
+	NCURSES_SIZE_T _cury, _curx; /* current cursor position */
+
+	/* window location and size */
+	NCURSES_SIZE_T _maxy, _maxx; /* maximums of x and y, NOT window size */
+	NCURSES_SIZE_T _begy, _begx; /* screen coords of upper-left-hand corner */
+
+	short   _flags;		/* window state flags */
+
+	/* attribute tracking */
+	attr_t  _attrs;		/* current attribute for non-space character */
+	CHTYPE  _bkgd;		/* current background char/attribute pair */
+
+	/* option values set by user */
+	BOOL	_notimeout;	/* no time out on function-key entry? */
+	BOOL	_clear;		/* consider all data in the window invalid? */
+	BOOL	_leaveok;	/* OK to not reset cursor on exit? */
+	BOOL	_scroll;	/* OK to scroll this window? */
+	BOOL	_idlok;		/* OK to use insert/delete line? */
+	BOOL	_idcok;		/* OK to use insert/delete char? */
+	BOOL	_immed;		/* window in immed mode? (not yet used) */
+	BOOL	_sync;		/* window in sync mode? */
+	BOOL	_use_keypad;	/* process PROCEDURE keys into KEY_ symbols? */
+	int	_delay;		/* 0 = nodelay, <0 = blocking, >0 = delay */
+
+	struct ldat *_line;	/* the actual line data */
+
+	/* global screen state */
+	NCURSES_SIZE_T _regtop;	/* top line of scrolling region */
+	NCURSES_SIZE_T _regbottom; /* bottom line of scrolling region */
+
+	/* these are used only if this is a sub-window */
+	int	_parx;		/* x coordinate of this window in parent */
+	int	_pary;		/* y coordinate of this window in parent */
+	WINDOW	*_parent;	/* pointer to parent if a sub-window */
+
+	/* these are used only if this is a pad */
+	struct pdat
+	{
+	    NCURSES_SIZE_T _pad_y,      _pad_x;
+	    NCURSES_SIZE_T _pad_top,    _pad_left;
+	    NCURSES_SIZE_T _pad_bottom, _pad_right;
+	} _pad;
+
+	NCURSES_SIZE_T _yoffset; /* real begy is _begy + _yoffset */
+
+#ifdef _XOPEN_SOURCE_EXTENDED
+	cchar_t  _bkgrnd;	/* current background char/attribute pair */
+#if 0
+	int	_color;		/* current color-pair for non-space character */
+#endif
+#endif
+};
+
+
+#endif /* NCURSES_OPAQUE */
+
+/*
+ * This is an extension to support events...
+ */
+#if 1
+#ifdef NCURSES_WGETCH_EVENTS
+#if !defined(__BEOS__) || defined(__HAIKU__)
+   /* Fix _nc_timed_wait() on BEOS... */
+#  define NCURSES_EVENT_VERSION	1
+#endif	/* !defined(__BEOS__) */
+
+/*
+ * Bits to set in _nc_event.data.flags
+ */
+#  define _NC_EVENT_TIMEOUT_MSEC	1
+#  define _NC_EVENT_FILE		2
+#  define _NC_EVENT_FILE_READABLE	2
+#  if 0					/* Not supported yet... */
+#    define _NC_EVENT_FILE_WRITABLE	4
+#    define _NC_EVENT_FILE_EXCEPTION	8
+#  endif
+typedef struct
+{
+    int type;
+    union
+    {
+	long timeout_msec;	/* _NC_EVENT_TIMEOUT_MSEC */
+	struct
+	{
+	    unsigned int flags;
+	    int fd;
+	    unsigned int result;
+	} fev;				/* _NC_EVENT_FILE */
+    } data;
+} _nc_event;
+
+typedef struct
+{
+    int count;
+    int result_flags;	/* _NC_EVENT_TIMEOUT_MSEC or _NC_EVENT_FILE_READABLE */
+    _nc_event *events[1];
+} _nc_eventlist;
+
+extern NCURSES_EXPORT(int) wgetch_events(WINDOW *, _nc_eventlist * );	/* experimental */
+extern NCURSES_EXPORT(int) wgetnstr_events(WINDOW *,char *,int,_nc_eventlist * );/* experimental */
+
+#endif /* NCURSES_WGETCH_EVENTS */
+#endif /* NCURSES_EXT_FUNCS */
+*)
+
+(*
+
+/*
+ * Curses uses a helper function.  Define our type for this to simplify
+ * extending it for the sp-funcs feature.
+ */
+typedef int (*NCURSES_OUTC)(int);
+
+/*
+ * PROCEDURE prototypes.  This is the complete X/Open Curses list of required
+ * functions.  Those marked `generated' will have sources generated from the
+ * macro definitions later in this file, in order to satisfy XPG4.2
+ * requirements.
+ */
+
+extern NCURSES_EXPORT(int) addch (const CHTYPE);			/* generated */
+extern NCURSES_EXPORT(int) addchnstr (const CHTYPE *, int);		/* generated */
+extern NCURSES_EXPORT(int) addchstr (const CHTYPE * );			/* generated */
+extern NCURSES_EXPORT(int) addnstr (const char *, int);			/* generated */
+extern NCURSES_EXPORT(int) addstr (const char * );			/* generated */
+extern NCURSES_EXPORT(int) attroff (NCURSES_ATTR_T);			/* generated */
+extern NCURSES_EXPORT(int) attron (NCURSES_ATTR_T);			/* generated */
+extern NCURSES_EXPORT(int) attrset (NCURSES_ATTR_T);			/* generated */
+extern NCURSES_EXPORT(int) attr_get (attr_t *, short *, void * );	/* generated */
+extern NCURSES_EXPORT(int) attr_off (attr_t, void * );			/* generated */
+extern NCURSES_EXPORT(int) attr_on (attr_t, void * );			/* generated */
+extern NCURSES_EXPORT(int) attr_set (attr_t, short, void * );		/* generated */
+extern NCURSES_EXPORT(int) baudrate (void);				/* implemented */
+extern NCURSES_EXPORT(int) beep  (void);				/* implemented */
+extern NCURSES_EXPORT(int) bkgd (CHTYPE);				/* generated */
+extern NCURSES_EXPORT(void) bkgdset (CHTYPE);				/* generated */
+extern NCURSES_EXPORT(int) border (CHTYPE,CHTYPE,CHTYPE,CHTYPE,CHTYPE,CHTYPE,CHTYPE,CHTYPE);	/* generated */
+extern NCURSES_EXPORT(int) box (WINDOW *, CHTYPE, CHTYPE);		/* generated */
+extern NCURSES_EXPORT(BOOL) can_change_color (void);			/* implemented */
+extern NCURSES_EXPORT(int) cbreak (void);				/* implemented */
+extern NCURSES_EXPORT(int) chgat (int, attr_t, short, const void * );	/* generated */
+extern NCURSES_EXPORT(int) clear (void);				/* generated */
+extern NCURSES_EXPORT(int) clearok (WINDOW *,BOOL);			/* implemented */
+extern NCURSES_EXPORT(int) clrtobot (void);				/* generated */
+extern NCURSES_EXPORT(int) clrtoeol (void);				/* generated */
+extern NCURSES_EXPORT(int) color_content (short,short*,short*,short* );	/* implemented */
+extern NCURSES_EXPORT(int) color_set (short,void* );			/* generated */
+extern NCURSES_EXPORT(int) COLOR_PAIR (int);				/* generated */
+extern NCURSES_EXPORT(int) copywin (const WINDOW*,WINDOW*,int,int,int,int,int,int,int);	/* implemented */
+extern NCURSES_EXPORT(int) curs_set (int);				/* implemented */
+extern NCURSES_EXPORT(int) def_prog_mode (void);			/* implemented */
+extern NCURSES_EXPORT(int) def_shell_mode (void);			/* implemented */
+extern NCURSES_EXPORT(int) delay_output (int);				/* implemented */
+extern NCURSES_EXPORT(int) delch (void);				/* generated */
+extern NCURSES_EXPORT(void) delscreen (SCREEN * );			/* implemented */
+extern NCURSES_EXPORT(int) delwin (WINDOW * );				/* implemented */
+extern NCURSES_EXPORT(int) deleteln (void);				/* generated */
+extern NCURSES_EXPORT(WINDOW * ) derwin (WINDOW *,int,int,int,int);	/* implemented */
+extern NCURSES_EXPORT(int) doupdate (void);				/* implemented */
+extern NCURSES_EXPORT(WINDOW * ) dupwin (WINDOW * );			/* implemented */
+extern NCURSES_EXPORT(int) echo (void);					/* implemented */
+extern NCURSES_EXPORT(int) echochar (const CHTYPE);			/* generated */
+extern NCURSES_EXPORT(int) erase (void);				/* generated */
+extern NCURSES_EXPORT(int) endwin (void);				/* implemented */
+extern NCURSES_EXPORT(char) erasechar (void);				/* implemented */
+extern NCURSES_EXPORT(void) filter (void);				/* implemented */
+extern NCURSES_EXPORT(int) flash (void);				/* implemented */
+extern NCURSES_EXPORT(int) flushinp (void);				/* implemented */
+extern NCURSES_EXPORT(CHTYPE) getbkgd (WINDOW * );			/* generated */
+extern NCURSES_EXPORT(int) getch (void);				/* generated */
+extern NCURSES_EXPORT(int) getnstr (char *, int);			/* generated */
+extern NCURSES_EXPORT(int) getstr (char * );				/* generated */
+extern NCURSES_EXPORT(WINDOW * ) getwin (FILE * );			/* implemented */
+extern NCURSES_EXPORT(int) halfdelay (int);				/* implemented */
+extern NCURSES_EXPORT(BOOL) has_colors (void);				/* implemented */
+extern NCURSES_EXPORT(BOOL) has_ic (void);				/* implemented */
+extern NCURSES_EXPORT(BOOL) has_il (void);				/* implemented */
+extern NCURSES_EXPORT(int) hline (CHTYPE, int);				/* generated */
+extern NCURSES_EXPORT(void) idcok (WINDOW *, BOOL);			/* implemented */
+extern NCURSES_EXPORT(int) idlok (WINDOW *, BOOL);			/* implemented */
+extern NCURSES_EXPORT(void) immedok (WINDOW *, BOOL);			/* implemented */
+extern NCURSES_EXPORT(CHTYPE) inch (void);				/* generated */
+extern NCURSES_EXPORT(int) inchnstr (CHTYPE *, int);			/* generated */
+extern NCURSES_EXPORT(int) inchstr (CHTYPE * );				/* generated */
+extern NCURSES_EXPORT(WINDOW * ) initscr (void);				/* implemented */
+extern NCURSES_EXPORT(int) init_color (short,short,short,short);	/* implemented */
+extern NCURSES_EXPORT(int) init_pair (short,short,short);		/* implemented */
+extern NCURSES_EXPORT(int) innstr (char *, int);			/* generated */
+extern NCURSES_EXPORT(int) insch (CHTYPE);				/* generated */
+extern NCURSES_EXPORT(int) insdelln (int);				/* generated */
+extern NCURSES_EXPORT(int) insertln (void);				/* generated */
+extern NCURSES_EXPORT(int) insnstr (const char *, int);			/* generated */
+extern NCURSES_EXPORT(int) insstr (const char * );			/* generated */
+extern NCURSES_EXPORT(int) instr (char * );				/* generated */
+extern NCURSES_EXPORT(int) intrflush (WINDOW *,BOOL);			/* implemented */
+extern NCURSES_EXPORT(BOOL) isendwin (void);				/* implemented */
+extern NCURSES_EXPORT(BOOL) is_linetouched (WINDOW *,int);		/* implemented */
+extern NCURSES_EXPORT(BOOL) is_wintouched (WINDOW * );			/* implemented */
+extern NCURSES_EXPORT(NCURSES_CONST char * ) keyname (int);		/* implemented */
+extern NCURSES_EXPORT(int) keypad (WINDOW *,BOOL);			/* implemented */
+extern NCURSES_EXPORT(char) killchar (void);				/* implemented */
+extern NCURSES_EXPORT(int) leaveok (WINDOW *,BOOL);			/* implemented */
+extern NCURSES_EXPORT(char * )  longname (void);				/* implemented */
+extern NCURSES_EXPORT(int) meta (WINDOW *,BOOL);			/* implemented */
+extern NCURSES_EXPORT(int) move (int, int);				/* generated */
+extern NCURSES_EXPORT(int) mvaddch (int, int, const CHTYPE);		/* generated */
+extern NCURSES_EXPORT(int) mvaddchnstr (int, int, const CHTYPE *, int);	/* generated */
+extern NCURSES_EXPORT(int) mvaddchstr (int, int, const CHTYPE * );	/* generated */
+extern NCURSES_EXPORT(int) mvaddnstr (int, int, const char *, int);	/* generated */
+extern NCURSES_EXPORT(int) mvaddstr (int, int, const char * );		/* generated */
+extern NCURSES_EXPORT(int) mvchgat (int, int, int, attr_t, short, const void * );	/* generated */
+extern NCURSES_EXPORT(int) mvcur (int,int,int,int);			/* implemented */
+extern NCURSES_EXPORT(int) mvdelch (int, int);				/* generated */
+extern NCURSES_EXPORT(int) mvderwin (WINDOW *, int, int);		/* implemented */
+extern NCURSES_EXPORT(int) mvgetch (int, int);				/* generated */
+extern NCURSES_EXPORT(int) mvgetnstr (int, int, char *, int);		/* generated */
+extern NCURSES_EXPORT(int) mvgetstr (int, int, char * );			/* generated */
+extern NCURSES_EXPORT(int) mvhline (int, int, CHTYPE, int);		/* generated */
+extern NCURSES_EXPORT(CHTYPE) mvinch (int, int);			/* generated */
+extern NCURSES_EXPORT(int) mvinchnstr (int, int, CHTYPE *, int);	/* generated */
+extern NCURSES_EXPORT(int) mvinchstr (int, int, CHTYPE * );		/* generated */
+extern NCURSES_EXPORT(int) mvinnstr (int, int, char *, int);		/* generated */
+extern NCURSES_EXPORT(int) mvinsch (int, int, CHTYPE);			/* generated */
+extern NCURSES_EXPORT(int) mvinsnstr (int, int, const char *, int);	/* generated */
+extern NCURSES_EXPORT(int) mvinsstr (int, int, const char * );		/* generated */
+extern NCURSES_EXPORT(int) mvinstr (int, int, char * );			/* generated */
+extern NCURSES_EXPORT(int) mvprintw (int,int, const char *,...)		/* implemented */
+		GCC_PRINTFLIKE(3,4);
+extern NCURSES_EXPORT(int) mvscanw (int,int, NCURSES_CONST char *,...)	/* implemented */
+		GCC_SCANFLIKE(3,4);
+extern NCURSES_EXPORT(int) mvvline (int, int, CHTYPE, int);		/* generated */
+extern NCURSES_EXPORT(int) mvwaddch (WINDOW *, int, int, const CHTYPE);	/* generated */
+extern NCURSES_EXPORT(int) mvwaddchnstr (WINDOW *, int, int, const CHTYPE *, int);/* generated */
+extern NCURSES_EXPORT(int) mvwaddchstr (WINDOW *, int, int, const CHTYPE * );	/* generated */
+extern NCURSES_EXPORT(int) mvwaddnstr (WINDOW *, int, int, const char *, int);	/* generated */
+extern NCURSES_EXPORT(int) mvwaddstr (WINDOW *, int, int, const char * );	/* generated */
+extern NCURSES_EXPORT(int) mvwchgat (WINDOW *, int, int, int, attr_t, short, const void * );/* generated */
+extern NCURSES_EXPORT(int) mvwdelch (WINDOW *, int, int);		/* generated */
+extern NCURSES_EXPORT(int) mvwgetch (WINDOW *, int, int);		/* generated */
+extern NCURSES_EXPORT(int) mvwgetnstr (WINDOW *, int, int, char *, int);	/* generated */
+extern NCURSES_EXPORT(int) mvwgetstr (WINDOW *, int, int, char * );	/* generated */
+extern NCURSES_EXPORT(int) mvwhline (WINDOW *, int, int, CHTYPE, int);	/* generated */
+extern NCURSES_EXPORT(int) mvwin (WINDOW *,int,int);			/* implemented */
+extern NCURSES_EXPORT(CHTYPE) mvwinch (WINDOW *, int, int);			/* generated */
+extern NCURSES_EXPORT(int) mvwinchnstr (WINDOW *, int, int, CHTYPE *, int);	/* generated */
+extern NCURSES_EXPORT(int) mvwinchstr (WINDOW *, int, int, CHTYPE * );		/* generated */
+extern NCURSES_EXPORT(int) mvwinnstr (WINDOW *, int, int, char *, int);		/* generated */
+extern NCURSES_EXPORT(int) mvwinsch (WINDOW *, int, int, CHTYPE);		/* generated */
+extern NCURSES_EXPORT(int) mvwinsnstr (WINDOW *, int, int, const char *, int);	/* generated */
+extern NCURSES_EXPORT(int) mvwinsstr (WINDOW *, int, int, const char * );	/* generated */
+extern NCURSES_EXPORT(int) mvwinstr (WINDOW *, int, int, char * );		/* generated */
+extern NCURSES_EXPORT(int) mvwprintw (WINDOW*,int,int, const char *,...)	/* implemented */
+		GCC_PRINTFLIKE(4,5);
+extern NCURSES_EXPORT(int) mvwscanw (WINDOW *,int,int, NCURSES_CONST char *,...)	/* implemented */
+		GCC_SCANFLIKE(4,5);
+extern NCURSES_EXPORT(int) mvwvline (WINDOW *,int, int, CHTYPE, int);	/* generated */
+extern NCURSES_EXPORT(int) napms (int);					/* implemented */
+extern NCURSES_EXPORT(WINDOW * ) newpad (int,int);		       	/* implemented */
+extern NCURSES_EXPORT(SCREEN * ) newterm (NCURSES_CONST char *,FILE *,FILE * );	/* implemented */
+extern NCURSES_EXPORT(WINDOW * ) newwin (int,int,int,int);	       	/* implemented */
+extern NCURSES_EXPORT(int) nl (void);					/* implemented */
+extern NCURSES_EXPORT(int) nocbreak (void);				/* implemented */
+extern NCURSES_EXPORT(int) nodelay (WINDOW *,BOOL);			/* implemented */
+extern NCURSES_EXPORT(int) noecho (void);				/* implemented */
+extern NCURSES_EXPORT(int) nonl (void);					/* implemented */
+extern NCURSES_EXPORT(void) noqiflush (void);				/* implemented */
+extern NCURSES_EXPORT(int) noraw (void);				/* implemented */
+extern NCURSES_EXPORT(int) notimeout (WINDOW *,BOOL);			/* implemented */
+extern NCURSES_EXPORT(int) overlay (const WINDOW*,WINDOW * );		/* implemented */
+extern NCURSES_EXPORT(int) overwrite (const WINDOW*,WINDOW * );		/* implemented */
+extern NCURSES_EXPORT(int) pair_content (short,short*,short* );		/* implemented */
+extern NCURSES_EXPORT(int) PAIR_NUMBER (int);				/* generated */
+extern NCURSES_EXPORT(int) pechochar (WINDOW *, const CHTYPE);		/* implemented */
+extern NCURSES_EXPORT(int) pnoutrefresh (WINDOW*,int,int,int,int,int,int);/* implemented */
+extern NCURSES_EXPORT(int) prefresh (WINDOW *,int,int,int,int,int,int);	/* implemented */
+extern NCURSES_EXPORT(int) printw (const char *,...)			/* implemented */
+		GCC_PRINTFLIKE(1,2);
+extern NCURSES_EXPORT(int) putwin (WINDOW *, FILE * );			/* implemented */
+extern NCURSES_EXPORT(void) qiflush (void);				/* implemented */
+extern NCURSES_EXPORT(int) raw (void);					/* implemented */
+extern NCURSES_EXPORT(int) redrawwin (WINDOW * );			/* generated */
+extern NCURSES_EXPORT(int) refresh (void);				/* generated */
+extern NCURSES_EXPORT(int) resetty (void);				/* implemented */
+extern NCURSES_EXPORT(int) reset_prog_mode (void);			/* implemented */
+extern NCURSES_EXPORT(int) reset_shell_mode (void);			/* implemented */
+extern NCURSES_EXPORT(int) ripoffline (int, int (* )(WINDOW *, int));	/* implemented */
+extern NCURSES_EXPORT(int) savetty (void);				/* implemented */
+extern NCURSES_EXPORT(int) scanw (NCURSES_CONST char *,...)		/* implemented */
+		GCC_SCANFLIKE(1,2);
+extern NCURSES_EXPORT(int) scr_dump (const char * );			/* implemented */
+extern NCURSES_EXPORT(int) scr_init (const char * );			/* implemented */
+extern NCURSES_EXPORT(int) scrl (int);					/* generated */
+extern NCURSES_EXPORT(int) scroll (WINDOW * );				/* generated */
+extern NCURSES_EXPORT(int) scrollok (WINDOW *,BOOL);			/* implemented */
+extern NCURSES_EXPORT(int) scr_restore (const char * );			/* implemented */
+extern NCURSES_EXPORT(int) scr_set (const char * );			/* implemented */
+extern NCURSES_EXPORT(int) setscrreg (int,int);				/* generated */
+extern NCURSES_EXPORT(SCREEN * ) set_term (SCREEN * );			/* implemented */
+extern NCURSES_EXPORT(int) slk_attroff (const CHTYPE);			/* implemented */
+extern NCURSES_EXPORT(int) slk_attr_off (const attr_t, void * );		/* generated:WIDEC */
+extern NCURSES_EXPORT(int) slk_attron (const CHTYPE);			/* implemented */
+extern NCURSES_EXPORT(int) slk_attr_on (attr_t,void* );			/* generated:WIDEC */
+extern NCURSES_EXPORT(int) slk_attrset (const CHTYPE);			/* implemented */
+extern NCURSES_EXPORT(attr_t) slk_attr (void);				/* implemented */
+extern NCURSES_EXPORT(int) slk_attr_set (const attr_t,short,void* );	/* implemented */
+extern NCURSES_EXPORT(int) slk_clear (void);				/* implemented */
+extern NCURSES_EXPORT(int) slk_color (short);				/* implemented */
+extern NCURSES_EXPORT(int) slk_init (int);				/* implemented */
+extern NCURSES_EXPORT(char * ) slk_label (int);				/* implemented */
+extern NCURSES_EXPORT(int) slk_noutrefresh (void);			/* implemented */
+extern NCURSES_EXPORT(int) slk_refresh (void);				/* implemented */
+extern NCURSES_EXPORT(int) slk_restore (void);				/* implemented */
+extern NCURSES_EXPORT(int) slk_set (int,const char *,int);		/* implemented */
+extern NCURSES_EXPORT(int) slk_touch (void);	      	       		/* implemented */
+extern NCURSES_EXPORT(int) standout (void);				/* generated */
+extern NCURSES_EXPORT(int) standend (void);				/* generated */
+extern NCURSES_EXPORT(int) start_color (void);				/* implemented */
+extern NCURSES_EXPORT(WINDOW * ) subpad (WINDOW *, int, int, int, int);	/* implemented */
+extern NCURSES_EXPORT(WINDOW * ) subwin (WINDOW *, int, int, int, int);	/* implemented */
+extern NCURSES_EXPORT(int) syncok (WINDOW *, BOOL);			/* implemented */
+extern NCURSES_EXPORT(CHTYPE) termattrs (void);				/* implemented */
+extern NCURSES_EXPORT(char * ) termname (void);				/* implemented */
+extern NCURSES_EXPORT(void) timeout (int);				/* generated */
+extern NCURSES_EXPORT(int) touchline (WINDOW *, int, int);		/* generated */
+extern NCURSES_EXPORT(int) touchwin (WINDOW * );				/* generated */
+extern NCURSES_EXPORT(int) typeahead (int);				/* implemented */
+extern NCURSES_EXPORT(int) ungetch (int);				/* implemented */
+extern NCURSES_EXPORT(int) untouchwin (WINDOW * );			/* generated */
+extern NCURSES_EXPORT(void) use_env (BOOL);				/* implemented */
+extern NCURSES_EXPORT(int) vidattr (CHTYPE);				/* implemented */
+extern NCURSES_EXPORT(int) vidputs (CHTYPE, NCURSES_OUTC);		/* implemented */
+extern NCURSES_EXPORT(int) vline (CHTYPE, int);				/* generated */
+extern NCURSES_EXPORT(int) vwprintw (WINDOW *, const char *,va_list);	/* implemented */
+extern NCURSES_EXPORT(int) vw_printw (WINDOW *, const char *,va_list);	/* generated */
+extern NCURSES_EXPORT(int) vwscanw (WINDOW *, NCURSES_CONST char *,va_list);	/* implemented */
+extern NCURSES_EXPORT(int) vw_scanw (WINDOW *, NCURSES_CONST char *,va_list);	/* generated */
+extern NCURSES_EXPORT(int) waddch (WINDOW *, const CHTYPE);		/* implemented */
+extern NCURSES_EXPORT(int) waddchnstr (WINDOW *,const CHTYPE *,int);	/* implemented */
+extern NCURSES_EXPORT(int) waddchstr (WINDOW *,const CHTYPE * );		/* generated */
+extern NCURSES_EXPORT(int) waddnstr (WINDOW *,const char *,int);	/* implemented */
+extern NCURSES_EXPORT(int) waddstr (WINDOW *,const char * );		/* generated */
+extern NCURSES_EXPORT(int) wattron (WINDOW *, int);			/* generated */
+extern NCURSES_EXPORT(int) wattroff (WINDOW *, int);			/* generated */
+extern NCURSES_EXPORT(int) wattrset (WINDOW *, int);			/* generated */
+extern NCURSES_EXPORT(int) wattr_get (WINDOW *, attr_t *, short *, void * );	/* generated */
+extern NCURSES_EXPORT(int) wattr_on (WINDOW *, attr_t, void * );		/* implemented */
+extern NCURSES_EXPORT(int) wattr_off (WINDOW *, attr_t, void * );	/* implemented */
+extern NCURSES_EXPORT(int) wattr_set (WINDOW *, attr_t, short, void * );	/* generated */
+extern NCURSES_EXPORT(int) wbkgd (WINDOW *, CHTYPE);			/* implemented */
+extern NCURSES_EXPORT(void) wbkgdset (WINDOW *,CHTYPE);			/* implemented */
+extern NCURSES_EXPORT(int) wborder (WINDOW *,CHTYPE,CHTYPE,CHTYPE,CHTYPE,CHTYPE,CHTYPE,CHTYPE,CHTYPE);	/* implemented */
+extern NCURSES_EXPORT(int) wchgat (WINDOW *, int, attr_t, short, const void * );/* implemented */
+extern NCURSES_EXPORT(int) wclear (WINDOW * );				/* implemented */
+extern NCURSES_EXPORT(int) wclrtobot (WINDOW * );			/* implemented */
+extern NCURSES_EXPORT(int) wclrtoeol (WINDOW * );			/* implemented */
+extern NCURSES_EXPORT(int) wcolor_set (WINDOW*,short,void* );		/* implemented */
+extern NCURSES_EXPORT(void) wcursyncup (WINDOW * );			/* implemented */
+extern NCURSES_EXPORT(int) wdelch (WINDOW * );				/* implemented */
+extern NCURSES_EXPORT(int) wdeleteln (WINDOW * );			/* generated */
+extern NCURSES_EXPORT(int) wechochar (WINDOW *, const CHTYPE);		/* implemented */
+extern NCURSES_EXPORT(int) werase (WINDOW * );				/* implemented */
+extern NCURSES_EXPORT(int) wgetch (WINDOW * );				/* implemented */
+extern NCURSES_EXPORT(int) wgetnstr (WINDOW *,char *,int);		/* implemented */
+extern NCURSES_EXPORT(int) wgetstr (WINDOW *, char * );			/* generated */
+extern NCURSES_EXPORT(int) whline (WINDOW *, CHTYPE, int);		/* implemented */
+extern NCURSES_EXPORT(CHTYPE) winch (WINDOW * );				/* implemented */
+extern NCURSES_EXPORT(int) winchnstr (WINDOW *, CHTYPE *, int);		/* implemented */
+extern NCURSES_EXPORT(int) winchstr (WINDOW *, CHTYPE * );		/* generated */
+extern NCURSES_EXPORT(int) winnstr (WINDOW *, char *, int);		/* implemented */
+extern NCURSES_EXPORT(int) winsch (WINDOW *, CHTYPE);			/* implemented */
+extern NCURSES_EXPORT(int) winsdelln (WINDOW *,int);			/* implemented */
+extern NCURSES_EXPORT(int) winsertln (WINDOW * );			/* generated */
+extern NCURSES_EXPORT(int) winsnstr (WINDOW *, const char *,int);	/* implemented */
+extern NCURSES_EXPORT(int) winsstr (WINDOW *, const char * );		/* generated */
+extern NCURSES_EXPORT(int) winstr (WINDOW *, char * );			/* generated */
+extern NCURSES_EXPORT(int) wmove (WINDOW *,int,int);			/* implemented */
+extern NCURSES_EXPORT(int) wnoutrefresh (WINDOW * );			/* implemented */
+extern NCURSES_EXPORT(int) wprintw (WINDOW *, const char *,...)		/* implemented */
+		GCC_PRINTFLIKE(2,3);
+extern NCURSES_EXPORT(int) wredrawln (WINDOW *,int,int);		/* implemented */
+extern NCURSES_EXPORT(int) wrefresh (WINDOW * );				/* implemented */
+extern NCURSES_EXPORT(int) wscanw (WINDOW *, NCURSES_CONST char *,...)	/* implemented */
+		GCC_SCANFLIKE(2,3);
+extern NCURSES_EXPORT(int) wscrl (WINDOW *,int);			/* implemented */
+extern NCURSES_EXPORT(int) wsetscrreg (WINDOW *,int,int);		/* implemented */
+extern NCURSES_EXPORT(int) wstandout (WINDOW * );			/* generated */
+extern NCURSES_EXPORT(int) wstandend (WINDOW * );			/* generated */
+extern NCURSES_EXPORT(void) wsyncdown (WINDOW * );			/* implemented */
+extern NCURSES_EXPORT(void) wsyncup (WINDOW * );				/* implemented */
+extern NCURSES_EXPORT(void) wtimeout (WINDOW *,int);			/* implemented */
+extern NCURSES_EXPORT(int) wtouchln (WINDOW *,int,int,int);		/* implemented */
+extern NCURSES_EXPORT(int) wvline (WINDOW *,CHTYPE,int);		/* implemented */
+
+/*
+ * These are also declared in <term.h>:
+ */
+extern NCURSES_EXPORT(int) tigetflag (NCURSES_CONST char * );		/* implemented */
+extern NCURSES_EXPORT(int) tigetnum (NCURSES_CONST char * );		/* implemented */
+extern NCURSES_EXPORT(char * ) tigetstr (NCURSES_CONST char * );		/* implemented */
+extern NCURSES_EXPORT(int) putp (const char * );				/* implemented */
+
+#if NCURSES_TPARM_VARARGS
+extern NCURSES_EXPORT(char * ) tparm (NCURSES_CONST char *, ...);	/* special */
+#else
+extern NCURSES_EXPORT(char * ) tparm (NCURSES_CONST char *, long,long,long,long,long,long,long,long,long);	/* special */
+extern NCURSES_EXPORT(char * ) tparm_varargs (NCURSES_CONST char *, ...);	/* special */
+#endif
+
+/*
+ * These functions are not in X/Open, but we use them in macro definitions:
+ */
+extern NCURSES_EXPORT(int) getattrs (const WINDOW * );			/* generated */
+extern NCURSES_EXPORT(int) getcurx (const WINDOW * );			/* generated */
+extern NCURSES_EXPORT(int) getcury (const WINDOW * );			/* generated */
+extern NCURSES_EXPORT(int) getbegx (const WINDOW * );			/* generated */
+extern NCURSES_EXPORT(int) getbegy (const WINDOW * );			/* generated */
+extern NCURSES_EXPORT(int) getmaxx (const WINDOW * );			/* generated */
+extern NCURSES_EXPORT(int) getmaxy (const WINDOW * );			/* generated */
+extern NCURSES_EXPORT(int) getparx (const WINDOW * );			/* generated */
+extern NCURSES_EXPORT(int) getpary (const WINDOW * );			/* generated */
+
+/*
+ * vid_attr() was implemented originally based on a draft of X/Open curses.
+ */
+#ifndef _XOPEN_SOURCE_EXTENDED
+#define vid_attr(a,pair,opts) vidattr(a)
+#endif
+
+
+*)

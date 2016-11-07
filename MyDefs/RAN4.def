@@ -1,0 +1,18 @@
+DEFINITION MODULE RAN4;
+
+(*
+  REVISION HISTORY
+  ----------------
+*)
+
+PROCEDURE psdes(VAR INOUT leftword,rightword : CARDINAL);
+
+PROCEDURE ran4(VAR INOUT idum:INTEGER) : REAL;
+
+PROCEDURE randreal (): REAL;
+
+PROCEDURE randcard (bound : CARDINAL): CARDINAL;
+
+PROCEDURE randint (bound : INTEGER): INTEGER;
+
+END RAN4.

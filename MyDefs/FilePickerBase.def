@@ -1,0 +1,19 @@
+DEFINITION MODULE FilePickerBase;
+
+  FROM FileFunc IMPORT NameString,FileSpecString;
+(* TYPE       NameString      = ARRAY [0..255] OF CHAR *)
+
+VAR
+  CountOfEntries : CARDINAL;
+
+
+PROCEDURE SetFilenamePattern(ns: NameString);
+(* Errors are when no valid filenames were found with the given namestring pattern.  CountOfEntries will be 0. *)
+
+
+
+PROCEDURE GetNextFilename(VAR OUT ns,DirectoryEntry: NameString);
+
+PROCEDURE GetPrevFilename(VAR OUT ns,DirectoryEntry: NameString);
+
+END FilePickerBase.

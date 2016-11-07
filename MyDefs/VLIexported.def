@@ -1,0 +1,24 @@
+(* TYPE *)
+    Digit, DigitS, VLI,
+(* Procs *)
+Create, Copy, Dispose, Assign, SwapVLI, IsZero, IsNegative, IsOdd, SetZero, SetValue, Abs, ToggleSign, Add, Subtract, Multiply, Divide, Div, Rem, Inc, Dec, 
+AddInt, SubInt, MulInt, DivideInt, DivideInt2, DivInt, RemInt,
+(*-------------- comparison functions --------------------*)
+(* TYPE *)
+    CompareResults, Compare, CompareDigit,
+(*-------------- misc math functions --------------------*)
+ GCD, GCDeq1, LCM,
+(*-------------- modular math --------------------*)
+ ModularInverse, AddMod, SubMod, MultiplyMod, DivideMod, PowerMod,
+(* TYPE *)
+ PowerModExInfo, PowerModEx, CreatePowerModExInfo, DisposePowerModExInfo,
+(*-------------- random number generation --------------------*)
+ SetRandomSeed, GetRandom, GetRandomSmaller,
+(*-------------- prime number generation --------------------*)
+ IsPrime, GetPrime, GetPrimeSmaller, GetNextPrime,
+(*-------------- info functions --------------------*)
+ GetDigitCount, GetByteCount, GetBitCount,
+(*-------------- string functions --------------------*)
+ ToHexString, FromHexString, ToDecimalString, FromDecimalString,
+(*-------------- raw data functions --------------------*)
+ GetDigits, SetDigits, GetBytesLSB, SetBytesLSB, GetBytesMSB, SetBytesMSB;

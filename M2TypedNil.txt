@@ -1,0 +1,131 @@
+Subject: Re: Question about opaque types
+From: Edward de Jong <edward@magicmouse.com>
+Newsgroups: comp.lang.modula2
+
+This is a very common issue in Modula-2 to want to compare an opaque type
+pointer with NIL.  You have several choices:
+
+VAR op : opaque_type;
+
+BEGIN
+
+IF CAST(ADDRESS, op) = NIL THEN xxx END;
+
+or
+
+IF op = CAST (opaque_type, NIL) THEN xxx END;
+
+END;
+
+both should work.
+YOu can create typed constants in Modula-2:
+
+CONST  NIL_OPAQUE_TYPE = CAST(opaque_type, NIL);
+
+edj
+
+
+> From: "Georg Lokowandt" <georg.lokowandt@t-online.de>
+> Organization: SAP AG
+> Reply-To: "Georg Lokowandt" <georg.lokowandt@t-online.de>
+> Newsgroups: comp.lang.modula2
+> Date: Thu, 22 Jul 2004 18:34:46 +0200
+> Subject: Re: Question about opaque types
+> 
+> "dieymir" <dieymir@yahoo.es> wrote in message
+> news:uehvf09mirt6rhjot6fepbosp4og97spcf@4ax.com...
+>> This is my question:
+>> I have an opaque type (a pointer, of course) pointing to a UDT,
+>> according to the info I have I can assign values, compare them and
+>> pass it as parameter to a procedure.
+>> 
+>> So I have this:
+>> 
+>> DEFINITION MODULE MyDefMod;
+>> 
+>> TYPE
+>> Ptr_UDT;  (* my opaque type *)
+>> ... (* More declarations *)
+>> 
+>> END MyDefMod.
+>> 
+>> MODULE MyMod;
+>> 
+>> FROM MyDefMod IMPORT ...;
+>> ... (* More imports *)
+>> 
+>> VAR
+>> pointer:Ptr_UDT;
+>> ... (* More declarations *)
+>> BEGIN
+>> 
+>> pointer := NIL;
+>> ... (* More statements *)
+>> 
+>> IF pointer # NIL THEN
+>> ... (* More statements *)
+>> END MyMod.
+>> 
+>> I can do the assignement without problems but when I try to compare
+>> the pointer with NIL I get a compilation error about a type mismatch.
+>> OK I can define a new boolean procedure to compare it to NIL, but this
+>> doesn't seem logic.
+>> If the NIL constant is considered to be a different type Why I can
+>> assign it to the pointer? and if NIL is considered to be of the same
+>> type Why I cannot compare it with my pointer ?
+>> I don't have the ISO standard nor any edition of the PIM, so I don't
+>> know what I should expect. What do you think ?
+>> Does anybody know which is the behaviour of the future GNU Modula-2
+>> compiler ?
+>> 
+>> BTW: I'm using the Linux personal edition of the XDS compiler.
+> 
+> If I remember correctly this behavior is defined by the standard. Please
+> don't ask me why....
+> 
+> An easy solution is to define a variable UDT_NIL that is initialized with
+> NIL and that can be used in comparisons. To sad, there are no typed
+> constants.
+> 
+> HTH, Georg
+> 
+> 
+
+Subject: Re: Question about opaque types
+From: dieymir <dieymir@yahoo.es>
+Newsgroups: comp.lang.modula2
+
+Edward de Jong wrote:
+
+> This is a very common issue in Modula-2 to want to compare an opaque
+> type
+> pointer with NIL.  You have several choices:
+> 
+> VAR op : opaque_type;
+> 
+> BEGIN
+> 
+> IF CAST(ADDRESS, op) = NIL THEN xxx END;
+> 
+> or
+> 
+> IF op = CAST (opaque_type, NIL) THEN xxx END;
+> 
+> END;
+> 
+> both should work.
+> YOu can create typed constants in Modula-2:
+> 
+> CONST  NIL_OPAQUE_TYPE = CAST(opaque_type, NIL);
+> 
+> edj
+Thanks a lot for the reply, my reference is based in PIM3 and I didn't
+know about CAST, seems to be a ISO feature.
+My solution was to define a new boolean function in the implementation
+module: 
+isNull(p:PtrUDT):BOOLEAN;
+BEGIN
+  RETURN p = NIL;
+END isNull;
+
+This worked too, but I cannot understand why...

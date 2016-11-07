@@ -1,0 +1,50 @@
+DEFINITION MODULE SORTER;
+ 
+EXPORT QUALIFIED MAXDIM,ITEMARRAY,LINKS,TREESORT,QUICKSORT,BININSSORT,
+  INDIRQUICKSORT,INDIRBININSSORT,mergesort,heapsort;
+
+CONST
+  MAXDIM = 10000;  (* MaxDim allowed by compiler - log2(MaxCard) - 2 *)
+
+TYPE
+  INDEX = INTEGER;
+  ITEM  = CARDINAL;
+
+VAR
+  ITEMARRAY : ARRAY [1..MAXDIM] OF ITEM;
+  LINKS     : ARRAY [1..10020]  OF INDEX;
+
+PROCEDURE TREESORT(LASTELEM : CARDINAL);
+(*
+  For this to work (unfortunately), the CARDARRAY must be exported and used
+as the elements to be sorted.  MAXDIM is the maximum dimension of CARDARRAY.
+The LASTELEM input param is the actual last element used in this huge array.
+This was the only way I could think of to allow this method to be in a
+module of its own;
+  This program creates a butterfly merge to combine leaves into twigs, twigs
+into branches, and branches into one final linked list starting at position
+LASTELEM+1.  In the end, LINKS(LASTELEM+1) points to the first leaf,
+LINKS(LINKS(LASTELEM+1)) points to the second, LINKS(LINKS(LINKS(LASTELEM+1)))
+points to the third, and the last link points to itself.  
+  The dimensions of LINKS needs to be >= LASTELEM + log2(LASTELEM) + 2, and
+the procedure will check to make sure this condition is met.  If not, a 
+warning message is displayed on the terminal.
+
+*)
+
+PROCEDURE QUICKSORT(VAR AI : ARRAY OF ITEM);
+
+PROCEDURE INDIRQUICKSORT(AI : ARRAY OF ITEM; VAR POINTERS : ARRAY OF INDEX);
+
+PROCEDURE BININSSORT(VAR AI : ARRAY OF ITEM);
+
+PROCEDURE INDIRBININSSORT(AI:ARRAY OF ITEM; VAR POINTERS:ARRAY OF INDEX);
+
+       PROCEDURE mergesort
+               ( VAR items : ARRAY OF ITEM            (* in/out *) );
+
+       PROCEDURE heapsort
+               ( VAR items : ARRAY OF ITEM           (* in/out *) );
+
+END SORTER.
+

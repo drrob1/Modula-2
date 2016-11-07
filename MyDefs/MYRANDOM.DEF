@@ -1,0 +1,19 @@
+DEFINITION MODULE MYRANDOM;
+(*
+  Based on the RAN1 routine from Numerical Recipies.  3 linear congruential
+  generators are combined here.  The first 2 generate the first and second
+  half of the random integer I, and the 3rd shuffles them randomly.
+      I(j) = aI(j-1) + c MOD m.  a is the multiplier, c is the increment, 
+  m is the modulus.  To make this real R = I/m, which makes 0 <= R < 1. 
+  Note that R will not equal 1 because 0 <= I < m, or 0 <= I <= m-1.  For
+  this reason, bottom half of range is < .5, and top half is >= .5 .
+*)
+
+PROCEDURE RANDINIT (seed : CARDINAL);
+PROCEDURE RANDCARD (bound : CARDINAL): CARDINAL;
+PROCEDURE RANDINT (bound : INTEGER): INTEGER;
+PROCEDURE RANDREAL () : LONGREAL;
+
+PROCEDURE RANDOMIZE;
+
+END MYRANDOM.

@@ -1,0 +1,64 @@
+DEFINITION MODULE SysMets;
+(*-----------------------------------------------
+   SYSMETS.H -- System metrics display structure
+  -----------------------------------------------*)
+IMPORT WINUSER;
+CONST
+NUMLINES = 44;
+TYPE
+  Sys   =  RECORD
+             iIndex   : INTEGER;   
+             szLabel  : ARRAY [0..20] OF CHAR;
+             szDesc   : ARRAY [0..50] OF CHAR;
+           END;
+  SysArr=  ARRAY[0..NUMLINES] OF Sys;
+CONST
+sysmetrics = SysArr
+{
+{WINUSER.SM_CXSCREEN,          "SM_CXSCREEN",          "Screen width in pixels"},
+{WINUSER.SM_CYSCREEN,          "SM_CYSCREEN",          "Screen height in pixels"},
+{WINUSER.SM_CXVSCROLL,         "SM_CXVSCROLL",         "Vertical scroll arrow width"},
+{WINUSER.SM_CYHSCROLL,         "SM_CYHSCROLL",         "Horizontal scroll arrow height"},
+{WINUSER.SM_CYCAPTION,         "SM_CYCAPTION",         "Caption bar height"},
+{WINUSER.SM_CXBORDER,          "SM_CXBORDER",          "Window border width"},
+{WINUSER.SM_CYBORDER,          "SM_CYBORDER",          "Window border height"},
+{WINUSER.SM_CXDLGFRAME,        "SM_CXDLGFRAME",        "Dialog window frame width"},
+{WINUSER.SM_CYDLGFRAME,        "SM_CYDLGFRAME",        "Dialog window frame height"},
+{WINUSER.SM_CYVTHUMB,          "SM_CYVTHUMB",          "Vertical scroll thumb height"},
+{WINUSER.SM_CXHTHUMB,          "SM_CXHTHUMB",          "Horizontal scroll thumb width"},
+{WINUSER.SM_CXICON,            "SM_CXICON",            "Icon width"},
+{WINUSER.SM_CYICON,            "SM_CYICON",            "Icon height"},
+{WINUSER.SM_CXCURSOR,          "SM_CXCURSOR",          "Cursor width"},
+{WINUSER.SM_CYCURSOR,          "SM_CYCURSOR",          "Cursor height"},
+{WINUSER.SM_CYMENU,            "SM_CYMENU",            "Menu bar height"},
+{WINUSER.SM_CXFULLSCREEN,      "SM_CXFULLSCREEN",      "Full screen client area width"},
+{WINUSER.SM_CYFULLSCREEN,      "SM_CYFULLSCREEN",      "Full screen client area height"},
+{WINUSER.SM_CYKANJIWINDOW,     "SM_CYKANJIWINDOW",     "Kanji window height"},
+{WINUSER.SM_MOUSEPRESENT,      "SM_MOUSEPRESENT",      "Mouse present flag"},
+{WINUSER.SM_CYVSCROLL,         "SM_CYVSCROLL",         "Vertical scroll arrow height"},
+{WINUSER.SM_CXHSCROLL,         "SM_CXHSCROLL",         "Horizontal scroll arrow width"},
+{WINUSER.SM_DEBUG,             "SM_DEBUG",             "Debug version flag"},
+{WINUSER.SM_SWAPBUTTON,        "SM_SWAPBUTTON",        "Mouse buttons swapped flag"},
+{WINUSER.SM_RESERVED1,         "SM_RESERVED1",         "Reserved"},
+{WINUSER.SM_RESERVED2,         "SM_RESERVED2",         "Reserved"},
+{WINUSER.SM_RESERVED3,         "SM_RESERVED3",         "Reserved"},
+{WINUSER.SM_RESERVED4,         "SM_RESERVED4",         "Reserved"},
+{WINUSER.SM_CXMIN,             "SM_CXMIN",             "Minimum window width"},
+{WINUSER.SM_CYMIN,             "SM_CYMIN",             "Minimum window height"},
+{WINUSER.SM_CXSIZE,            "SM_CXSIZE",            "Minimize/Maximize icon width"},
+{WINUSER.SM_CYSIZE,            "SM_CYSIZE",            "Minimize/Maximize icon height"},
+{WINUSER.SM_CXFRAME,           "SM_CXFRAME",           "Window frame width"},
+{WINUSER.SM_CYFRAME,           "SM_CYFRAME",           "Window frame height"},
+{WINUSER.SM_CXMINTRACK,        "SM_CXMINTRACK",        "Minimum window tracking width"},
+{WINUSER.SM_CYMINTRACK,        "SM_CYMINTRACK",        "Minimum window tracking height"},
+{WINUSER.SM_CXDOUBLECLK,       "SM_CXDOUBLECLK",       "Double click x tolerance"},
+{WINUSER.SM_CYDOUBLECLK,       "SM_CYDOUBLECLK",       "Double click y tolerance"},
+{WINUSER.SM_CXICONSPACING,     "SM_CXICONSPACING",     "Horizontal icon spacing"},
+{WINUSER.SM_CYICONSPACING,     "SM_CYICONSPACING",     "Vertical icon spacing"},
+{WINUSER.SM_MENUDROPALIGNMENT, "SM_MENUDROPALIGNMENT", "Left or right menu drop"},
+{WINUSER.SM_PENWINDOWS,        "SM_PENWINDOWS",        "Pen extensions installed"},
+{WINUSER.SM_DBCSENABLED,       "SM_DBCSENABLED",       "Double-Byte Char Set enabled"},
+{WINUSER.SM_CMOUSEBUTTONS,     "SM_CMOUSEBUTTONS",     "Number of mouse buttons"},
+{WINUSER.SM_SHOWSOUNDS,        "SM_SHOWSOUNDS",        "Present sounds visually"}
+};
+END SysMets.

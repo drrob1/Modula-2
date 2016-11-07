@@ -1,0 +1,202 @@
+DEFINITION MODULE TOKENPTR;
+
+  FROM UTILLIB IMPORT BUFTYP;
+
+  TYPE
+  (*
+    FSA TYPE IS A TYPE TO DEFINE THE FINITE STATE AUTOMATA ON WHICH THIS
+    ALGORITHM IS BASED.  IT IS AN ENUMERATION TYPE.
+  *)
+    FSATYP = (DELIM, OP, DGT, ALLELSE);
+          TOKENTYP = RECORD
+                             TKNBUF, HOLDTKNBUF : BUFTYP;
+                             CURPOSN,HOLDCURPOSN,PREVPOSN : CARDINAL;
+                     END (* RECORD *);
+          TKNPTRTYP = POINTER TO TOKENTYP;
+VAR 
+    DELIMCH    : CHAR;    (* Exported delimiting character *)
+    DELIMSTATE : FSATYP;  (* Exported delimiting character state *)
+
+
+
+PROCEDURE INI3TKN(VAR tpv : TKNPTRTYP; BUF:BUFTYP);
+(*
+*************************** INI3TKN *******************************************
+INITIALIZE TOKEN.
+THE PURPOSE OF THE INITIALIZE TOKEN ROUTINE IS TO INITIALIZE THE
+VARIABLES USED BY GETCHR TO BEGIN PROCESSING A NEW LINE.
+THE BUFFER ON WHICH THE TOKENIZING RTNS OPERATE IS ALSO INITIALIZED.
+CURPOSN IS INITIALIZED TO SKIP OVER THE @@A CHAR'S WHICH
+ARE ALWAYS THE FIRST TWO CHAR'S ON THE LINE.
+tpv is a token pointer variable.
+OUTPUT TO GBLVAR'S:  NONE.
+*)
+
+PROCEDURE INI1TKN(VAR tpv : TKNPTRTYP; BUF:BUFTYP);
+(*
+*************************** INI1TKN *******************************************
+INITIALIZE TOKEN.
+THE PURPOSE OF THE INITIALIZE TOKEN ROUTINE IS TO INITIALIZE THE
+VARIABLES USED BY NXTCHR TO BEGIN PROCESSING A NEW LINE.
+THE BUFFER ON WHICH THE TOKENIZING RTNS OPERATE IS ALSO INITIALIZED.
+CURPOSN IS INITIALIZED TO START AT THE FIRST CHARACTER ON THE LINE.
+tpv is a token pointer variable.
+OUTPUT TO GBLVAR'S:  NONE.
+*)
+
+PROCEDURE STOTKNPOSN(VAR tpv : TKNPTRTYP);
+(*
+****************************** STOTKNPOSN ***********************************
+STORE TOKEN POSITION.
+THIS ROUTINE WILL STORE THE VALUE OF THE CURPOSN INTO A HOLD VARIABLE FOR
+LATER RECALL BY RCLTKNPOSN.  ITS MAIN USE IS BY THE GET ENVIRONMENT PROC'S
+SO THAT THE ENVIRONMENT NEED BE PARSED ONLY ONCE.
+*)
+
+PROCEDURE RCLTKNPOSN(VAR tpv : TKNPTRTYP);
+(*
+****************************** RCLTKNPOSN **********************************
+RECALL TOKEN POSITION.
+THIS IS THE INVERSE OF THE STOTKNPOSN PROCEDURE.
+*)
+
+PROCEDURE GETCHR(VAR tpv:TKNPTRTYP; VAR CH:CHAR; VAR CHRSTATE:FSATYP; VAR RETCOD:CARDINAL);
+(*
+**************************** GETCHR *******************************************
+THIS IS THE GET CHARACTER ROUTINE.  ITS PURPOSE IS TO GET THE NEXT
+CHARACTER FROM INBUF, DETERMINE ITS FSATYP (FINITE STATE AUTOMATA TYPE),
+AND RETURN THE UPPER CASE VALUE OF CHAR.  RETCOD VALUE OF ONE MEANS AN END OF
+LINE WAS FOUND, TWO MEANS AN ERROR OCCURRED.
+NOTE: THE CURPOSN POINTER IS USED BEFORE IT'S INCREMENTED, UNLIKE MOST OF THE
+OTHER POINTERS IN THIS PROGRAM.
+
+CURPOSN -- CURRENT POSITION IN INBUF OF @@A LINE.
+CH     -- THE CHARACTER TO BE RETURNED.
+CHRSTATE-- FINITE STATE AUTOMATON VARIABLE INDICATING THE STATE OF THE
+           CHARACTER READ.
+RETCOD -- ZERO MEANS NORMAL RETURN.
+          ONE MEANS END-OF-TKNBUF FOUND.  IN THIS CASE CH RETURNED IS NULL.
+*)
+
+
+PROCEDURE UNGETCHR(VAR tpv:TKNPTRTYP; VAR RETCOD:CARDINAL);
+(*
+********************************* UNGETCHR ********************************
+UNGETCHaracteR.
+THIS IS THE ROUTINE THAT WILL ALLOW THE CHARACTER LAST READ TO BE READ
+AGAIN BY DECREMENTING THE POINTER INTO TKNBUF, CURPOSN.
+
+RETCOD = 0 MEANS NORMAL RETURN.
+RETCOD = 1 MEANS ERROR, LIKE CAN'T UNGETCHR BECAUSE NO CHAR TO UNGET.
+*)
+
+PROCEDURE GETOPCODE(VAR tpv:TKNPTRTYP; VAR TOKEN : BUFTYP; VAR OPCODE, RETCOD : CARDINAL);
+(*
+*************************** GETOPCODE ****************************************
+GET OPCODE.
+THIS ROUTINE RECEIVES A TOKEN OF FSATYP OP (MEANING IT IS AN OPERATOR)
+AND ANALYZES IT TO DETERMINE AN OPCODE, WHICH IS A CARDINAL FROM 1..11.
+THIS IS DONE AFTER THE NECESSARY VALIDITY CHECK OF THE INPUT TOKEN.
+THE OPCODE ASSIGNMENTS FOR THE OP TOKENS ARE:
+  < is 1                  <= is 2
+  > is 3                  >= is 4
+  = is 5   == is 5        <> is 6    # is 7
+  + is 8                  += is 9
+  - is 10                 -= is 11
+  * is 12                 *= is 13
+  / is 14                 /= is 15
+
+THEIR MEANINGS ARE DERIVED FROM A COMBINATION FROM 3 COMPUTER LANGUAGES:
+C, PASCAL, AND MODULA-2, AND SHOULD BE IMMEDIATELY APPARENT.
+*)
+
+PROCEDURE GETTKN(VAR tpv : TKNPTRTYP; VAR TOKEN:BUFTYP; VAR TKNSTATE:FSATYP;
+                 VAR SUM:INTEGER; VAR RETCOD2:CARDINAL);
+(*
+*************************** GETTKN **************************************
+
+THIS IS THE GET NEXT TOKEN ROUTINE.  A TOKEN IS A STRING OF SYMBOLS THAT
+REPRESENT A SIGNIFICANT QUANTITY, LIKE A CHAR STRING REPRESENTING A PARAM
+NAME OR A DIGIT STRING REPRESENTING A NUMBER.  EACH TOKEN IS DELIMITED BY THE
+DELIMITERS RECOGNIZED BY NXTCHR (COMMA, EQUALS SIGN, OR END-OF-TKNBUF COND).
+THIS ROUTINE WILL DETERMINE THE LENGTH OF THE TOKEN AND WHETHER IT IS A
+CHARACTER TOKEN OR A NUMBER TOKEN.
+
+TOKEN -- BUFFER HOLDING THE CHARACTERS OF THIS TOKEN.
+SUM   -- CONTAINS THE VALUE OF THE NUMBER IN A NUMBER TOKEN, HAS THE
+          SUM OF THE ASCII VALUES FOR A CHARACTER TOKEN, OR HAS THE OPCODE
+          VALUE FOR AN OP TOKEN.
+RETCOD2--RETURN CODE.  0: Normal return; 1: No more tokens on line;
+          2: Char token too long; 3: Number token with too many digits;
+          4: Cannot UNGETCHR; 5: Currently unused;
+          6: Error from GETOPCODE.
+*)
+
+PROCEDURE GETTKNREAL(VAR tpv : TKNPTRTYP;  VAR TOKEN:BUFTYP; VAR TKNSTATE:FSATYP;
+              VAR INTVAL:INTEGER; VAR REALVAL:LONGREAL; VAR RETCOD2:CARDINAL);
+(*
+************************ GETTKNREAL ***************************************
+GET ToKeN REAL.
+This behaves very similarly to GETTKN, only that all numbers are returned as
+reals instead of integers.  Since it uses GETTKN to first see if there is a
+dgt token, this rtn can be used instead of GETTKN if a real number token is
+possible.  It returns the same codes as GETTKN, with an additional code of 7
+if the real token is invalid (the StringToReal conversion failed).
+
+RETCOD2--RETURN CODE.  0: Normal return; 1: No more tokens on line;
+          2: Char token too long; 3: Number token with too many digits;
+          4: Cannot UNGETCHR; 5: Currently unused;
+          6: Error from GETOPCODE; ( No longer used )
+          7: real token invalid (the StringToReal conversion failed).
+*)
+
+PROCEDURE GETTKNSTR(VAR tpv : TKNPTRTYP; VAR TOKEN:BUFTYP; VAR INTVAL:INTEGER;
+                    VAR RETCOD2:CARDINAL);
+(*
+  GET ToKeN STRing.
+  Will get tokens only stopping at a delimiter, unlike GETTKN, and all
+  tokens are of state ALLELSE, so no state need be returned.  First will
+  call GETTKN and only if a non all else token is returned or if
+  DELIMSTATE is not a delimiter does this procedure need to do anything
+  different.  Especially useful for getting filenames that begin with digits
+  or have hyphens in the name.
+    Same return codes as from GETTKN.  The quoted string option of GETTKN
+  can be used to behave similarily, but this frees the user from having
+  to remember to quote such strings himself.
+*)
+
+PROCEDURE GETTKNEOL(VAR tpv : TKNPTRTYP; VAR TOKEN : BUFTYP; VAR RETCOD : CARDINAL);
+(*
+GET ToKeN to EndOfLine.
+This will build a token that consists of every character left on the line.
+That is, it only stops at the end of line.
+The TRIM procedure is used to set the COUNT and LENGTH fields.  This is
+the only TOKENIZE procedure that uses it.
+*)
+
+PROCEDURE GetHtmlCodeString(VAR tpv : TKNPTRTYP; VAR htmlcode:BUFTYP; VAR termcode:BOOLEAN; VAR RETCOD2:CARDINAL);
+(*
+********************************************************************************************************************
+Return the string btwn angle brackets.  If a </ terminating code, termcode is TRUE 
+
+SUM   -- CONTAINS THE VALUE OF THE NUMBER IN A NUMBER TOKEN, HAS THE
+          SUM OF THE ASCII VALUES FOR A CHARACTER TOKEN, OR HAS THE OPCODE
+          VALUE FOR AN OP TOKEN.
+RETCOD2--RETURN CODE.  0: Normal return; 1: No more tokens on line;
+          2: Char token too long; 3: Number token with too many digits;
+          4: Cannot UNGETCHR; 5: Error in processing htmlcode string
+          6: Error from GETOPCODE.
+*)
+
+PROCEDURE UNGETTKN(VAR tpv : TKNPTRTYP; VAR RETCOD : CARDINAL);
+(*
+************************************** UNGETTKN *****************************
+UNGET TOKEN ROUTINE.
+This routine will unget the last token fetched.  It does this by restoring
+the previous value of POSN, held in PREVPOSN.  Only the last token fetched
+can be ungotten, so PREVPOSN is reset after use.  If PREVPOSN contains this
+as its value, then the unget operation will fail with a non-zero return
+code.  if the operation is successful, then the return code will be zero.
+*)
+
+END TOKENPTR.

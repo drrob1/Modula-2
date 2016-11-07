@@ -1,0 +1,449 @@
+<ttmrichter> I remember a particularly instructive comment in Entrust's code base put in by one of the cryptographers.
+<trijezdci> arrays are faster
+<trijezdci> even in GCC
+<ttmrichter> He basically put a huge maths screed in the comments because people kept changing what was to them "obviously wrong" code into code that was subtly wrong.
+<ttmrichter> The result was every time someone touched that code, the system got less secure (except, thankfully, it got caught in testing).
+<ttmrichter> His comment was by turns sarcastic, informative and helpful.
+<ttmrichter> And it did the trick.  Nobody touched that code again unless they knew what they were doing.
+<trijezdci> /*************** DON"T TOUCH IF YOU DON"T KNOW WHAT YOU ARE DOING **********/
+<trijezdci> :D
+<ttmrichter> Actually I read about an account that was even funnier for that.
+<ttmrichter> The comment was around a very obviously framed number.  Paraphrasing the comment:
+<trijezdci> "Avoid decoration; for instance, keep comments brief and banner­free."
+<trijezdci> ^^^^ dribble
+<trijezdci> banners are important to provide visual cues if you are searching for something and do not want to have to read the entire thing
+<trijezdci> before each function header there should be a banner
+<ttmrichter> "The number you see marked in a box below is the number of people who have changed this code and broken the product.  This code is both subtle and quick to take vengeance.  If you feel the urge to change this code, stop what you're doing and go elsewhere.  If you choose not to heed this advice and you break the product, increment this number by 1.
+<trijezdci> you can do tests how fast people will find a function with a given name in a large source with and without banners
+<ttmrichter> Agreed on the banners.  He's talking about writing code, not reading it later, especially when written by someone else.
+<ttmrichter> Oh, the number was apparently at 17.  :)
+<trijezdci> they will scroll often more than 5 times as fast if there are visual cues
+<ttmrichter> Doesn't hurt that you can easily search on things like * Function:
+<ttmrichter> So in Vim I can search once, then just hit . until I get the function I want.
+<trijezdci> what if it is a printout?
+<ttmrichter> A lot of the stupid advice I see from people (and the stupid preferences in language, for that matter) comes from people who think the important part of code is writing it.
+<ttmrichter> I was amplifying your stance, not negating it.  :)
+<ttmrichter> Without the header how do you find a function in C?
+<ttmrichter> The regular expression to find a function would be horrific.
+<trijezdci> in C it is a little tricky yes :)
+<ttmrichter> But if you have a standard banner format, it's easy.
+<trijezdci> in algol family languages it is different though
+<trijezdci> you can search for the keywords
+<trijezdci> but that doesn't satisfy me
+<trijezdci> I think you should be able to scroll through the source without any tools
+<ttmrichter> In a text editor environment that's probably fine.
+<ttmrichter> Although a banner can contain other information too.
+<ttmrichter> (Like an overview of intent.)
+<trijezdci> because there is a chance that something else you might skip is worth skimming over
+<ttmrichter> Nah!  Who needs to see data declarations?
+<trijezdci> banners are there to say "If you want a general overview of what this source is all about, look at the banners"
+<ttmrichter> I mean in that Mercury code I showed you yesterday, how important was the data structure?
+<ttmrichter> Oh, right.
+<trijezdci> he also made an attack on camel case
+<ttmrichter> One thing I keep tinkering with, but never committing to, is Knuth's "literate programming".
+<trijezdci> fuckingridiculousidentifier
+<ttmrichter> It's a good idea but for one small problem: most people are good at writing or at writing code.
+<ttmrichter> Very few are good at both.
+<trijezdci> I always put a high priority on Knuth's literate programming philosophy 
+<ttmrichter> So when someone who's good at coding and bad at writing gets to literate programming the nightmare begins.
+<trijezdci> not that I follow his recipe, but the concept as a whole
+<trijezdci> this is btw one reason why interface and implementation must strictly be separated
+<trijezdci> as I explained yesterday
+<trijezdci> its like de Bono's six hat method with physically putting on coloured paper hats in meetings
+<trijezdci> if you only tell people "lets imagin we had coloured hats on now"
+<trijezdci> it won't work
+<trijezdci> your mind actually has to be physically convinced
+<trijezdci> so if you edit the interface you are an author for other people
+<trijezdci> you focus on "how would I want an interface to be like if somebody provided it to me and I know nothing about its implementation and all I want is use it"
+<trijezdci> this is were literate programming starts
+* xpololz (~xpo@80.203.124.203) has joined #modula-2
+* ttmrichter has quit (Quit: Leaving)
+* impomatic (~digital_w@31.185.139.168) has joined #modula-2
+* ttmrichter (~ttmrichte@222.242.224.75) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+* xpololz has quit (Read error: Operation timed out)
+* Disconnected (Connection reset by peer).
+* drrob1 already in use. Retrying with drrob1_...
+* drrob1_ sets mode +i drrob1_
+* Now talking on #modula-2
+* Topic for #modula-2 is: Discussions related to Modula-2 and Oberon-2   ·   Book list: http://www.modula2.net/resources/books.shtml   ·   Compiler list: http://www.modula2.net/resources/compilers.shtml
+* Topic for #modula-2 set by trijezdci!~trijezdci@f8a01-0357.din.or.jp at Mon Feb  1 05:10:52 2010
+* drrob1 has quit (Ping timeout: 260 seconds)
+* impomatic has quit (Quit: http://RetroProgramming.com)
+* xpololz (~xpo@203.80-203-124.nextgentel.com) has joined #modula-2
+ Messaging Indicator 0.3.10 plugin unloaded.
+ Python interface unloaded
+ Tcl interface unloaded
+ 
+* Loaded log from Sun Aug  5 09:56:28 2012
+ 
+* Now talking on #modula-2
+* Topic for #modula-2 is: Discussions related to Modula-2 and Oberon-2   ·   Book list: http://www.modula2.net/resources/books.shtml   ·   Compiler list: http://www.modula2.net/resources/compilers.shtml
+* Topic for #modula-2 set by trijezdci!~trijezdci@f8a01-0357.din.or.jp at Mon Feb  1 05:10:52 2010
+* javar has quit (Quit: javar)
+* sinuhe has quit (Quit: leaving)
+* ttmrichter (~ttmrichte@60.55.8.27) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+* ttmrichter_ (~ttmrichte@222.242.224.75) has joined #modula-2
+* ChanServ gives voice to ttmrichter_
+* ttmrichter has quit (Disconnected by services)
+* ttmrichter_ is now known as ttmrichter
+* ttmrichter_ (~ttmrichte@61.184.205.40) has joined #modula-2
+* ChanServ gives voice to ttmrichter_
+* ttmrichter has quit (Disconnected by services)
+* ttmrichter_ is now known as ttmrichter
+* trijezdci has quit (Quit: trijezdci)
+* christoph (50fe9453@gateway/web/freenode/ip.80.254.148.83) has joined #modula-2
+* christoph is now known as Guest72670
+* Guest72670 has quit (Client Quit)
+* trijezdci (~trijezdci@194.230.155.16) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@194.230.155.16) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Quit: trijezdci)
+* trijezdci (~trijezdci@194.113.59.45) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* sinuhe (~sinuhe@kaptah.deevans.net) has joined #modula-2
+* javar (~javier@22.pool85-52-35.dynamic.orange.es) has joined #modula-2
+* xpololz (~xpo@80.203.124.203) has joined #modula-2
+* trijezdci has quit (Quit: trijezdci)
+* trijezdci (~trijezdci@194.230.155.16) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Ping timeout: 245 seconds)
+* trijezdci (~trijezdci@194.230.155.16) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Ping timeout: 260 seconds)
+* trijezdci (~trijezdci@194.230.155.16) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@194.230.155.16) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+<trijezdci> today Excelsior asked me why we don't write the R10 compiler in XDS to compile it to C for bootstrapping
+<trijezdci> I answered with a code example, in ISO M2, in R10 and in C
+<trijezdci> the example is the hash function we use
+<trijezdci> in C it goes: (_ch + (_hash << 6) + (_hash << 16) - _hash)
+<trijezdci> in R10 it goes: ORD(ch) + SHL(hash, 6) + SHL(hash, 16) - hash;
+<trijezdci> but in ISO M2 it goes like this ...
+<trijezdci> CAST(Key, ORD(ch)) +
+<trijezdci> CAST(Key, SHIFT(CAST(BITSET32, (hash)), 6)) +
+<trijezdci> CAST(key, SHIFT(CAST(BITSET32, (hash)), 16)) - hash;
+<trijezdci> now who wants to write obfuscation code like that?
+<trijezdci> I'd rather use C to be honest
+* ttmrichter raises his hand!
+<ttmrichter> Of course I'm a Coding Cenobite so...
+<trijezdci> you're joking!
+<ttmrichter> (You know what a Cenobite is?)
+<trijezdci> no
+<trijezdci> take a look at the module
+<trijezdci> https://bitbucket.org/trijezdci/m2collections/src/tip/Hash.mod
+<ttmrichter> http://en.wikipedia.org/wiki/Cenobite_%28Hellraiser%29
+<trijezdci> this contains the ISO M2 source with comments that show how it looks in R10
+<trijezdci> and in C it looks not a lot different from R10 only that you have a few & and ! and such
+<trijezdci> and << instead of SHL etc
+<trijezdci> schism in time and space :D
+<trijezdci> that's a nice characterisation of ISO M2
+<trijezdci> I am looking forward to Dmitry's response :)
+<trijezdci> wondering if he will concede that ISO M2 sucks for low level usage
+<trijezdci> or if he is going to argue
+<trijezdci> also, how would we keep the enumerations for reserved words and tokens synced
+<trijezdci> without the extensible enums of R10 and without the macros of C
+* ttmrichter has quit (Quit: Leaving)
+* trijezdci has quit (Ping timeout: 248 seconds)
+* trijezdci (~trijezdci@77.192.240.27) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* javar has quit (Quit: javar)
+* javar (~javier@22.pool85-52-35.dynamic.orange.es) has joined #modula-2
+* sinuhe has quit (Quit: leaving)
+<javar> trijezdci: ping
+* javar has quit (Quit: javar)
+* xpololz has quit (Ping timeout: 245 seconds)
+* ttmrichter (~ttmrichte@222.242.224.76) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+* trijezdci has quit (Quit: trijezdci)
+* trijezdci (~trijezdci@194.230.159.89) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+<trijezdci> hi ttmrichter 
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@194.230.159.89) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Quit: trijezdci)
+* trijezdci (~trijezdci@194.113.59.45) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* javar (~javier@22.pool85-52-35.dynamic.orange.es) has joined #modula-2
+* javar has quit (Quit: javar)
+* javar (~javier@22.pool85-52-35.dynamic.orange.es) has joined #modula-2
+* javar_ (~javier@68.pool85-55-47.dynamic.orange.es) has joined #modula-2
+* javar has quit (Ping timeout: 246 seconds)
+* javar_ is now known as javar
+* javar (~javier@68.pool85-55-47.dynamic.orange.es) has left #modula-2
+<trijezdci> heh Dmitry of Excelsior did not mention anything in response to my explaining why I wouldn't use ISO M2 for the R10 compiler
+<trijezdci> he replied but only to other things in that mail
+<trijezdci> conveniently avoided responding to the issue
+* xpololz (~xpo@80.203.124.203) has joined #modula-2
+* trijezdci has quit (Quit: trijezdci)
+* trijezdci (~trijezdci@194.230.159.89) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* sinuhe (~sinuhe@38.73.135.226) has joined #modula-2
+* trijezdci has quit (Quit: trijezdci)
+* ttmrichter has quit (Quit: Leaving)
+* sinuhe has quit (Quit: leaving)
+* sinuhe (~sinuhe@38.73.135.226) has joined #modula-2
+* trijezdci (~trijezdci@27.240.192.77.rev.sfr.net) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* xpololz has quit (Ping timeout: 240 seconds)
+* sinuhe has quit (Quit: leaving)
+* ttmrichter (~ttmrichte@60.55.8.25) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+* trijezdci has quit (Quit: trijezdci)
+* trijezdci (~trijezdci@194.230.159.78) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@194.230.159.78) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@194.230.159.78) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@194.230.159.78) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Quit: trijezdci)
+* trijezdci (~trijezdci@194.113.59.45) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* javar (~javier@68.pool85-55-47.dynamic.orange.es) has joined #modula-2
+* javar has quit (Remote host closed the connection)
+* javar (~javier@66.165.164.60) has joined #modula-2
+* trijezdci has quit (Quit: trijezdci)
+* sinuhe (~sinuhe@kaptah.deevans.net) has joined #modula-2
+* trijezdci (~trijezdci@194.230.155.26) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* ttmrichter has quit (Quit: Leaving)
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@27.240.192.77.rev.sfr.net) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* javar has quit (Remote host closed the connection)
+* javar (~javier@68.pool85-55-47.dynamic.orange.es) has joined #modula-2
+* javar has quit (Quit: javar)
+* ttmrichter (~ttmrichte@60.55.8.23) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+* trijezdci has quit (Quit: trijezdci)
+* trijezdci (~trijezdci@194.230.155.23) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@194.230.155.23) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Client Quit)
+* trijezdci (~trijezdci@194.113.59.45) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* javar (~javier@68.pool85-55-47.dynamic.orange.es) has joined #modula-2
+* javar has quit (Quit: javar)
+* javar (~javier@68.pool85-55-47.dynamic.orange.es) has joined #modula-2
+* sinuhe has quit (Quit: leaving)
+* trijezdci has quit (*.net *.split)
+* trijezdci (~trijezdci@194.113.59.45) has joined #modula-2
+* asimov.freenode.net gives channel operator status to trijezdci
+* xpololz (~xpo@203.80-203-124.nextgentel.com) has joined #modula-2
+* trijezdci has quit (Quit: trijezdci)
+* sinuhe (~sinuhe@38.73.135.226) has joined #modula-2
+* trijezdci (~trijezdci@194.230.155.23) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Ping timeout: 272 seconds)
+* trijezdci (~trijezdci@194.230.155.23) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* ttmrichter has quit (Quit: Leaving)
+* trijezdci has quit (Read error: Connection reset by peer)
+* trijezdci (~trijezdci@194.230.155.23) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* trijezdci has quit (Ping timeout: 246 seconds)
+* trijezdci (~trijezdci@27.240.192.77.rev.sfr.net) has joined #modula-2
+* ChanServ gives channel operator status to trijezdci
+* xpololz has quit (Ping timeout: 244 seconds)
+* javar (~javier@68.pool85-55-47.dynamic.orange.es) has left #modula-2
+<trijezdci> Excelsior have some pretty weird ideas about what open source means
+<trijezdci> they seem to think that if they dump the source code into a public space a magic sponsor will emerge and throw money at them
+<trijezdci> when I raised the question of community they didn't seem to even consider that part of an open source project
+<trijezdci> if a community forms they said that could be nice but we do not have any resources to support the community
+<trijezdci> are they confusing community with customer? I wonder
+<trijezdci> usually open source means to put all out in the open, not just the source, but the repo, the bug tracker, ticketing system, developer discussion and documentation (wiki)
+<trijezdci> if you do all that and use it yourself, then community may develop
+<trijezdci> and if so, they'll become part of the workforce, just unpaid
+<trijezdci> but they seem to think open source is just about giving source code and collecting money from a magically appearing sponsor
+<trijezdci> astonishing
+<sinuhe> Since I teach open-source technologies, I can speak to this being a common confusion.
+<sinuhe> trijezdci: You're spot on in your understanding of what open source means, however. Community is the key.
+<sinuhe> Explaining free software liberty, hacker culture (not cracker), etc. isn't even worth it.
+<sinuhe> That's just scares people away.
+* sinuhe has quit (Quit: leaving)
+* sinuhe (~sinuhe@kaptah.deevans.net) has joined #modula-2
+* xpololz (~xpo@80.203.124.203) has joined #modula-2
+* qnr (~terry@cpe-70-120-221-242.stx.res.rr.com) has joined #modula-2
+* xpololz has quit (Ping timeout: 240 seconds)
+<qnr> Hi
+* ttmrichter (~ttmrichte@58.55.124.248) has joined #modula-2
+* ChanServ gives voice to ttmrichter
+<trijezdci> oh, see who is here! hi qnr!
+* ttmrichter is now known as qttmrichter
+* qttmrichter is now known as Qttmrichter
+* Qttmrichter is now known as ttmrichter
+<trijezdci> ttmrichter: do you use any voip solution to call your family back home?
+<trijezdci> I'd like to find out if the Chinese block any particular protocols or what kind of restrictions they may have imposed
+<ttmrichter> No, I don't use VOIP.
+<ttmrichter> But I know a few people who do.
+<ttmrichter> I'll ask them which ones and how they work next time they're online.
+<trijezdci> our accupuncture doctor here in France who is from Taiwan is going to Beijing for a year to complete his training and he was talking about Skype, his wife will remain here
+<trijezdci> I tend to think it would be better to just use two SIP phones and go directly end to end
+<trijezdci> but I don't know if the great firewall of china blocks SIP
+<trijezdci> there is a lesser known protocol called IAX which sends both signaling and audio over a single data stream on a single port, so this is both NAT friendly and more obscure, perhaps even if they do block SIP they may not block IAX
+<trijezdci> but if I recommend anything I should first find out if this stuff works over there
+<trijezdci> with IAX it is actually very difficult though to block
+<trijezdci> you can use any port
+<trijezdci> for example 80
+<trijezdci> and the protocol itself is binary
+<trijezdci> so there is nothing to inspect inside the traffic
+<trijezdci> you'd need an extremely smart packet inspection system to make any sense of this
+<trijezdci> or one that has specifically taught this protocol
+<trijezdci> been*
+<trijezdci> Atcom make a SIP and IAX hardware IP phone that sells for about 50 USD
+<ttmrichter> Well I know Skype isn't blocked.
+<ttmrichter> I use it on occasion.
+<ttmrichter> I don't know about SIP.
+<trijezdci> Skype is a service, SIP is a technology
+<ttmrichter> I know.
+<ttmrichter> I just don't know if SIP is blocked or not.
+<ttmrichter> Skype isn't because they cooperate with the local authorities for listening, probably.
+<trijezdci> half an hour of google searching shows that the Chinese ministry of information technology maintains a stance that says only four or five telcos are legally operating VoIP in China, all else are operating illegally, Skype is not mentioned among the legal ones
+<ttmrichter> SIP might be because it's impossible to control the same way.
+<trijezdci> whereas they also say that rhey do not want to block technology, only illegal services
+<ttmrichter> And yet everybody and their dog in China uses Skype.  90% of my contacts are in China.  :)
+<ttmrichter> What they say and what they do are very different things.
+<trijezdci> so I am wondering if that means you are in the clear if you avoid using any service at all nad simply do end to end with two VoIP phones
+<ttmrichter> According to them the Great Firewall only blocks porn.  :D
+<trijezdci> porn like various western newspapers?
+<trijezdci> political porn I guess
+<trijezdci> anyway, if you use two IP phones and hook them up directly to each other without any service provider involved, then clearly you are not using any VoIP service
+<trijezdci> and if you do not use any VoIP service you can't possibly be using an illegal service
+<ttmrichter> I can hit more porn sites than I can political sites without using a back door.
+<trijezdci> and if they say they won;t crack down on the technology because it would hurt their competitiveness (those phones are made in China after all) then you should be ok this way
+<ttmrichter> You're trying to use logic and law.
+<ttmrichter> This is a country devoid of logic and in which law is viewed with intense suspicion.
+<trijezdci> no, I mean reducing the chance that they come down on you
+<trijezdci> they did say they would not crack down on technology because it would hurt china as a manufacturing and technology base
+<trijezdci> not my logic - theirs
+<ttmrichter> Oh, the easiest way to reduce the chance they come down on you is to not piss them off.
+<ttmrichter> I've been cheerfully breaking the law for over a decade.
+<ttmrichter> They don't give a shit because I don't stir up unrest.
+<trijezdci> the question is would you piss them off by using a service they consider illegal or if you use a phone made in China to directly talk to your wife overseas not using any service at all
+<trijezdci> its not all about unrest, they also care about revenue
+<ttmrichter> I use Skype.  I use services that circumvent the Great Firewall.  I do all sorts of things that are illegal.  I just don't do it in a way that raises a stink.
+<ttmrichter> Most people in China who give a shit get around the Great Firewall with ease.  And they don't care.
+<trijezdci> but can you call France via Skype?
+<ttmrichter> As long as it's not used to stir up shit.  If it is, then they have plenty of evidence to use against you before they disappear you after the show trial.
+<trijezdci> or is it only intra Chinese
+<ttmrichter> I call Canada, the USA and England.
+<ttmrichter> Among other places.
+<ttmrichter> These are *very* pragmatic despotic assholes.
+<ttmrichter> They aren't interested in control, unlike most.  They're interested in staying on top and in the money.
+<ttmrichter> Kind of like the USA that way, only more honest.
+<trijezdci> a colleague at ALU is from former Yugoslavia
+<trijezdci> he has a former Telecom buddy back in Serbia who is now head of Huawei Eastern Europe or some such title
+<trijezdci> he asked his buddy why Huawei was undercutting everyone and how they can manage the low cost when they offer services outside of China
+<trijezdci> the answer was that Huawei has a mandate by the government of China to undercut Western suppliers in every important market
+<trijezdci> not to make money
+<trijezdci> the government covers all losses
+<trijezdci> but for the sole reason to put those vendors under pressure so that they will have no choice but to move more and more of their R&D and manufacturing to China
+<trijezdci> the Chinese government wants to be able to control all the world's R&D
+<trijezdci> once all the notable R&D is in China, then China will become what the US is now
+<trijezdci> so I think it is time to start boycotting Chinese products wherever possible
+<trijezdci> in Australia Huawei is outlawed
+<trijezdci> they are not allowed to sell anything
+<trijezdci> not for any infrastructure projects
+<trijezdci> that's a good move
+<trijezdci> I think we will eventually have to get rid of fair trade
+<trijezdci> there is no such thing as fair trade
+<trijezdci> may as well not bother
+<trijezdci> the best thing we could do is move all our manufacturing back
+<trijezdci> the rule should be not to do business with countries whose political and socio-economical systems are incompatible with ours
+<trijezdci> at least not on a large scale
+<trijezdci> and if we don't become more protective of our own industries, it will eventually mean war
+<trijezdci> we are setting ourselves up for world war III
+<trijezdci> WWII started the same way, it was after all an economic war
+<trijezdci> perhaps a war with China would be the only way to actually move manufacturing off China
+<trijezdci> I am not all too optimistic, I think we're set up for a very major calamity in the next 20 years
+<trijezdci> the only thing that could prevent it is perhaps a revolution in China
+<trijezdci> or maybe some ultra-right wing president taking over in the US
+<trijezdci> democratic revolution in China or fascist take over in the US
+<trijezdci> I find it quite amazing that we even let Huawei establish any business in any Western country at all, their products are all counterfeit
+<trijezdci> apart from some consumer devices
+<trijezdci> the USB modems and that sort of thing may well be their own
+<trijezdci> but anything to do with infrastructure is 100% counterfeit
+<trijezdci> how can we allow this?
+<ttmrichter> It's cheap.  That's all.
+<trijezdci> they are cracking down on individuals who have downloaded a 3 minute song over the internet, but when a large corporation clones an entire line of products and sells it, we turn a blind eye
+<trijezdci> n
+<trijezdci> ot os
+<trijezdci> not so
+<trijezdci> Huawei routers use 100% copycatted Cisco IOS
+<trijezdci> meanwhile they have obfuscated it some
+<trijezdci> not that I am a fan of Cisco, but this shouldn't be tolerated
+<trijezdci> all their infrastructure products are counterfeit
+<trijezdci> and as for cheap services, why don't they have the chinese government bankroll the full difference between their offer prices and salaries needed to survive?
+<trijezdci> Huawei CH had already had about 100 engineers leave again after they got their first pay slip and they discovered the net pay was well below their living expenses
+<trijezdci> I don't understand the Swiss in this regard
+<trijezdci> they complain about too many foreigners in their country, which is probably true
+<trijezdci> but why do they not forbid Huawei to set up shop in Switzerland? That would be far more efficient
+<trijezdci> if you pay salaries that only a Pakistani guy who is willing to live with 9 other pakistanis in a run down two room apartment can afford, then heck, this is of course going to worsen the situation
+<trijezdci> I changed my work permit from L (temporary, residing in CH) to G (residing in a neighbouring country, work in CH)
+<trijezdci> and the bank now cancelled my credit card
+<trijezdci> for somebody who is not resident, they want 20.000 CHF (ca 20.000 USD) deposit
+<trijezdci> even though I work there and draw my salary there
+<trijezdci> they don't usually give a shit making tough rules for foreigners
+<trijezdci> so why the fuck did they allow Huawei to come to Switzerland without putting the toughest conditions on them first?
+<trijezdci> like "for 20 years you are not allowed to pay one cent less salary than any of your competitors"
+<ttmrichter> Because Huawei paid off the right politicians, obviously.
+<trijezdci> and "you are not permitted to bring any Chinese language documentation into the country, all must be in English, German, French or Italian"
+<trijezdci> not possible in CH
+<trijezdci> the Swiss are in control, but they are on dope it seems
+<trijezdci> the only hope is that most Swiss will go for traditional swiss brands which shun the Chinese
+<trijezdci> I think Huawei should get a blanket ban throughout the EU
+<trijezdci> and if the Chinese complain, fuck em
+<trijezdci> let them complain
+<trijezdci> a message needs to be sent
+<trijezdci> any company we catch with counterfeit products will be banned for 50 years from our markets, no appeal, no discussion, take it or leave it
+<trijezdci> start paying for your own R&D
+<trijezdci> then we talk about letting you guys sell stuff here directly
+<trijezdci> i
+<trijezdci> n the mean time you have to go through our middlemen and share the proceeds with them
+<trijezdci> and this way we hold the middle men responsible
+<trijezdci> this is how the Chinese allow us to do business there
+<trijezdci> so why do we grant them more privileges?
+<trijezdci> the whole Huawei thing I simply do not understand
+<trijezdci> if they need more competitors here, fine, invite the Japanese who have learned to play by the rules by now
+<trijezdci> train technology and services would benefit tremendously if the Japanese were competing in our markets
+<trijezdci> or the Koreans even, invite them to build up a telecom infrastructure business in our markets
+<trijezdci> they only have US flavoured CDMA there
+<trijezdci> but you could send a delegation to the government and say "if you allow two more licensees to operate a GSM based 3g/4g service in your country, we help you establish a presence in our market"
+<trijezdci> why we are so cozy with the chinese, is beyond me
+<trijezdci> are we scared of them?
+<trijezdci> looks like the 1930s again with appeasement
+<trijezdci> economic appeasement
+<trijezdci> the chinese clearly have a grand plan to turn us into slaves, just like the nazis did
+<trijezdci> so why are we buying their crappy products anwyay?
+<trijezdci> why are we moving our factories there?
+<trijezdci> fucking greed
+<trijezdci> in return for selling more BMWs and Rolls Royces, which are the only native manufacturing we have left here, we are allowing them to undermine all other industries
+<trijezdci> but how much growth in luxury articles can there be?
+<trijezdci> this can only end badly
+<trijezdci> they will be totally dependent on us for luxury brands
+<trijezdci> we will be totally dependent on them for anything we need to live, perhaps including food
+<trijezdci> who has got whom in the pocket?
+<trijezdci> eventually they will be able to afford to just buy the luxury brands
+<trijezdci> and we'll simply be their slaves
+<trijezdci> perhaps we deserve it, but I don't want to stick around to be on the wrong side of the table
+<trijezdci> it definitely pisses me off if the bank cancels my credit card simply because I have a residence across the border in neighbouring France, while some shithead company from China keeps calling me and asks if I won't work for them for less than what an apartment rent would be if I was to have a residence in Switzerland
+* xpololz (~xpo@203.80-203-124.nextgentel.com) has joined #modula-2
+* javar (~javier@68.pool85-55-47.dynamic.orange.es) has joined #modula-2
+* ttmrichter_ (~ttmrichte@113.106.102.173) has joined #modula-2
+* ChanServ gives voice to ttmrichter_
+* ttmrichter has quit (Disconnected by services)
+* ttmrichter_ is now known as ttmrichter
+* javar has quit (Quit: javar)

@@ -1,0 +1,2107 @@
+(***************************************************************************)
+(*                                                                         *)
+(*                     Copyright (C) 1992-2002                             *)
+(*                        by Stony Brook Software                          *)
+(*                                                                         *)
+(*                          All rights reserved.                           *)
+(*                                                                         *)
+(***************************************************************************)
+DEFINITION MODULE WinShell;
+(*
+  This module provides an encapsulation of the underlying operating system
+  interface for handling windows and messages.
+  no operating system types, constants or procedures are exported from
+  this module. therefore any code that uses this module will not change
+  when ported to another system. Only the implementation of this module
+  need be ported.
+  This module does not try to create a "high level" interface.
+  It mostly maps itself directly to the underlying system. However there
+  is some functionality not typically provided by a single system API call
+  This module does not attempt to map the entire underlying system.
+  Features are added to this module on an as needed basis. In other words,
+  why write the code if it has no immediate use.
+  The messaging structure is very clean via the use of a variant record.
+*)
+
+(* about resources.
+   See also, SetResourceFile API call in this module.
+
+   Resource names are not case sensitive.
+
+   Win32 - normal Windows resources are used.
+
+           An accelerator table resource needs to have the same name
+           as the menu resource it is associated with.
+
+           Additional "bitmap" resource types are supported in addition to the
+           Windows native bitmap format. !!! not yet implemented !!!
+           JPEG, PNG and TIFF formats are supported.
+           When loading a bitmap from the resource file this module first looks
+           for a native bitmap resource of the given name, and if this is not found
+           then looks for JPEG, PNG and TIFF resources in that order.
+           JPEG resources are identified by the "JPEG" resource type.
+           PNG resources are identified by the "PNG" resource type.
+           TIFF resources are identified by the "TIFF" resource type.
+
+   Gtk - The concept of resources does not exist in the Unix toolkit
+         world, and Gtk is no exception.
+         We use a combination of various files to get the same effect.
+
+       Dialogs - Glade XML files.
+           For further information consult DlgShell.
+
+       ---------------------------------------------------------------
+       Menu's and accelerators. Glade XML files.
+           Create a window in glade, mark the window as NOT visible.
+           The name of the window is the name of your menu resource.
+           Put your menubar into this window. The menu bar name must be named
+           "menubar". The accelerators you define in the menubar will be used.
+
+           For accelerators not tied to a menu item you create a menu in
+           your menubar named "hiddenaccel" and put your accelerators
+           on menu items within this menu. This menu will be hidden by
+           this module.
+
+           Popup menus are glade popup menu resources.
+
+       ---------------------------------------------------------------
+       String table - Proprietary format used by this module.
+           This file format is the one that the Win32 resource editor uses
+           to export/import string tables to stand alone files.
+
+           Format.
+           IdNumber = "...
+
+           IdNumber = the string id number
+           '=' the equal character.
+           '"' the double quote character.
+           The string is all data after the '"' character to the end of
+           the line.
+
+           Carrage return, line feed, tab, and backspace characters are
+               in "escape" notation. These characters are converted to binary
+               format when the string is loaded.
+           \r = Carriage return = CHR(13). ignored on Unix systems.
+           \n = line feed (new line) = CHR(10)
+           \t = tab = CHR(9)
+           \b = backspace = CHR(8)
+           \\ = \ backslash character.
+
+        ---------------------------------------------------------------
+        Bitmaps - Proprietary format used by this module.
+            This is a text file that describes the resource name
+            and the associated bitmap file to load. Therefore each
+            bitmap resource is an individual file. The bitmap file names
+            can be relative file names that are relative to the bitmap
+            resource file.
+
+            Format
+            ResourceName = FileName
+            where ResoruceName and FileName must be enclosed in double quote
+            characters.
+            Only one resource description entry per line.
+
+            Example
+            "Splash" = "pixmaps/splash.png"
+
+            Assuming the resource file is in directory "/opt/MyCompany",
+            then the full path of the example bitmap file is
+            "/opt/MyCompany/pixmaps/splash.png"
+
+            Bitmap resource files can be any graphics file format supported
+            by the Gdk Pixbuf library.
+            This includes
+                BMP, JPEG, PNG, TIFF.
+                XPM, GIF, ICO.
+*)
+
+(* about threads
+   Win32 - you may use the GUI features in a fully multi threaded manner.
+
+   Gtk - Only one thread, the main thread, may use the GUI features.
+
+   In all systems you can have any thread safely use the LoadString API.
+
+   In all systems you can have a background thread send or post a message
+   to a window. For send, the background thread will wait until the message is
+   received and processed by the UI thread before returning from the
+   send message call.
+*)
+
+<*/NOPACK*>
+%IF DLL %THEN
+<*/EXPORTALL/PROPAGATEEXCEPTIONALL/COPYATTRIBUTES*>
+%END
+
+FROM SYSTEM IMPORT
+    ADDRESS;
+
+TYPE
+    Window;
+    Drawable;
+    DrawContext;
+
+    WindowTypes         = (TopLevel, MdiChild, MdiFrame);
+
+    MdiTabPosition      = (MdiTabTop, MdiTabBottom, MdiTabLeft, MdiTabRight);
+
+    WinShellMsg         = (
+                           WSM_CREATE,
+                           WSM_GAINFOCUS,
+                           WSM_LOSEFOCUS,
+                           WSM_ACTIVATEAPP,
+                           WSM_DEACTIVATEAPP,
+                           WSM_MOUSE,
+                           WSM_KEY,
+                           WSM_CLOSE,
+                           WSM_PAINT,
+                           WSM_SIZE,
+                           WSM_POSITIONCHANGED,
+                           WSM_SCROLL,
+                           WSM_MENU,
+                           WSM_MENUSELECT,
+                           WSM_MENUSTART,
+                           WSM_MENUEND,
+                           WSM_MDIACTIVE,
+                           WSM_TIMER,
+                           WSM_USER
+                          );
+
+(******************** Message Definitions ************************************
+    WSM_CREATE          this window is being created
+
+    WSM_GAINFOCUS       this window has gained the input focus
+
+    WSM_LOSEFOCUS       this window has lost the input focus
+
+    WSM_ACTIVATEAPP     the application is now the foreground application the
+                        user is using.
+
+    WSM_DEACTIVATEAPP   the application is no longer the foreground application the
+                        user is using.
+
+    WSM_MDIACTIVE     this MdiChild window is the foreground MdiChild window in
+                      the childs parent frame window.
+
+    WSM_MOUSE           this window received a mouse event
+        m_pos = Window Coordinates of click
+        m_button = Which button the event is for
+        m_event = the type of event
+        m_state = the state of various other keys at the time of the mouse event
+        m_wheel = the mouse wheel movement. positive is forward towards the front
+                of the mouse. This value is scroll increments.
+                1 = one scroll increment
+
+    WSM_KEY             this window received keyboard input
+        k_ch = character keystroke if not special
+        k_state = various extended keys when not a normal ASCII character
+        k_special = the various special keys. If NOTSPECIAL then
+                  ch contains the ANSI character
+        k_count = The key repeat count. Normally 1.
+
+    WSM_CLOSE           this window hasbeen or may be closed
+        closeMode =  the close "mode"
+                CM_REQUEST = you are being asked if you will close the window
+                    RETURN OkayToClose
+                        you will then later get a TWM_CLOSE with a mode of
+                        CM_DICTATE
+                    RETURN NotOkayToClose
+                        at which point no further close action will take place
+                        and the window will remain open.
+                CM_DICTATE = you *ARE* closing
+                        the return value is ignored in this case
+
+    WSM_PAINT   a region of this window needs to be repainted.
+                the text caret, if any, is automatically hidden and
+                restored around this message.
+        paintRect = rectangle of region that needs to be painted
+        paintDraw = a drawable available to use for painting
+
+    WSM_SIZE            the window *HAS* been resized
+        sizeType = The type of sizing operation
+        width = the new width
+        height = the new height
+
+    WSM_POSITIONCHANGED         the window has been moved on screen
+        windowPos       = The window position
+
+    WSM_SCROLL          the window has been scrolled
+        dir = indicates direction to scroll
+        class = the amount to scroll
+        absOffs = absolute scroll position within the scroll range
+
+    WSM_STARTMENU       the user has opened a menu
+        you should use this to check/uncheck, activate/disable any menu items
+        as necessary here. You do not know which menu was opened so you
+        should just do all menus in the menu hierarchy of the window.
+
+    WSM_MENU            a menu item has been selected
+        menuId = the menu resource id number for the menu item
+
+    WSM_MENUSELECT      a menu is highlighted
+        menuId = the menu resource id number for the menu item
+                 Typically this is used if a program has a status line
+                 and you want to display simple single line help
+                 descriptions of each menu item.
+
+    WSM_ENDMENU         the user has exited the menu system
+        If you were using MENUSELECT to display quick help you can use this
+        to restore the status line to its proper state.
+
+    WSM_TIMER           the specified timer duration has elapsed
+        timerId = identifies which timer has elapsed
+
+    WSM_USER
+        userId = user defined value to identify the user message type
+        userData =  if not used should be NIL
+                    otherwise generally used to
+                    pass a pointer to some data
+
+*****************************************************************************)
+
+    ResponseType        = (
+                           USER_HANDLE, (* you handled the message *)
+                           DEFAULT_HANDLE, (* use default message processing *)
+                           OkayToClose,(* see WSM_CLOSE *)
+                           NotOkayToClose(* see WSM_CLOSE *)
+                          );
+
+    WinAttr             = (
+                           WA_SYSMENU, (* has system menu in caption *)
+                           WA_MINIMIZEBOX,(* has minimize button in caption *)
+                           WA_MAXIMIZEBOX,(* has maximize button in caption *)
+                           WA_TITLE,(* has a caption title bar *)
+                           WA_RESIZABLE,(* can be sized by the user *)
+                           WA_HSCROLL,(* has/can have horizontal scroll bar *)
+                           WA_VSCROLL,(* has/can have vertical scroll bar *)
+                           WA_HSCROLLTRACK,(* receive scroll messages while
+                                               the user is dragging the
+                                               scroll bar thumb *)
+                           WA_VSCROLLTRACK,(* receive scroll messages while
+                                               the user is dragging the
+                                               scroll bar thumb *)
+                           WA_STATUSLINE,(* has a status line *)
+                                         (* only frame windows can have this *)
+                                         (* in the current implementation *)
+                           WA_VISIBLE(* window is visible *)
+                          );
+    WinAttrSet          = SET OF WinAttr;
+
+    CloseModes          = (CM_REQUEST, CM_DICTATE);(* see WSM_CLOSE *)
+
+    ScrollDirection     = (DIR_UP, DIR_DOWN, DIR_LEFT, DIR_RIGHT); (* obvious *)
+
+    ScrollClass         = (
+                           SCROLL_LINE,(* scroll by lines *)
+                           SCROLL_PAGE,(* scroll by pages *)
+                           SCROLL_EXTREME,(* position to the extreme edges of the
+                                      scroll range. ScrollDirection
+                                      determines which edge is scrolled to *)
+                           SCROLL_ABSOLUTE(* set to absolute scroll position within
+                                      the scroll range *)
+                          );
+
+    SizeType    = (
+                   SizeNormal,(* window no minimize or maximized *)
+                   SizeMinimized,(* window is minimized *)
+                   SizeMaximized(* window is maximized *)
+                  );
+
+    SpecialKeys = (
+                   KEY_NOTSPECIAL,(* normal character *)
+                   KEY_PAGEUP, KEY_PAGEDOWN, KEY_INSERT, KEY_DELETE, KEY_HOME, KEY_END,
+                   KEY_MENU(*not all keyboards have this*),
+                   KEY_RIGHTARROW, KEY_LEFTARROW, KEY_UPARROW, KEY_DOWNARROW,
+                   KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5, KEY_F6,
+                   KEY_F7, KEY_F8, KEY_F9, KEY_F10, KEY_F11, KEY_F12
+                  );
+
+    KeyStateType = (
+                    KS_CONTROL,
+                    KS_ALT,
+                    KS_SHIFT
+                   );
+    KeyStateSet  = SET OF KeyStateType;
+
+    SystemColors = (
+                    SC_WINDOW_BACKGROUND,
+                    SC_TEXT,
+                    SC_HIGHLIGHT,
+                    SC_HIGHLIGHTTEXT,
+                    SC_GRAYTEXT,
+                    SC_BUTTON_FACE
+                   );
+
+CONST
+    (* some usefull predefined window attributes *)
+
+    NormalWindow        = WinAttrSet{WA_VISIBLE,
+                                     WA_TITLE,
+                                     WA_RESIZABLE,
+                                     WA_SYSMENU,
+                                     WA_MINIMIZEBOX,
+                                     WA_MAXIMIZEBOX
+                                    };
+    NormalMdiChildWindow= NormalWindow;(* because a MdiChild can be converted to TopLevel *)
+
+    AddVScrollBar       = WinAttrSet{WA_VSCROLL};
+    AddHScrollBar       = WinAttrSet{WA_HSCROLL};
+    AddScrollBars       = AddVScrollBar + AddHScrollBar;
+    AddScrollTrack      = WinAttrSet{WA_HSCROLLTRACK, WA_VSCROLLTRACK};
+    AddStatusLine       = WinAttrSet{WA_STATUSLINE};
+
+TYPE
+    MouseButton         = (LeftButton, MiddleButton, RightButton, NoButton);
+    MouseEventType      = (ButtonDown, ButtonUp,
+                           ButtonDouble, ButtonTriple,
+                           MouseMove, MouseWheel);
+                           (* ButtonDouble and ButtonTriple are "software"
+                              mouse events. You always receive the hardware
+                              mouse Down and Up events.
+                              You always receive an Up for every Down.
+                              You will never receive an Up without a preceeding
+                              Down.
+                              ButtonTriple may not be portable.
+                              MouseWheel may not be portable.
+                            *)
+
+    MouseStateType      = (
+                           MS_SHIFT,(* shift key was down *)
+                           MS_CONTROL,(* control key was down *)
+                           MS_ALT,(*alt key was down*)
+                           MS_LEFTBUTTON,(* is pressed *)
+                           MS_RIGHTBUTTON,(* is pressed *)
+                           MS_MIDDLEBUTTON(* is pressed *)
+                          );
+    MouseStateSet       = SET OF MouseStateType;
+
+    COORDINATE  = INTEGER;
+
+    wsPOINT =
+        RECORD
+        x        : COORDINATE;
+        y        : COORDINATE;
+        END;
+
+    wsRECT =
+        RECORD
+        x1, y1   : COORDINATE;(*upper left*)
+        x2, y2   : COORDINATE;(*lower right*)
+        END;
+
+    ColorValue          = CARDINAL32;(*00BBGGRRh*)(*red in LSB*)
+
+    ClipboardFormat     = (CLIPBOARD_ASCII, CLIPBOARD_UNICODE);
+
+    HelpCommand         = (
+                           HelpTopic,(* open help to a specific topic *)
+                           HelpContents(*Win32 only, open help in table of contents *)
+                          );
+
+    MenuHandle;(* magic cookie *)
+    BitmapHandle;(* magic cookie *)
+    PaletteHandle;(* magic cookie *)
+    FontHandle;(* magic cookie *)
+    PrintDriverInfo;(* magic cookie *)
+
+    FontWeights         = (FwLight, FwNormal, FwDemiBold, FwBold, FwHeavy);
+
+    CharacterSets       = (
+                           LATIN1_CHARSET,(*ansi, iso*)
+                           LATIN2_CHARSET,(*east europe*)
+                           SYMBOL_CHARSET,
+                           ASCII_CHARSET,
+                           DEFAULT_CHARSET
+                          );
+    FontInfo            =
+        RECORD
+        height          : INTEGER;(* positive = points,
+                                     negative = pixels*)
+        italic          : BOOLEAN;
+        fixedPitch      : BOOLEAN;(* if TRUE then only fixed pitch *)
+                                  (* if FALSE then any pitch *)
+        weight          : FontWeights;
+        charSet         : CharacterSets;
+        name            : ARRAY [0..63] OF CHAR;
+        END;
+
+    TextMetrics         =
+        RECORD
+        ascent          : CARDINAL;(*maximum ascent*)
+        descent         : CARDINAL;(*maximum descent*)
+        height          : CARDINAL;(*the maximum height of the font*)
+                                   (*this is max ascent + max decent *)
+        aveCharWidth    : CARDINAL;(*average character width.
+                                     for fixed pitch fonts this is the
+                                     character width. *)
+        externalLeading : CARDINAL;(*extra spacing not in font,
+                                     but specified by the font designer *)
+        END;
+
+    TextDrawOrigin      = (
+                           OriginBaseLeft,
+                           OriginTopLeft,
+                           OriginBaseCenter,
+                           OriginTopCenter
+                          );
+                          (*
+                             BaseLeft = the x origin is the left side of the
+                                            first character.
+                                        the y origin is on the font
+                                            baseline.
+                             TopLeft = the x origin is the left side of the
+                                            first character.
+                                       the y origin is at the top of the
+                                       font. The is basically above the
+                                       baseline by the ascender amount of
+                                       the string.
+                             BaseCenter = the x origin is the middle of
+                                          the string in device pixels.
+                                        the y origin is on the font
+                                            baseline.
+                             TopCenter = the x origin is the middle of
+                                          the string in device pixels.
+                                       the y origin is at the top of the
+                                       font. The is basically above the
+                                       baseline by the ascender amount of
+                                       the string.
+                          *)
+
+    JoinStyles       = (JoinBevel, JoinMiter, JoinRound);
+    EndCaps          = (
+                        EndCapFlat,
+                        EndCapSquare,(* the line entends beyond the line end
+                                        points by have the line width.*)
+                        EndCapRound(* the line will extend beyond the line
+                                      end points to draw the rounded end. *)
+                       );
+
+    DrawContextValues   =
+        RECORD
+        foreground              : ColorValue;
+        background              : ColorValue;
+        font                    : FontHandle;
+        textExtraSpacing        : INTEGER;
+        textOrigin              : TextDrawOrigin;
+        lineWidth               : CARDINAL;
+        joinStyle               : JoinStyles;
+        endCap                  : EndCaps;
+        END;
+
+CONST
+    DrawContextDefaults =
+                DrawContextValues{0,(*foreground (black) *)
+                                  0FFFFFFh,(*background (white) *)
+                                  NIL,(*font*)
+                                  0,(*extra spacing*)
+                                  OriginTopLeft,
+                                  1,(*line width*)
+                                  JoinBevel,
+                                  EndCapFlat
+                                 };
+
+TYPE
+    DrawTextOptions     = (DT_CLIPPED, DT_OPAQUE);
+    DrawTextOptionSet   = SET OF DrawTextOptions;
+
+CONST
+    DrawTextOpaque      = DrawTextOptionSet{DT_OPAQUE};
+    DrawTextClipped     = DrawTextOptionSet{DT_CLIPPED};
+
+TYPE
+    CursorTypes         = (
+                           LeftArrowCursor,(* arrow pointing left, default *)
+                           RightArrowCursor,(* arrow pointing right *)
+                           WaitCursor,(* an hourglass or similar *)
+                           TextCursor,(* standard text cursor *)
+                           CrossHairCursor(*just like it sounds*)
+                          );
+
+    CaretTypes          = ((* text cursor shape *)
+                           CtVerticalBar,
+                           CtHorizontalBar,
+                           CtHalfBlock,
+                           CtFullBlock
+                          );
+
+
+    DisplayModes        = (
+                           DisplayNormal, (* will activate window *)
+                                          (* make it visible *)
+                                          (* reverses minimized or maximized *)
+                           DisplayVisible,(* makes window visible *)
+                                          (* will not activate window *)
+                           DisplayHidden,(* hides window *)
+                                         (* active window changes *)
+                           DisplayMinimized,(* minimizes window *)
+                                            (* does not change active window *)
+                           DisplayMaximized(* will activate window *)
+                                           (* maximizes window *)
+                          ) BIG;
+
+    Beeps               = (NormalBeep, QuestionBeep, WarningBeep, ErrorBeep);
+
+    ScrollRange         = INTEGER32;
+
+    WindowDisplayInfo =
+        RECORD
+        x       : COORDINATE;(* upper left corner *)
+        y       : COORDINATE;(* upper left corner *)
+        width   : COORDINATE;
+        height  : COORDINATE;
+        mode    : DisplayModes;
+        END;
+
+    ScreenMetrics =
+        RECORD
+        xSize   : CARDINAL;(* width is pixels *)
+        ySize   : CARDINAL;(* height in pixels *)
+        colors  : CARDINAL;(* number of simultaneous color supported *)
+        END;
+
+    MessageRec          = RECORD
+        CASE msg : WinShellMsg OF
+        WSM_GAINFOCUS, WSM_LOSEFOCUS,
+        WSM_MENUSTART, WSM_MENUEND,
+        WSM_ACTIVATEAPP, WSM_DEACTIVATEAPP,
+        WSM_MDIACTIVE:
+            (* no data fields for these *)
+        |
+        WSM_CREATE:
+            createParam : ADDRESS;
+        |
+        WSM_MOUSE:
+            m_pos       : wsPOINT;
+            m_wheel     : INTEGER;
+            m_button    : MouseButton;
+            m_event     : MouseEventType;
+            m_state     : MouseStateSet;
+        |
+        WSM_KEY:
+            k_count     : CARDINAL;
+            k_special   : SpecialKeys;
+            k_state     : KeyStateSet;
+            k_ch        : CHAR;
+        |
+        WSM_CLOSE:
+            closeMode   : CloseModes;
+        |
+        WSM_PAINT:
+            paintRect   : wsRECT;
+            paintDraw   : Drawable;
+        |
+        WSM_SIZE:
+            sizeType    : SizeType;
+            width       : COORDINATE;
+            height      : COORDINATE;
+        |
+        WSM_POSITIONCHANGED:
+            windowPos   : wsPOINT;
+        |
+        WSM_SCROLL:
+            scrollDir   : ScrollDirection;
+            scrollClass : ScrollClass;
+            scrollPos   : ScrollRange;
+        |
+        WSM_MENUSELECT,
+        WSM_MENU:
+            menuId      : CARDINAL;
+        |
+        WSM_TIMER:
+            timerId     : CARDINAL;
+        |
+        WSM_USER:
+            userId      : CARDINAL;
+            userData    : ADDRESS;
+        END;
+    END;
+
+CONST
+    TOOLBAR_SEPARATOR                   = MAX(CARDINAL);
+
+TYPE
+    StdToolbarBitmaps =
+    ((* standard built-in bitmaps for toolbars *)
+     TB_BMP_CUT,
+     TB_BMP_COPY,
+     TB_BMP_PASTE,
+     TB_BMP_UNDO,
+     TB_BMP_REDO,
+     TB_BMP_DELETE,
+     TB_BMP_FILENEW,
+     TB_BMP_FILEOPEN,
+     TB_BMP_FILESAVE,
+     TB_BMP_PROPERTIES,
+     TB_BMP_HELP,
+     TB_BMP_FIND,
+     TB_BMP_REPLACE,
+     TB_BMP_PRINT
+    );
+
+    ToolbarButtonTypes  = (TbPushButton, TbToggleButton);
+
+    ToolbarButtonInfo =
+        RECORD
+        image           : ADDRESS;(* non user field, for internal WinShell use.
+                                     Win32 -> bitmap,  GTK -> GtkPixmap.
+                                     should be inited to NIL
+                                  *)
+        actionId        : CARDINAL;(* menu id number *)
+        textId          : CARDINAL;(* button label string resource id number *)
+        helpId          : CARDINAL;(* tooltip string resource id number *)
+        type            : ToolbarButtonTypes;
+        CASE stdButton : BOOLEAN OF
+        FALSE:
+            bmpResName  : ARRAY [0..31] OF CHAR;(*bitmap resource name *)
+        |
+        TRUE:
+            stdName     : StdToolbarBitmaps;
+        END;
+        END;
+
+    WindowProcedure     = PROCEDURE(Window, MessageRec) : ResponseType;
+
+    WindowNotification = (
+                          WindowMinimized,
+                          WindowMaximized,
+                          WindowSized,
+                          WindowMoved,
+                          WindowClosed
+                         );
+
+    WindowNotifyProcedure = PROCEDURE((*w : *)Window,
+                                      (*notify :*)WindowNotification,
+                                      (*data : *)ADDRESS);
+    (* this is the format of a window notification procedure.
+       w = the window in question
+       notify = the action that occured
+       data = user data.
+    *)
+
+    HostSystem  = (
+                   Windows,(* Windows95, Windows98, Windows ME,
+                              Win32s, WindowsCE *)
+                   WindowsNT,(* Windows NT/2000/XP *)
+                   GTK
+                  );
+
+VAR
+    MainWindow          : Window;
+    (* this value is initialied with the first TopLevel or MdiFrame
+       window created. You may assign your own value to this.
+       This value is used by DlgShell.GetDialogParent().
+    *)
+
+    StartupDisplayMode  : DisplayModes;(* the display mode the user
+                                          requested the application be started
+                                          in *)
+
+    Host                : HostSystem;
+    HostMajorVersion    : CARDINAL;(* Win32s = 3
+                                      Windows95, Windows98 = 4
+                                      Windows ME = ? 4
+                                      WindowsCE = ?
+                                      WindowsNT = 3, 4
+                                      Windows2000/XP = 5
+                                      *)
+    HostMinorVersion    : CARDINAL;(* Win32s = 10 for 3.10
+                                      Windows95 = 0 for 4.0
+                                      Windows98 = 10 for 4.10
+                                      WindowsME = ?
+                                      WindowsCE = ?
+                                      WindowsNT = 50 for 3.50
+                                                  51 for 3.51
+                                                  00 for 4.00
+                                      Windows2000 = 00
+                                      WindowsXP =
+                                      *)
+
+    UnicodeSupported    : BOOLEAN;
+
+    ScreenInfo          : ScreenMetrics;
+
+PROCEDURE SetResourceFile(name : ARRAY OF CHAR) : BOOLEAN;
+PROCEDURE GetResourceFile(VAR OUT name : ARRAY OF CHAR);
+(* for Win32 name = "" means the resources are in the executable,
+  otherwise it is some DLL and a .dll extension is provided if not
+  supplied.
+
+  for Gtk it specifies the base path and name for various resource files.
+  the various resource files are identified by file extension.
+  .xml file contains menus, dialogs and accelerators
+  .str file contains a string table
+  .img file contains bitmaps
+*)
+
+TYPE
+    IdleResults         = (ContinueIdle, SuspendIdle, TerminateIdle);
+    IdleProcType        = PROCEDURE((*userdata*)ADDRESS,
+                                    (*count*)CARDINAL) : IdleResults;
+                        (* count is the number of times the idle procedure.
+                           has been called in the current idle cycle.
+                           userdata is arbitrary user data
+                           *)
+
+PROCEDURE AddIdleProcedure(idle : IdleProcType; data : ADDRESS) : CARDINAL;
+(* add an idle procedure to the system.
+   the return value identifies the idle procedure for removal.
+   a return value of zero indicates failure.
+   the idle procedure will be called when no messages are pending for the
+   input thread.
+   the idle procedure will be repeatedly called while no messages are being
+   received and the idle procedure returns ContinueIdle.
+   if it returns SuspendIdle then it will not be called until the next idle
+   cycle. an idle cycle is the idle period between receiving messages.
+   if it returns TerminateIdle the idle handler is removed from the system.
+*)
+
+PROCEDURE RemoveIdleProcedure(id : CARDINAL);
+(* remove a previously installed idle procedure *)
+
+PROCEDURE DispatchMessages() : CARDINAL;
+(* any thread that has windows must have a message dispatch loop.
+   a dispatch loop just loops forever sending messages to the appropriate
+   window in the thread. A window is attached to a specific thread. this
+   thread is the thread the window was created in. A thread will only
+   receive messages for windows created within itself.
+   this is why each thread that creates windows needs a dispatch procedure
+   call.
+   message boxes and modal dialogs do not count as "windows" for this
+   definition since they create their own temporary message dispatch loop.
+   this procedure contains a message dispatch loop. This procedure never
+   returns until the message loop is terminated.
+   A message dispatch loop is terminated with a call to
+   TerminateDispatchMessages. The return value from this procedure is
+   the value passed to TerminateDispatchMessages.
+
+   you can create your own temporary dispatch loops in a thread that
+   already has a dispatch loop. Remember that TerminateDispatchMessages
+   only terminates the most recent call to DispatchMessages.
+*)
+
+PROCEDURE CheckMessages() : BOOLEAN;
+(* many times you perform tasks that will take a reasonable amount of time
+   so that the user interface will not become unresponsive you can call
+   this procedure to dispatch any messages that are already sitting
+   in the message queue. If no messages are available this procedure
+   returns.
+   If this function returns TRUE it means that the message loop has received
+   a "quit" message and the dispatch loop will be terminated.
+*)
+
+PROCEDURE WaitForAMessage();
+(* this procedure does not return until there is at least one message
+   waiting in the current threads message queue.
+*)
+
+PROCEDURE TerminateDispatchMessages(code : CARDINAL);
+(* this procedure terminates a previous call to DispatchMessages
+   code = an arbitrary value that DispatchMessages will return as
+   its function result. You can use it as a result code
+*)
+
+PROCEDURE CreateWindow(windowType : WindowTypes;
+                       parent : Window;
+                       name : ARRAY OF CHAR;
+                       menu : ARRAY OF CHAR;
+                       icon : ARRAY OF CHAR;
+                       wndProc : WindowProcedure;
+                       attribs : WinAttrSet;
+                       x, y : COORDINATE;
+                       width, height : COORDINATE;
+                       createParam : ADDRESS) : Window;
+(* create a new window
+   parent = the parent window of this window. Can be NIL.
+            An owned is destroyed, CM_DICTATE, when its parent
+            is destroyed.
+
+            For Win32 owned windows are always displayed above
+            the parent window. Owned windows are minimized when
+            when the parent is minimized.
+
+            For Gtk the parent is the window that is the leader
+            in a window manager "group" of windows. Just what this means
+            is dependent on the specific window manager in use.
+
+            For MdiChild windows parent must be an MdiFrame window.
+
+   name = the caption text of the window. if the window does not have a
+          caption then this parameter is ignored. On MdiChild windows
+          the caption is the window selection tab.
+
+   menu = the menu for the window. Can be "", which means no menu.
+
+   icon = the icon associated with this window. Can be "".
+           For Win32 you should have both 16x16 and 32x32 icons in the icon
+           set.
+           For Gtk this parameter currently is ignored.
+
+   wndProc = the window procedure
+
+   attribs = the window attributes for the window
+
+   x, y = the initial screen coordinates for the window to be displayed
+          if a parameters is -1 then the operating system will choose
+          a default location. these coordinates are relative to the
+          origin to the screen
+
+   width, height = the initial size of the window when created.
+                   if a parameter is -1 the operating system will
+                   choose a default size
+
+   createParam = an arbitrary value you can use to pass information
+                 to the window procedure of the window. this value is
+                 passed in the WSM_CREATE message.
+
+   For MdiChild windows Ctrl+Tab, Ctrl+Shift+Tab are accelerator keys to
+   cycle through the various MdiChild windows.
+
+   returns the window handle if success full, otherwise NIL
+*)
+
+PROCEDURE SetMdiTabPosition(w : Window; tabPos : MdiTabPosition);
+(* set the position of the MDI child tabs.
+   w must be an MDI frame window.
+   the default tab position is MdiTabBottom.
+
+   Win32
+       Windows seems to have issues with changing from various tab positions.
+       Changing between top and bottom works. Changing left/right to/from top/bottom
+       does not work.
+*)
+
+PROCEDURE CycleActiveMdiChild(w : Window; direction : INTEGER);
+(*
+  w can be an MdiChild or MdiFrame window.
+  if direction > 0 then the next MdiChild becomes the active child window.
+  if direction < 0 then the previous MdiChild becomes the active child window.
+*)
+
+PROCEDURE ConvertMdiChildToTopLevel(w : Window);
+(* convert the MdiChild window to a TopLevel window.
+   if the frame window has a toolbar and/or statusline the new
+   toplevel window will create copies of these for itself.
+*)
+
+PROCEDURE AddWindowNotify(w : Window;
+                          proc : WindowNotifyProcedure;
+                          data : ADDRESS) : BOOLEAN;
+(* the passed procedure "proc" will be called when the window "w"
+   has one of the notify actions occur.
+   "data" is aribtrary data you can have passed to the close procedure.
+   you can have multiple notify procedures attached to a window.
+   returns TRUE if the notify procedure was added.
+*)
+
+PROCEDURE CloseWindow(w : Window; mode : CloseModes) : BOOLEAN;
+(* close an existing window.
+   mode = CM_REQUEST you are requesting that the window close.
+          for example this can give a window a change to prompt for saving any
+          unsaved changes and possibly aborting the close.
+   mode = CM_DICTATE the window *WILL* be closed
+   returns TRUE if the window is closing
+*)
+
+PROCEDURE CloseAllChildren(parent : Window; mode : CloseModes) : BOOLEAN;
+(* the effect here is to call CloseWindow with the given close mode
+   for all child windows of the given window.
+   returns TRUE if all child windows were closed
+*)
+
+PROCEDURE DisplayMdiChildNumber(w : Window; yes : BOOLEAN);
+(*
+  w must be an MdiFrame window.
+  yes = TRUE means that the Mdi child titles will be prefixed with a number 0-9.
+        This corresponds to the position of the child in the frame window.
+        This can be used in conjunction with the GetIthMdiChild API call.
+        The 10th child and beyond will not have a number.
+*)
+
+PROCEDURE SetBackgroundAutoErase(w : Window; color : ColorValue);
+(* this will have the window automatically erase any region that
+   needs to be painted with a background color before any paint
+   message is sent.
+*)
+
+PROCEDURE IsWindow(w : Window) : BOOLEAN;
+(* is the window handle passed in w a valid window handle
+   for example a window might have been closed and a copy of the window
+   handle an application had stored somewhere may no longer be valid
+   retuns TRUE if the window handle is valid
+*)
+
+PROCEDURE GetWindowType(w : Window) : WindowTypes;
+(* return the window type for the specified window *)
+
+PROCEDURE GetWindowParent(w : Window) : Window;
+(* return the parent window *)
+
+PROCEDURE GetIthMdiChild(w : Window; num : CARDINAL) : Window;
+(* return the ith child in the list of child windows.
+   the first child is number 0.
+   child windows are ordered by the order of creation.
+   hidden child windows are not considered by this procedure.
+*)
+
+PROCEDURE GetActiveMdiChild(w : Window) : Window;
+(*
+  w = an MDI frame window.
+  the return value is the child window that is on top of all the
+  other MDI child windows.
+*)
+
+PROCEDURE SetActiveMdiChild(w : Window);
+(*
+  w must be an MDI child window.
+  set w to be the active MDI child window. this is the child that
+  is on top of all the other MDI child windows.
+*)
+
+PROCEDURE SetMdiChildPosition(w : Window; index : CARDINAL);
+(*
+  set the position of the window in the child window selection tabs.
+  0 = the "first" tab.
+*)
+
+PROCEDURE SetDisplayMode(w : Window; mode : DisplayModes);
+(* set the display mode for the window identified by w *)
+
+PROCEDURE GetDisplayMode(w : Window) : DisplayModes;
+(* get the display mode for the window identified by w *)
+
+PROCEDURE SetWindowEnable(w : Window; enabled : BOOLEAN);
+(* enable/disable the window identified by w
+   if enabled = TRUE then the window will be enabled, otherwise the window
+   will be disabled
+   A disabled window cannot receive any user interaction
+*)
+
+PROCEDURE IsMinimized(w : Window) : BOOLEAN;
+(* retuns TRUE if the window identified by w is currently minimized *)
+
+PROCEDURE IsMaximized(w : Window) : BOOLEAN;
+(* retuns TRUE if the window identified by w is currently maximized *)
+
+PROCEDURE ClientAreaIsClipped(w : Window) : BOOLEAN;
+(* returns TRUE if the client area of the window identified by w is
+   currently clipped by some other window.
+   By clipped we mean that the entire client area is not visible.
+*)
+
+PROCEDURE GetForegroundWindow() : Window;
+(* get the current window with input focus.
+   if the focused window is not a window managed by this module
+   the returned value will be NIL
+*)
+
+PROCEDURE SetForegroundWindow(w : Window);
+(* makes the window the foreground window
+  also makes the window have the keyboard input focus.
+
+   depending on the underlying system this function may FAIL if the thread
+   associated with the window is not the current foreground thread.
+*)
+
+PROCEDURE RepaintRect(w : Window; rect : wsRECT);
+(* force the rectangle in rect to be repainted in the window identified by w *)
+(* the repaint is queued, and not drawn immediately *)
+
+PROCEDURE UpdateWindow(w : Window);
+(* force any pending repaint messsages to be sent before this call returns *)
+
+PROCEDURE GetClientSize(w : Window; VAR OUT width, height : COORDINATE);
+(* get the size of the windows client area in screen coordinates *)
+
+PROCEDURE SetClientSize(w : Window; width, height : COORDINATE);
+(* set the size of the windows client area in screen coordinates
+   the actual size of the window will likely be larger due to a caption,
+   border, menus, scroll bars and other goodies
+*)
+
+PROCEDURE SetMinClientSize(w : Window; width, height : COORDINATE);
+(* limit the window to a certain minimum client area size
+   this does not effect the windows ability to be minimized.
+*)
+
+PROCEDURE SetMaxClientSize(w : Window; width, height : COORDINATE);
+(* limit the window to a certain maximum client area size
+   Such a window should probably not be capable of being maximized
+*)
+
+PROCEDURE SetWindowGrains(w : Window; width, height : COORDINATE);
+(* use this procedure to limit the possible window sizes to values
+   such that the client area will be an even multiple of width and height.
+
+   this setting has no effect on a maximized, or minimized window.
+
+   Gtk - not implemented
+   Window managers have a geometry hints option but when I used this the
+   Window manager(s)/X/Gtk freak out and strange things happen.
+   Manual implemenation also had other wierd side effects.
+*)
+
+PROCEDURE GetWindowSize(w : Window; VAR OUT width, height : COORDINATE);
+(* get the size of the window area in screen coordinates
+   this includes the client area and all the other goodies.
+
+   Gtk
+       On X the border and caption title are not a part of a user window.
+       they are the domain of the window manager.
+*)
+
+PROCEDURE SetWindowSize(w : Window; width, height : COORDINATE);
+(* set the size of the window area in screen coordinates
+   this includes the client area and all the other goodies.
+
+   Gtk
+       On X the border and caption title are not a part of a user window.
+       they are the domain of the window manager.
+*)
+
+PROCEDURE GetWindowPos(w : Window; VAR OUT x, y : COORDINATE);
+(* get the screen coordinates of the upper left corner of the window
+
+   Gtk
+       X and/or window managers have issues with this. The position retrieved
+       seems to be interpreted differently than a when setting a window position.
+*)
+
+PROCEDURE SetWindowPos(w : Window; x, y : COORDINATE);
+(* set the screen coordinates of the upper left corner of the window.
+
+   Gtk
+       X and/or window managers have issues with this. The position retrieved
+       seems to be interpreted differently than a when setting a window position.
+*)
+
+PROCEDURE GetWindowDisplayInfo(w : Window; VAR OUT info : WindowDisplayInfo);
+(* get the size a position information for the window
+   this is useful for remembering the size and position of a window
+   across multiple execution sessions
+   if info.mode = SizeMinimized or SizeMaximized then the size and
+   position information is the size and position information for the window
+   when it is not minimized or maximized.
+
+   Gtk
+       X and/or window managers have issues with this. The position retrieved
+       seems to be interpreted differently than a when setting a window position.
+       On X the border and caption title are not a part of a user window.
+       they are the domain of the window manager.
+*)
+
+PROCEDURE SetWindowDisplayInfo(w : Window; info : WindowDisplayInfo);
+(* set the size and position information for the window.
+
+   Gtk
+       X and/or window managers have issues with this. The position retrieved
+       seems to be interpreted differently than a when setting a window position.
+       On X the border and caption title are not a part of a user window.
+       they are the domain of the window manager.
+*)
+
+PROCEDURE CascadeWindow(cascadeThis, onThis : Window);
+(* this positions the window 'cascadeThis' just below and to the right of the
+   caption of the window 'onThis'.
+   the window size is not altered
+*)
+
+PROCEDURE SetWindowTitle(w : Window; title : ARRAY OF CHAR);
+(* set the caption text for the window
+   if the window does not have a caption then nothing happens
+   title must be null terminated.
+*)
+
+PROCEDURE SetWindowData(w : Window;
+                        index : CARDINAL;
+                        data : ADDRESS) : BOOLEAN;
+PROCEDURE SetWindowDataNum(w : Window;
+                           index : CARDINAL;
+                           data : CARDINAL) : BOOLEAN;
+(* this procedure will place the store the data in "data"
+   into the window storage array position specified by index.
+   index positions are from 0..31
+   returns TRUE if successful
+*)
+
+PROCEDURE GetWindowData(w : Window;
+                        index : CARDINAL) : ADDRESS;
+PROCEDURE GetWindowDataNum(w : Window;
+                           index : CARDINAL) : CARDINAL;
+(* returns the data from the window storage array from the location
+   index positions are from 0..31
+   specified by index.
+*)
+
+PROCEDURE SetWindowIsBusy(w : Window; busy : BOOLEAN);
+(* set the window to a "busy" state
+   for each call with busy = TRUE, you must have a corresponding call
+   with busy = FALSE to remove the busy state.
+   this call changes the mouse cursor of the window to "busy" cursor
+   generally an hourglass cursor.
+   when the window reverts back to not busy, whatever the mouse cursor
+   was before the window was busy is restored.
+   generally you use this call when your user interface thread is performing
+   a task that might take a while so you give the user some feedback
+   with this call
+*)
+
+PROCEDURE RedirectMessage(w : Window; msg : MessageRec);
+(* this call simply passes the message to the window specified.
+   the window should be of the same thread as the window that received
+   the message originally. Everything should work if not, but unforseen problems
+   may occur.
+*)
+
+PROCEDURE SendUserMessage(w : Window;
+                          userId : CARDINAL; userData : ADDRESS);
+PROCEDURE PostUserMessage(w : Window;
+                          userId : CARDINAL; userData : ADDRESS);
+(* send a user message to a window
+   the window receiving the message can be associated with any thread and
+   need not be associated with the current thread.
+   userId = arbitrary number
+   userData = arbitrary data
+   SendUserMessage waits for the message to be received and processed before returning.
+
+   PostUserMessage send the message and return immediately.
+   when using PostUserMessage you should not pass the address of local data
+   in the item userData since it is not known when the other window
+   will process the message and when the procedure that calls this API
+   procedure ends the local data is invalidated.
+   global variables, constants, and allocated memory can be safe to use
+   for the userData item. "can be" because you can use safe memory in an
+   unsafe manner.
+*)
+
+PROCEDURE IsUserMessageWaiting(w : Window;
+                               userIdLow, userIdHigh : CARDINAL) : BOOLEAN;
+(* returns TRUE if a user message within the range of userLow..userHigh
+   is currently waiting in the message queue of the current thread
+*)
+
+PROCEDURE ClientToScreen(w : Window; VAR INOUT pt : wsPOINT);
+(* convert client coordinates, in pt, of the given window to screen
+   relative coordinates
+*)
+
+PROCEDURE ScreenToClient(w : Window; VAR INOUT pt : wsPOINT);
+(* convert screen coordinates, in pt, to client relative coordinates for
+   the given window. The returned coordinates can be negative.
+*)
+
+PROCEDURE GetCursorPos(w : Window; VAR OUT pt : wsPOINT);
+(* get the screen coordinate position of the mouse cursor
+   relative to the specified window client area
+*)
+
+PROCEDURE CreateStatusLine(w : Window; fmt : ARRAY OF INTEGER) : BOOLEAN;
+(* add a status line to a window that does not have a status line.
+   see SetStatusFormat for the meaning of the fmt parameter.
+   returns TRUE if successfull.
+   FALSE is returned if the window already has a status line, or
+   some other error occurred.
+*)
+
+PROCEDURE RemoveStatusLine(w : Window);
+(* if the window has a status line then remove the status line
+   from the window
+*)
+
+PROCEDURE SetStatusFormat(w : Window; fmt : ARRAY OF INTEGER);
+(* set the format of the status line
+   each element in the fmt array defines a status line field.
+   the numeric value in the field defines the number characters
+   in size the field should be. The average character width is used to
+   determine this size in screen coordinates.
+   The last field can contain the value -1 which means
+   the field will go all the way to the right side of the window.
+   As a convenience if a MdiChild window is passed as the window
+   parameter, the write will affect the parent window (MdiFrame).
+*)
+
+PROCEDURE WriteStatusField(w : Window;
+                           field : CARDINAL;
+                           text : ARRAY OF CHAR);
+(* write the text given in txt to the field identified by field
+   in the status line for the window w
+   if the window does not have a status line nothing happens
+   txt must be null terminated. if txt is too long for the defined size
+   of the field the text will be clipped.
+   As a convenience if a MdiChild window is passed as the window
+   parameter, the write will affect the parent window (MdiFrame).
+*)
+
+PROCEDURE LoadToolbarBitmaps(VAR INOUT buttons : ARRAY OF ToolbarButtonInfo;
+                             transparent : ColorValue) : BOOLEAN;
+(* load the bitmaps for the toolbar buttons from the resource file.
+   For standard bitmaps the stdButton = TRUE and stdName = the button.
+   otherwise, the bitmap resource names are taken from bmpResName field.
+   This call will not load a bitmap unless the image field is NIL,
+   and the bmpResName field is <> "".
+
+   transparent is the color in the bitmap that is to be "transparent", having the
+   same color as the button background.
+   The loaded bitmaps will be altered to make this so.
+   if the transparent color does not exist in a bitmap then the bitmap is loaded
+   unaltered without error.
+
+   returns TRUE if successful, which means ALL bitmaps were loaded.
+*)
+
+PROCEDURE UnloadToolbarBitmaps(VAR INOUT buttons : ARRAY OF ToolbarButtonInfo);
+(* unload the bitmaps for the toolbar buttons.
+   if a button does not have a bitmap currently loaded that button is
+   skipped.
+*)
+
+PROCEDURE CreateToolbar(w : Window;
+                        buttons : ARRAY OF ToolbarButtonInfo;
+                        hasText : BOOLEAN;
+                        hasHelp : BOOLEAN;
+                        canCustomize : BOOLEAN) : BOOLEAN;
+(* create a toolbar for the given window.
+   buttons = the buttons of the toolbar. this is ALL possible buttons.
+             button bitmaps should be 24x24.
+             this call does not use the bmpResId field of the button
+             info record.
+             the bitmap field must be initialized with the handle
+             of your bitmap, or the value of a standard bitmap.
+             Use SYSTEM.MAKEADR to create an address with the
+             standard bitmap ordinal. MAKEADR(ORD(TB_BMP_CUT))
+             You can use LoadToolbarBitmaps to load your bitmaps
+             or you can load them via other means.
+   hasText = TRUE the buttons will display text labels if available.
+             FALSE only the bitmaps will be displayed.
+   hasHelp = TRUE the buttons will display tooltip help popups if available
+             FALSE the buttons will not display tooltips
+   canCustomize = TRUE the toolbar will allow the user to customize the
+                  buttons displayed and the order they are displayed.
+                  You should fetch this information and save it so you can
+                  remember the user preferred toolbar settings.
+*)
+
+PROCEDURE DestroyToolbar(w : Window);
+(* destroy the toolbar for the window if it has one *)
+
+PROCEDURE SetToolbarButtons(w : Window; fmt : ARRAY OF CARDINAL);
+(* set which buttons from the list of available buttons will be
+   displayed. The HIGH bound of the passed array determines the
+   number of toolbar buttons.
+   the numeric value if each array element specifies the ordinal index
+   into the list of available buttons passed to CreateToolbar.
+   if the window does not have a toolbar nothing happens
+*)
+
+PROCEDURE GetToolbarButtons(w : Window; VAR OUT fmt : ARRAY OF CARDINAL) : CARDINAL;
+(* get the current buttons displayed and their layout.
+   the returned value is number of buttons returned into the parameter
+   fmt. you should  make sure fmt is big enough to hold all possible
+   buttons so you will not lose information. the maximum number of buttons
+   is known from the CreateToolbar procedure call.
+   the numeric value if each array element specifies the ordinal index
+   into the list of available buttons passed to CreateToolbar.
+   if the window does not have a toolbar nothing happens.
+
+   Win32
+       the system toolbar control supports toolbar customization by the user
+       with no interaction necessary on our part.
+       the user customizes a toolbar by double clicking on an empty area in the tool
+       bar. Windows displays a customization dialog the user interacts with.
+   GTK
+       no user customization is currently implemented.
+*)
+
+PROCEDURE IsToolbarButtonDown(w : Window; index : CARDINAL) : BOOLEAN;
+(* is the button identified by index currenly in the down position.
+   this call is only valid for TbToggle buttons
+   a button must be shown before it can be toggled.
+   index is the ordinal index into the button list array passed
+   to CreateToolbar
+   returns TRUE if the button is shown and checked in the toolbar
+*)
+
+PROCEDURE IsToolbarButtonEnabled(w : Window; index : CARDINAL) : BOOLEAN;
+(* is the button identified by index currently enabled
+   returns TRUE means the button is active an can be pressed
+   index is the ordinal index into the button list array passed
+   to CreateToolbar
+   returns TRUE if the button is enabled in the toolbar
+*)
+
+PROCEDURE IsToolbarButtonShown(w : Window; index : CARDINAL) : BOOLEAN;
+(* is the button identified by index currently shown
+   index is the ordinal index into the button list array passed
+   to CreateToolbar
+   returns TRUE if the button is shown in the toolbar
+*)
+
+PROCEDURE ToggleToolbarButton(w : Window;
+                             index : CARDINAL;
+                             down : BOOLEAN) : BOOLEAN;
+(* set the toggled state of the button identified by index
+   this call is only valid for TbToggle buttons
+   down = TRUE means the button should be in the down position.
+   index is the ordinal index into the button list array passed
+   to CreateToolbar
+   returns TRUE if successful
+*)
+
+PROCEDURE EnableToolbarButton(w : Window;
+                              index : CARDINAL;
+                              enable : BOOLEAN) : BOOLEAN;
+(* set the enabled state of the button identified by index
+   enable = TRUE means the button should be enabled
+   index is the ordinal index into the button list array passed
+   to CreateToolbar
+   returns TRUE if successful
+*)
+
+PROCEDURE ShowToolbarButton(w : Window;
+                            index : CARDINAL;
+                            show : BOOLEAN) : BOOLEAN;
+(* set the shown state of the button identified by index
+   show = TRUE means the button should be shown
+   index is the ordinal index into the button list array passed
+   to CreateToolbar
+*)
+
+PROCEDURE CaretOn(w : Window);
+(* turn the display of a text caret ON in the window.
+   if the window is the input focus window then the caret will be
+   displayed otherwise the caret is not displayed
+*)
+
+PROCEDURE CaretOff(w : Window);
+(* turn the display of a text caret OFF in the window *)
+
+PROCEDURE HideCaret(w : Window);
+(* this call is not normally necessary.
+   the caret must not be displayed when you paint to maintain a proper display.
+   BeginPaint, and PAINT messages automatically hide/show the caret.
+   this call is only necessary when using non transient window drawables,
+   since in these cases you may not be using BeginPaint.
+   HideCaret maintain a hide count therefore you must call ShowCaret
+   once for each call to HideCaret.
+*)
+
+PROCEDURE ShowCaret(w : Window);
+(* see HideCaret *)
+
+PROCEDURE MoveCaretTo(w : Window; x, y : INTEGER);
+(*
+   move the text caret to a specific location
+   the coordinates are client area relative
+   the window need not have the caret turned on for this function
+   to operate. the coordinates will be remembered
+*)
+
+PROCEDURE GetCaretPos(w : Window; VAR OUT x, y : COORDINATE);
+(* fetch the current text caret position *)
+
+PROCEDURE SetCaretType(w : Window; ct : CaretTypes; width, height : CARDINAL);
+(* set the type and size of the caret for this window
+   ct = the shape of the caret
+   width, height = the width and height in screen coordinates of the caret
+   the window need not have the caret turned on for this function
+   to operate. the information will be remembered
+*)
+
+PROCEDURE SetScrollBarRange(w : Window;
+                            which : WinAttr;
+                            min : ScrollRange;
+                            max : ScrollRange;
+                            pageSize : ScrollRange);
+(* set the range information for the given scroll bar in the given window
+   which = which scroll bar
+   min = the lower limit of the scroll bar range
+   max = the upper limit of the scroll bar range
+         if min = max then the scroll bar is remove or disabled
+   pageSize = the size of a "page" in scroll bar range units.
+   for example in a text file
+    the range might be (min = 1) (max = 534) and (pageSize = 10)
+    in this case the lower limit is always line number 1.
+    the upper limit is the number of lines in the text file.
+    pageSize is the most likely the size of the window in lines or one or two
+        lines less than this.
+    scroll bar ranges are whatever you what them to be
+*)
+
+PROCEDURE SetScrollBarRanges(w : Window;
+                             minX : ScrollRange;
+                             maxX : ScrollRange;
+                             pageX : ScrollRange;
+                             minY : ScrollRange;
+                             maxY : ScrollRange;
+                             pageY : ScrollRange);
+(* like SetScrollBarRange except that you are setting the range for
+   both the horizontal, X, and vertical, Y, scroll bars.
+   See SetScrollBarRange
+*)
+
+PROCEDURE SetScrollBarPos(w : Window;
+                          which : WinAttr;
+                          pos : ScrollRange);
+(* set the position of the scroll bar thumb
+   which = which scroll bar
+   pos = the position. (pos >= minRange) AND (pos <= maxRange)
+*)
+
+PROCEDURE GetScrollBarPos(w : Window;
+                          which : WinAttr) : ScrollRange;
+(* get the position of the scroll bar thumb
+   which = which scroll bar
+*)
+
+PROCEDURE SetScrollDisableWhenNone(w : Window; yesH, yesV : BOOLEAN);
+(* this procedure controls whether a scroll bar disappears or becomes
+   disabled when the window is large enough to display the entire
+   "document" and thus a scroll bar is not necessary.
+   this sets the policy for both scroll bars, but each scroll bar
+   acts independently regarding its own state.
+   yes = TRUE means the scroll bar(s) will disable
+         FALSE means the scroll bar(s) will disappear
+   yesH = horizontal, yesV = vertical
+   default = FALSE
+*)
+
+PROCEDURE SetWindowIcon(w : Window; icon : ARRAY OF CHAR) : BOOLEAN;
+(*
+   set the icon associated with the window
+   the resource can have many icon formats and the most appropriate
+   icon will be chosen depending on how the icon is going to
+   be used by the system. generally 32x32 and a 16x16 16color icons should
+   be provided at a minimum in the icon resource.
+
+   Gtk
+       not currently implemented.
+*)
+
+PROCEDURE SetWindowCursor(w : Window; typ : CursorTypes);
+(* set the cursor type displayed when the mouse cursor is within the
+   confines of the windows client area.
+*)
+
+PROCEDURE SetWindowMenu(w : Window;
+                        menu : ARRAY OF CHAR) : BOOLEAN;
+(* set/change the menu for the given window.
+   menu = the menu resource. Can be "", which means no menu.
+*)
+
+PROCEDURE GetWindowMenu(w : Window) : MenuHandle;
+(* get the menu handle for menu currently associated with the window
+   the return value can be NIL if the window has no menu
+*)
+
+PROCEDURE SetMenuItemEnable(w : Window; id : CARDINAL; enabled : BOOLEAN);
+(* set whether a menu item identified by id is enabled
+   enabled = TRUE the menu item is enabled
+             FLASE the menu item is disabled
+*)
+
+PROCEDURE GetMenuItemEnable(w : Window; id : CARDINAL) : BOOLEAN;
+(* get whether a menu item identified by id is enabled
+   returns = TRUE the menu item is enabled
+             FLASE the menu item is disabled
+*)
+
+PROCEDURE SetMenuItemCheck(w : Window; id : CARDINAL; checked : BOOLEAN);
+(* set whether a menu item identified by id has a check mark displayed
+   in the menu
+   checked = TRUE a check mark will be displayed
+             FLASE no check mark will be displayed
+*)
+
+PROCEDURE GetMenuItemCheck(w : Window; id : CARDINAL) : BOOLEAN;
+(* get the checked state a menu item identified by id
+   returns = TRUE a check mark is displayed
+             FLASE no check mark is displayed
+*)
+
+PROCEDURE SetMenuItemRadioCheck(w : Window;
+                                first, last, set : CARDINAL);
+(* similar to check menu item, however this identifies a group of
+   menu items of which one is checked and the others are unchecked.
+
+   first..last is the range of menu items in the radio group.
+   set is the menu item in the group to be "checked".
+*)
+
+PROCEDURE GetMenuItemRadioCheck(w : Window; first, last : CARDINAL) : CARDINAL;
+(* get the checked menu item in a radio menu item group
+   returns 0 if some error occurs, or none are checked.
+*)
+
+PROCEDURE LoadMenu(w : Window;
+                   menu : ARRAY OF CHAR;
+                   popup : BOOLEAN) : MenuHandle;
+(* load a menu resource identified by menu.
+   the menu is associated with the identified window.
+   the return value will be NIL if the resource does not exist
+   or there was an error loading the resource.
+
+   popup = TRUE if the menu being loaded is a popup menu.
+           For Win32 the menu resource is loaded and the first menu
+           is returned.
+           For Gtk a popup menu resource is loaded.
+*)
+
+PROCEDURE DestroyMenu(VAR INOUT menuH : MenuHandle);
+(* destroy a previously loaded menu resource *)
+
+PROCEDURE GetSubMenu(menuH : MenuHandle; subMenu : CARDINAL) : MenuHandle;
+(*
+   get the menu handle of a sub menu within a menu
+   can return NIL of the sub menu does not exist or there was an error
+   the sub menu is identified by position in the menu, zero being first.
+
+   for example if the menu bar shows
+   File Edit Search
+
+   Edit is ordinal position 1 in the main menu.
+   You can continue on though the menu hierarchy if any hierarchy exists
+   to get a menu handle for any menu within the hierarchy.
+*)
+
+PROCEDURE AppendMenuItemStr(w : Window;
+                            menuH : MenuHandle;
+                            str : ARRAY OF CHAR;
+                            id : CARDINAL) : BOOLEAN;
+(* append a new menu item to the menu identified by menuH
+   str = the text of the menu. must be null terminated
+   id = the id number used to identify the menu item.
+   you can "underscore" a character in the menu for keyboard activation
+   by preceeding the desired character with an underscore character ('_').
+   returns TRUE is successfull
+*)
+
+PROCEDURE AppendMenuItemSeparator(w : Window; menuH : MenuHandle) : BOOLEAN;
+(* append a new menu item to the menu identified by menuH
+   the menu item appended is a menu separator
+   this is usually a thin line drawn across the menu
+   returns TRUE is successfull
+*)
+
+PROCEDURE DeleteMenuItemPosition(menuH : MenuHandle;
+                                 pos : CARDINAL) : BOOLEAN;
+(* remove a menu item from the menu identified by menuH
+   pos = the ordinal position of the menu item starting at zero for the
+         first item in the menu
+*)
+
+PROCEDURE PopupMenu(w : Window;
+                    menu : ARRAY OF CHAR;
+                    button : MouseButton;
+                    x, y : COORDINATE);
+(* display a popup menu at client coordinates x, y.
+   the menu is identified the parameter menu.
+   button = the button used to "open" the popup menu and thus when this
+            button is released the menu will close.
+
+   This call is modal, meaning the call does not return until the popup
+   menu is closed.
+
+   For Win32 the menu resource is loaded and the first menu is used.
+   For Gtk a popup menu resource is used.
+*)
+
+PROCEDURE PopupMenuHandle(w : Window;
+                          menu : MenuHandle;
+                          button : MouseButton;
+                          x, y : COORDINATE);
+(* like PopupMenu except that the menu is identified by a MenuHandle.
+   this allows you to modify the menu resource before displaying the menu
+   See PopupMenu
+
+   This call is modal, meaning the call does not return until the popup
+   menu is closed.
+*)
+
+PROCEDURE LoadString(idNum : CARDINAL; VAR OUT str : ARRAY OF CHAR);
+(*
+  Load a string from the string resource file.
+  the string is identified by idNum.
+  str = "" if not successfull.
+*)
+
+PROCEDURE CreatePalette(colors : ARRAY OF ColorValue) : PaletteHandle;
+(* create a color palette
+   some screen displays are limited in the number of colors they
+   can simultaneously display. this means that the color range is larger
+   than the number of colors that can be displayed.
+   what we are talking about here are 256 and 16(yuck) color displays.
+   the number of colors in the palette is determined by the HIGH bound
+   of the passed array
+   the return value is the handle used for the palette.
+   NIL is returned if the function did not succeed, or if display does
+   not use palettes (16, 24 and 32 bit color modes).
+*)
+
+PROCEDURE DestroyPalette(VAR INOUT palette : PaletteHandle);
+(* dispose of a previously created color palette
+   no window should be using this palette or an error is likely to occur
+   at some later point of execution
+*)
+
+PROCEDURE SetWindowPalette(w : Window; pal : PaletteHandle);
+(* set a specific window to use a given color palette
+   the window will set the palette into the system whenever necessary
+   when the window is not the foreground window the colors displayed
+   may not match those in the color palette depending on various factors
+   in the system
+*)
+
+PROCEDURE OpenClipboard(w : Window) : BOOLEAN;
+(* open the system clipboard and give ownership to the specified window
+   returns TRUE is successful
+   only a foreground window should make such a request, and then only
+   on behalf of a users request
+
+   Gtk
+       on X systems the "clipboard" can be many different things and some programs
+       may only support one type of "clipboard". X calls these "selections".
+       This module defines its own selection, and also tries to use other selections
+       to try and be compatible with as many programs as possible.
+*)
+
+PROCEDURE CloseClipboard(w : Window);
+(* close and release ownership of the clipboard. *)
+
+PROCEDURE EmptyClipboard(w : Window) : BOOLEAN;
+(* empty all contents of the clipboard
+   if the window does not own the clipboard the call will fail
+   returns TRUE if the operation is successfull
+*)
+
+PROCEDURE ClipboardFormatAvailable(fmt : ClipboardFormat) : BOOLEAN;
+(* returns TRUE if data of the given clipboard format is available
+   in the clipboard.
+   returns TRUE if the format is available, otherwise FALSE if the
+   clipboard is empty or some other data type is available.
+   all text formats are automatically converted to other text formats
+   on demand. Therefore if you put ASCII into the clipboard you can
+   retrieve Unicode from the clipboard.
+*)
+
+PROCEDURE AllocClipboardMemory(size : CARDINAL) : ADDRESS;
+(* allocate and lock system memory suitable for placing in the clipboard
+   size = the amount of memory in bytes
+   if NIL is returned the call failed, otherwise a valid address is returned.
+
+   Win32
+       the operating system will deallocate this memory for you since you
+       cannot know how long the data will exist in the clipboard.
+   Gtk
+       Data put into the clipboard is only available to other programs as long
+       as your process is running.
+*)
+
+PROCEDURE UnlockClipboardMemory(data : ADDRESS);
+(* unlock locked clipboard memory.
+   memory must be unlocked before placed into the clipboard.
+   clipboard memory received must be unlocked after it is used.
+*)
+
+PROCEDURE SetClipboard(fmt : ClipboardFormat;
+                       data : ADDRESS;
+                       amount : CARDINAL) : BOOLEAN;
+(* place data, identified by data, into the clipboard
+   the format of the data is given in fmt parameter
+   the data MUST be unlocked before setting into the clipboard.
+   the memory is automatically freed by the system.
+   returns TRUE if successfull *)
+
+PROCEDURE GetClipboard(fmt : ClipboardFormat) : ADDRESS;
+(* get clipboard data of the given format.
+   returns NIL if the format was not available or the clip board was empty.
+   otherwise a valid address is returned and the data is locked.
+   you MUST unlock the data when you are done reading the data.
+   all text formats are automatically converted to other text formats
+   on demand. Therefore if you put ASCII into the clipboard you can
+   retrieve Unicode from the clipboard.
+   text formats are returned null terminated.
+*)
+
+PROCEDURE SetTimer(w : Window; timerId : CARDINAL; interval : CARDINAL);
+(* create/reset a timer associated with the specified window
+   timerId = a unique number to identify the timer.
+   interval = the amount of time in milliseconds between WSM_TIMER messages
+              this interval is only an approximate time
+   calling SetTimer with the same timerId as a previous call but with
+   a different interval has the effect of resetting the interval from
+   the previous value to the new value *)
+
+PROCEDURE KillTimer(w : Window; timerId : CARDINAL);
+(* dispose of a previously created timer
+   timerId = the identification number of an existing timer *)
+
+PROCEDURE Beep(beep : Beeps);
+(* make a sound on the computer.
+   beep = various sound signatures. what these sounds sound like is defined
+          by the user on their machine
+*)
+
+PROCEDURE PointInRect(x, y : COORDINATE; rect : wsRECT) : BOOLEAN;
+
+PROCEDURE IntersectRect(r1, r2 : wsRECT; VAR OUT r3 : wsRECT) : BOOLEAN;
+
+PROCEDURE RectOverlap(r1, r2 : wsRECT) : BOOLEAN;
+
+PROCEDURE UnionRect(r1, r2 : wsRECT; VAR OUT r3 : wsRECT);
+
+PROCEDURE OffsetRect(x, y : COORDINATE; VAR INOUT rect : wsRECT);
+
+PROCEDURE RgbToColorValue(red, green, blue : CARDINAL8) : ColorValue;
+(* take the separate red, green and blue color components and
+   create a composite color value
+*)
+
+PROCEDURE ColorValueToRgb(colorVal : ColorValue;
+                          VAR OUT red, green, blue : CARDINAL8);
+(* break a compositie color value into its various components *)
+
+PROCEDURE GetSystemColor(sysColor : SystemColors) : ColorValue;
+(* return a color value for the system color *)
+
+PROCEDURE LoadFont(font : FontInfo) : FontHandle;
+(* load the font as specified by the parameter font *)
+(* returns a valid font handle if successfull, otherwise NIL *)
+
+PROCEDURE DeleteFont(font : FontHandle);
+(* remove a previously loaded font *)
+
+PROCEDURE GetTextMetrics(font : FontHandle; VAR OUT metrics : TextMetrics);
+(* retrieve information about the font specified in the font parameter *)
+
+PROCEDURE LoadBitmap(name : ARRAY OF CHAR; shared : BOOLEAN) : BitmapHandle;
+(*
+  Load a bitmap from resource.
+
+  IF shared = TRUE, loaded bitmaps will be cached and on subsequent
+  loads the bitmap handle of the first load will be returned.
+
+  You should call DeleteBitmap when you are done using the bitmap.
+  If shared = TRUE then the bitmap will not be freed until
+  DeleteBitmap is called once for each active Load.
+*)
+
+PROCEDURE LoadBitmapFromFile(name : ARRAY OF CHAR) : BitmapHandle;
+(*
+  as LoadBitmap except the image is loaded from a stand alone file.
+*)
+
+PROCEDURE CreateBitmap(w : Window; width, height : CARDINAL) : BitmapHandle;
+(*
+  create a bitmap compatible with the window.
+  The bitmap can be used with any Drawable that it is compatible with,
+  meaning the color depth.
+*)
+
+PROCEDURE GetBitmapSize(bmp : BitmapHandle; VAR OUT width, height : CARDINAL);
+(*
+   return the width and height of the specified bitmap.
+   returns 0 if bmp is not a valid bitmap handle.
+*)
+
+PROCEDURE ExtractBitmap(bmp : BitmapHandle;
+                        x, y : COORDINATE;
+                        width, height : CARDINAL) : BitmapHandle;
+(*
+    this function creates a new bitmap from a portion of another
+    bitmap.
+    This can be usefull with buttons for toolbars. Since these are
+    small bitmaps and there are usually many buttons, it can be
+    nice to edit all off the buttons in one larger bitmap.
+    This function can be used to extract the individual bitmaps
+    from the large bitmap button array.
+*)
+
+PROCEDURE DeleteBitmap(bmp : BitmapHandle);
+(* delete a previously loaded/created bitmap.
+  For shared bitmaps the bitmap will not be freed until
+  DeleteBitmap is called once for each active Load.
+*)
+
+PROCEDURE CreateDrawContext(w : Window;
+                            dcValues : DrawContextValues) : DrawContext;
+(* create a new DrawContext. the context will be compatigble with
+   the passed Window, w. You can use the context with other windows
+   as long as the windows use the same color depth.
+   If you wish to associate a Palette with a window you should do so
+   before using this call, so the DrawContext, will note the change.
+
+   Normally it is not possible to have windows with differing color
+   depths. However different windows may have different palettes.
+   Palettes are only used for <= 256 color displays.
+*)
+
+PROCEDURE DestroyDrawContext(VAR INOUT dc : DrawContext);
+(* dispose of a previously created DrawContext.
+   The context must not be selected into any Drawable.
+*)
+
+PROCEDURE SetDrawContextValues(dc : DrawContext;
+                               dcValues : DrawContextValues);
+(* set the values associated with the DrawContext. *)
+
+PROCEDURE GetDrawContextValues(dc : DrawContext; VAR OUT dcValues : DrawContextValues);
+(* get the values associated with the DrawContext. *)
+
+PROCEDURE SetForegroundColor(dc : DrawContext; color : ColorValue);
+(* set the foreground color used for painting *)
+
+PROCEDURE SetBackgroundColor(dc : DrawContext; color : ColorValue);
+(* set the background color used for painting *)
+
+PROCEDURE SetFont(dc : DrawContext; font : FontHandle);
+(* set the font as the font used for painting text *)
+
+PROCEDURE SetTextExtraSpacing(dc : DrawContext; extra : INTEGER);
+(* this alters the normal character spacing of the text written
+   a positive value adds space (pixels) between each character drawn
+   a negative value removes space.
+*)
+
+PROCEDURE SetTextDrawOrigin(dc : DrawContext; origin : TextDrawOrigin);
+(*
+  Sets the text origin of text drawing operations.
+  See the comments at the TextDrawOrigin type declaration.
+*)
+
+PROCEDURE SetLineWidth(dc : DrawContext; width : CARDINAL);
+(* set the line width *)
+
+PROCEDURE SetLineAttributes(dc : DrawContext;
+                            join : JoinStyles;
+                            endCap : EndCaps;
+                            width : CARDINAL);
+(* set all line attributes *)
+
+PROCEDURE BeginPaint(w : Window; dc : DrawContext) : Drawable;
+(* use this to obtain a Drawable for the specific window.
+   the DrawContext, dc, is selected into the returned Drawable.
+   when you are finished painting you must call EndPaint which releases
+   any system resources allocated by this call.
+
+   this call will automatically hide the text caret if active.
+
+   when you receive a PAINT message you can use the Drawable passed
+   in the paint message, therefore you do not need this call in that
+   circumstance, however you will need to select a DrawContext into
+   the paint Drawable.
+*)
+
+PROCEDURE EndPaint(w : Window);
+(* call this when you are done painting to a window.
+  this call is the book end to the BeginPaint call.
+  The Drawable returned by the BeginPaint call is invalid after this call.
+  Any DrawContext selected into the Drawable is automatically deselected.
+  This call will show the text caret if the window has an active caret.
+*)
+
+PROCEDURE CreateOffscreenDrawable(w : Window;
+                                  width, height : CARDINAL;
+                                  context : DrawContext) : Drawable;
+(* create a Drawable where all draw operations are drawing into
+   a offscreen bitmap.  The Drawable is compatible with the given window.
+
+   The size of the Drawable is width and height. If width or height are
+   zero then the Drawable size for that dimension is set to the current size
+   of the client area of the Window.
+
+   Normally it is not possible to have windows with differing color
+   depths. However different windows may have different palettes.
+   Palettes are only used for <= 256 color displays.
+*)
+
+PROCEDURE CreateBitmapDrawable(bmp : BitmapHandle;
+                               context : DrawContext) : Drawable;
+(* create a Drawable where all draw operations are drawing into the specified bitmap.
+
+   Use this to draw a bitmap onto another drawable, or to draw into
+   the bitmap itself.
+   The size of this drawable is the size of the bitmap.
+*)
+
+PROCEDURE ChangeDrawableBitmap(draw : Drawable; bmp : BitmapHandle);
+(*
+  changes the bitmap associated with the existing bitmap drawable.
+  if the drawable is not a bitmap drawable then this procedure
+  takes no action.
+*)
+
+PROCEDURE DestroyDrawable(draw : Drawable);
+(*
+  Delete a previously created Drawable.
+  Do not use this call with a Drawable returned by BeginPaint or the Drawable
+  passed in the WSM_PAINT message.
+*)
+
+PROCEDURE SelectDrawContext(draw : Drawable; context : DrawContext);
+(* associate the DrawContext with the Drawable, draw.
+   any previously selected DrawContext is deselected.
+*)
+
+PROCEDURE GetTextWidth(draw : Drawable;
+                       text : ARRAY OF CHAR;
+                       length : CARDINAL) : CARDINAL;
+(* this calls returns the width of the text in pixels when drawn.
+   the number of characters measured is length.
+   if length = 0 the the number of characters measured is LENGTH(text)
+   the font currently selected for drawing is used for the measurement.
+   The SetTextExtraSpacing API procedure affects this call.
+*)
+
+PROCEDURE DrawText(draw : Drawable;
+                   x, y : COORDINATE;
+                   text : ARRAY OF CHAR;
+                   length : CARDINAL);
+(* draw text at the coordinates x, y
+ length = the number of characters drawn
+ if length = 0 then the number of characters draw is LENGTH(text)
+ the text is drawn in the foreground color.
+ the text is drawn transparently over the background.
+*)
+
+PROCEDURE DrawTextRect(draw : Drawable;
+                       x, y : COORDINATE;
+                       text : ARRAY OF CHAR;
+                       length : CARDINAL;
+                       rect : wsRECT;
+                       flags : DrawTextOptionSet);
+(* draw text at the coordinates x, y
+   length = the number of characters drawn
+   if length = 0 then the number of characters drawn is LENGTH(text).
+   the text is drawn in the foreground color.
+   the rectangle specifies the rectangle that is used for clipping and/or filling.
+   flags specifies options for drawing.
+*)
+
+PROCEDURE DrawLine(draw : Drawable;
+                   x1, y1, x2, y2 : COORDINATE);
+(* draw a line from x1,y1 to x2,y2 in the current foreground color
+   and line attributes.
+*)
+
+PROCEDURE DrawLines(draw : Drawable; points : ARRAY OF wsPOINT);
+(* draw a series of connected lines starting at the first point
+   and ending at the last point.
+   the line is drawn in the current foreground color, and line attributes.
+*)
+
+PROCEDURE DrawRectangle(draw : Drawable;
+                        x, y : COORDINATE;
+                        width, height : CARDINAL;
+                        filled : BOOLEAN);
+(* draw the rectangle with the foreground color.
+   if filled = FALSE  then the rectangle outline is drawn with
+   the current line attributes.
+   example x=0,y=0,width=20,height=20
+   the coordinates of the drawn rectangle are
+   upper left (0, 0), and lower right (19, 19)
+*)
+
+PROCEDURE EraseRectangle(draw : Drawable;
+                         x, y : COORDINATE;
+                         width, height : CARDINAL);
+(* as DrawRectangle, except the rectangle is filled with the background color.
+*)
+
+PROCEDURE DrawPie(draw : Drawable;
+                  x, y : COORDINATE;
+                  radius : CARDINAL;
+                  startAngle, sliceWidth : REAL;
+                  filled : BOOLEAN);
+(* draw a pie slice within in the foreground color.
+   x, y define the center of the circle the pie slice is a part of.
+   radius is the radius of the circle.
+   startAngle and width define the size of the pie slice.
+   a startAngle value of zero begins at the 3 o'clock position and increasing
+   values go in the counter clockwise direction.
+   the angle values are specified in degrees.
+   width is the number of degrees of the pie slice and must be <= 360.0.
+   if filled = FALSE then the pie outline is drawn with
+   the current line attributes.
+*)
+
+PROCEDURE CopyDrawableArea(destDraw : Drawable;
+                           destX, destY : COORDINATE;
+                           srcDraw : Drawable;
+                           srcX, srcY,
+                           width, height : COORDINATE);
+(* this call copies a reqion from one drawable to another.
+   you may use the same drawable for both the source and destination.
+
+   The for a window, it should not be clipped,
+   otherwise you may be copying other windows.
+   See the ClientAreaIsClipped API call.
+   The UpdateWindow API call can be useful before issuing this call with Window
+   drawables as the source.
+*)
+
+PROCEDURE InitHtmlHelp;
+(*
+   On Win32 this initializes support for using the HtmlHelp API.
+   On Gtk this call does nothing.
+*)
+
+PROCEDURE DisplayHelp(w : Window;
+                      command : HelpCommand;
+                      helpFile : ARRAY OF CHAR;
+                      helpIndex : CARDINAL) : BOOLEAN;
+(* call the operating system help program
+   helpFile = the file specification of the help file to be opened
+   helpIndex = help topic number within the given help file
+   command = what you want the help program to do
+       HelpTopic        open help to a specific topic.
+       HelpContents     open help in table of contents (Win32 only)
+                        helpIndex is ignored in this case
+
+
+   Win32.
+   All features are available.
+   On Windows you can use WinHelp or HTML help. WinHelp is used unless
+   InitHtmlHelp is called.
+
+   GTK+
+   command and helpIndex are ignored.
+   helpFile is assumed to be an HTML file and an HTML browser is executed for
+   the specified file.
+*)
+
+PROCEDURE BooBox(a : ARRAY OF CHAR);
+(* just a quick and dirty way to display a simple message box
+   can be used for diagnostic messages *)
+
+(*-------------------------------------------------------------------*)
+(*-------------------------------------------------------------------*)
+(*-------------------------------------------------------------------*)
+
+(* functions that export native operating system values
+   these functions are not part of the WinShell API
+   they are here to allow "special" actions to be performed when necessary
+   and to allow someone to provide additional operating system
+   encapsulation in a separate module from this one *)
+
+PROCEDURE GetWindowHandle(w : Window) : ADDRESS;
+(* get the operating system handle for window specified *)
+
+PROCEDURE GetClientHandle(w : Window) : ADDRESS;
+(* get the operating system handle for the client window
+   of the specified window. *)
+
+PROCEDURE GetDrawableHandle(draw : Drawable) : ADDRESS;
+(* for Win32 - return the HDC handle associated with the drawable.
+   for GTK - return the GDK drawable handle
+*)
+
+%IF WIN32 %THEN
+PROCEDURE SetModelessDialog(wnd : ADDRESS; add : BOOLEAN) : BOOLEAN;
+(* This procedure is here to support DlgShell in Win32
+   wnd = the operating system window handle of the modeless dialog
+   add = TRUE then you are adding a new dialog to the message loop
+         FALSE then you are remove a dialog from the message loop
+   returns TRUE if successful
+*)
+%END
+
+END WinShell.

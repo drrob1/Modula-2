@@ -1,0 +1,617 @@
+2/27/2011 4:43:24 PM
+http://cvs.savannah.gnu.org/viewvc/*checkout*/gm2/examples/ncurses/ncurses.def?root=gm2
+(* Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010
+                 Free Software Foundation, Inc. *)
+(* This file is part of GNU Modula-2.
+
+GNU Modula-2 is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation; either version 3, or (at your option) any later
+version.
+
+GNU Modula-2 is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+You should have received a copy of the GNU General Public License along
+with gm2; see the file COPYING.  If not, write to the Free Software
+Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA. *)
+
+DEFINITION MODULE FOR "C" ncurses ;
+
+(*
+    Title      : ncurses
+    System     : GNU Modula-2
+    Description: provides an interface file to the ncurses library.
+*)
+
+FROM SYSTEM IMPORT ADDRESS ;
+
+CONST
+   Black   = 0 ;
+   Red     = 1 ;
+   Green   = 2 ;
+   Yellow  = 3 ;
+   Blue    = 4 ;
+   Magenta = 5 ;
+   Cyan    = 6 ;
+   White   = 7 ;
+
+TYPE
+   WINDOW = ADDRESS ;
+   chtype = LONGCARD ;
+   chstring = ADDRESS ;
+   ATTRIBUTE = chtype ;
+   COLORPAIR = SHORTCARD ;
+
+VAR
+   LINES, COLS, TABSIZE,
+   ESCDELAY,
+   COLORS, COLOR_PAIRS   : INTEGER ;
+   stdscr, curscr, newscr: WINDOW ;
+   ttytype               : ADDRESS ;
+
+
+PROCEDURE   curses_version ()                            : ADDRESS ;
+PROCEDURE   assume_default_colors (a, b: INTEGER)        : INTEGER ;
+PROCEDURE   use_default_colors ()                        : INTEGER ;
+PROCEDURE   start_color ()                               : INTEGER ;
+PROCEDURE   resizeterm (x: INTEGER; y: INTEGER)          : INTEGER ;
+PROCEDURE   wresize (w: WINDOW; x: INTEGER; y: INTEGER)  : INTEGER ;
+PROCEDURE   addch (ch: chtype)                           : INTEGER ;
+PROCEDURE   addchnstr (s: chstring; n: INTEGER)		 : INTEGER ;
+PROCEDURE   addchstr (s: chstring)                       : INTEGER ;
+PROCEDURE   addnstr (s: chstring; n: INTEGER)            : INTEGER ;
+PROCEDURE   addstr (s: chstring)                         : INTEGER ;
+PROCEDURE   has_colors ()                                : BOOLEAN ;
+PROCEDURE   getch ()                                     : INTEGER ;
+
+(*
+PROCEDURE   wattr_on (w: WINDOW; attr_t, void: ADDRESS)  : INTEGER ;
+PROCEDURE   wattr_off (w: WINDOW; attr_t, void: ADDRESS) : INTEGER ;
+PROCEDURE   wattr_set (w: WINDOW;
+                       a: ATTRIBUTE; c: COLORPAIR;
+                       void: ADDRESS)  : INTEGER ;
+PROCEDURE   wattr_get (w: WINDOW;
+                       VAR a: ATTRIBUTE;
+                       VAR c: COLORPAIR; void: ADDRESS) : INTEGER ;
+*)
+
+(***********
+PROCEDURE   attr_get (attr_t *, short *, void * )         : INTEGER ;
+PROCEDURE   attr_off (attr_t, void * )                    : INTEGER ;
+PROCEDURE   attr_on (attr_t, void * )                     : INTEGER ;
+PROCEDURE   attr_set (attr_t, short, void * )             : INTEGER ;
+***********)
+
+PROCEDURE   baudrate ()                                  : INTEGER ;
+PROCEDURE   beep  ()                                     : INTEGER ;
+PROCEDURE   bkgd (ch: chtype)                            : INTEGER ;
+PROCEDURE   bkgdset (ch: chtype) ;
+PROCEDURE   border (a, b, c, d, e, f, g, h: chtype)      : INTEGER ;
+PROCEDURE   box (w: WINDOW; a, b: chtype)                : INTEGER ;
+PROCEDURE   can_change_color ()                          : BOOLEAN ;
+PROCEDURE   cbreak ()                                    : INTEGER ;
+
+(* PROCEDURE   chgat (INTEGER; attr_t, short, void * ) : INTEGER ; *)
+
+PROCEDURE   clear ()                                     : INTEGER ;
+PROCEDURE   wclear (w: WINDOW)				 : INTEGER ;
+PROCEDURE   wrefresh (w: WINDOW)                         : INTEGER ;
+PROCEDURE   wmove (w: WINDOW; y, x: INTEGER)             : INTEGER ;
+PROCEDURE   waddch (w: WINDOW; ch: chtype)               : INTEGER ;
+PROCEDURE   wcolor_set (w: WINDOW; p: SHORTCARD; nil: ADDRESS) : INTEGER ;
+
+
+(*
+PROCEDURE   clearok (w: WINDOW,NCURSES_BOOL );			 : INTEGER ;
+PROCEDURE   clrtobot ();				 : INTEGER ;
+PROCEDURE   clrtoeol ();				 : INTEGER ;
+PROCEDURE   color_content (short,short*,short*,short* );	 : INTEGER ;
+PROCEDURE   color_set (short,void* );			 : INTEGER ;
+PROCEDURE   COLOR_PAIR (INTEGER);				 : INTEGER ;
+PROCEDURE   copywin (WINDOW*,WINDOW*,INTEGER;INTEGER;INTEGER;INTEGER;INTEGER;INTEGER;INTEGER);	 : INTEGER ;
+PROCEDURE   curs_set (INTEGER);				 : INTEGER ;
+PROCEDURE   def_prog_mode ();			 : INTEGER ;
+PROCEDURE   def_shell_mode ();			 : INTEGER ;
+PROCEDURE   delay_output (INTEGER);				 : INTEGER ;
+PROCEDURE   delch ();				 : INTEGER ;
+PROCEDURE   delscreen (SCREEN * );
+
+PROCEDURE   deleteln ();				 : INTEGER ;
+PROCEDURE   derwin (w: WINDOW,INTEGER;INTEGER;INTEGER;INTEGER)            : WINDOW ;
+PROCEDURE   doupdate ();				 : INTEGER ;
+PROCEDURE   dupwin (w: WINDOW);			         : WINDOW ;
+PROCEDURE   getwin (FILE * );			         : WINDOW ;
+*)
+
+PROCEDURE   initscr ()                                   : WINDOW ;
+PROCEDURE   savetty ()                                   : INTEGER ;
+PROCEDURE   resetty ()                                   : INTEGER ;
+PROCEDURE   delwin (w: WINDOW)                           : INTEGER ;
+PROCEDURE   endwin ()                                    : INTEGER ;
+PROCEDURE   isendwin ()                                  : BOOLEAN ;
+PROCEDURE   init_pair (pair: COLORPAIR;
+                       fg, bg: SHORTCARD)                : INTEGER ;
+PROCEDURE   noecho ()				         : INTEGER ;
+PROCEDURE   nonl ()					 : INTEGER ;
+
+
+(*
+extern NCURSES_EXPORT(int) echo (void);
+extern NCURSES_EXPORT(int) echochar (const chtype);
+extern NCURSES_EXPORT(int) erase (void);
+extern NCURSES_EXPORT(char) erasechar (void);
+extern NCURSES_EXPORT(void) filter (void);
+extern NCURSES_EXPORT(int) flash (void);
+extern NCURSES_EXPORT(int) flushinp (void);
+extern NCURSES_EXPORT(chtype) getbkgd (WINDOW * );
+extern NCURSES_EXPORT(int) getch (void);
+extern NCURSES_EXPORT(int) getnstr (char *, int);
+extern NCURSES_EXPORT(int) getstr (char * );
+extern NCURSES_EXPORT(WINDOW * ) getwin (FILE * );
+extern NCURSES_EXPORT(int) halfdelay (int);
+extern NCURSES_EXPORT(bool) has_ic (void);
+extern NCURSES_EXPORT(bool) has_il (void);
+extern NCURSES_EXPORT(int) hline (chtype, int);
+extern NCURSES_EXPORT(void) idcok (WINDOW *, bool);
+extern NCURSES_EXPORT(int) idlok (WINDOW *, bool);
+extern NCURSES_EXPORT(void) immedok (WINDOW *, bool);
+extern NCURSES_EXPORT(chtype) inch (void);
+extern NCURSES_EXPORT(int) inchnstr (chtype *, int);
+extern NCURSES_EXPORT(int) inchstr (chtype * );
+*)
+
+(****************
+PROCEDURE   init_color (short,short,short,short);	 : INTEGER ;
+PROCEDURE   innstr (char *, INTEGER);			 : INTEGER ;
+PROCEDURE   insch (chtype);				 : INTEGER ;
+PROCEDURE   insdelln (n: INTEGER)                        : INTEGER ;
+PROCEDURE   insertln ();				 : INTEGER ;
+PROCEDURE   insnstr (char *, INTEGER);			 : INTEGER ;
+PROCEDURE   insstr (char * );			 : INTEGER ;
+PROCEDURE   instr (char * );				 : INTEGER ;
+PROCEDURE   intrflush (w: WINDOW,NCURSES_BOOL );			 : INTEGER ;
+extern    NCURSES_BOOL      isendwin ();
+extern    NCURSES_BOOL      is_linetouched (w: WINDOW,INTEGER);
+extern    NCURSES_BOOL      is_wintouched (w: WINDOW);
+extern     char *     keyname (INTEGER);
+PROCEDURE   keypad (w: WINDOW,NCURSES_BOOL );			 : INTEGER ;
+PROCEDURE   killchar ()                                          : CHAR ;
+PROCEDURE   leaveok (w: WINDOW,NCURSES_BOOL );			 : INTEGER ;
+extern    char *     longname ();
+PROCEDURE   meta (w: WINDOW,NCURSES_BOOL );			 : INTEGER ;
+PROCEDURE   move (INTEGER; INTEGER);				 : INTEGER ;
+PROCEDURE   mvaddch (INTEGER; INTEGER; chtype);		 : INTEGER ;
+PROCEDURE   mvaddchnstr (INTEGER; INTEGER; s: chstring, INTEGER);	 : INTEGER ;
+PROCEDURE   mvaddchstr (INTEGER; INTEGER; s: chstring);	 : INTEGER ;
+PROCEDURE   mvaddnstr (INTEGER; INTEGER; char *, INTEGER);	 : INTEGER ;
+PROCEDURE   mvaddstr (INTEGER; INTEGER; char * );		 : INTEGER ;
+PROCEDURE   mvchgat (INTEGER; INTEGER; INTEGER; attr_t, short, void * );	 : INTEGER ;
+PROCEDURE   mvcur (INTEGER;INTEGER;INTEGER;INTEGER);			 : INTEGER ;
+PROCEDURE   mvdelch (INTEGER; INTEGER);				 : INTEGER ;
+PROCEDURE   mvderwin (w: WINDOW, INTEGER; INTEGER);		 : INTEGER ;
+PROCEDURE   mvgetch (INTEGER; INTEGER);				 : INTEGER ;
+PROCEDURE   mvgetnstr (INTEGER; INTEGER; char *, INTEGER);		 : INTEGER ;
+PROCEDURE   mvgetstr (INTEGER; INTEGER; char * );			 : INTEGER ;
+PROCEDURE   mvhline (INTEGER; INTEGER; chtype, INTEGER);		 : INTEGER ;
+extern    chtype     mvinch (INTEGER; INTEGER);
+PROCEDURE   mvinchnstr (INTEGER; INTEGER; s: chstring, INTEGER);	 : INTEGER ;
+PROCEDURE   mvinchstr (INTEGER; INTEGER; s: chstring);		 : INTEGER ;
+PROCEDURE   mvinnstr (INTEGER; INTEGER; char *, INTEGER);		 : INTEGER ;
+PROCEDURE   mvinsch (INTEGER; INTEGER; chtype);			 : INTEGER ;
+PROCEDURE   mvinsnstr (INTEGER; INTEGER; char *, INTEGER);	 : INTEGER ;
+PROCEDURE   mvinsstr (INTEGER; INTEGER; char * );		 : INTEGER ;
+PROCEDURE   mvinstr (INTEGER; INTEGER; char * );			 : INTEGER ;
+PROCEDURE   mvprintw (INTEGER;INTEGER;  char *,...)	 : INTEGER ;
+PROCEDURE   mvscanw (INTEGER;INTEGER;  char *,...)	 : INTEGER ;
+		 ;
+PROCEDURE   mvvline (INTEGER; INTEGER; chtype, INTEGER);		 : INTEGER ;
+PROCEDURE   mvwaddch (w: WINDOW, INTEGER; INTEGER; chtype);	 : INTEGER ;
+PROCEDURE   mvwaddchnstr (w: WINDOW, INTEGER; INTEGER; s: chstring, INTEGER); : INTEGER ;
+PROCEDURE   mvwaddchstr (w: WINDOW, INTEGER; INTEGER; s: chstring);	 : INTEGER ;
+PROCEDURE   mvwaddnstr (w: WINDOW, INTEGER; INTEGER; char *, INTEGER);	 : INTEGER ;
+PROCEDURE   mvwaddstr (w: WINDOW, INTEGER; INTEGER; char * );	 : INTEGER ;
+PROCEDURE   mvwchgat (w: WINDOW, INTEGER; INTEGER; INTEGER; attr_t, short, void * ); : INTEGER ;
+PROCEDURE   mvwdelch (w: WINDOW, INTEGER; INTEGER);		 : INTEGER ;
+PROCEDURE   mvwgetch (w: WINDOW, INTEGER; INTEGER);		 : INTEGER ;
+PROCEDURE   mvwgetnstr (w: WINDOW, INTEGER; INTEGER; char *, INTEGER);	 : INTEGER ;
+PROCEDURE   mvwgetstr (w: WINDOW, INTEGER; INTEGER; char * );	 : INTEGER ;
+PROCEDURE   mvwhline (w: WINDOW, INTEGER; INTEGER; chtype, INTEGER);	 : INTEGER ;
+PROCEDURE   mvwin (w: WINDOW,INTEGER;INTEGER);			 : INTEGER ;
+extern    chtype     mvwinch (w: WINDOW, INTEGER; INTEGER);
+PROCEDURE   mvwinchnstr (w: WINDOW, INTEGER; INTEGER; s: chstring, INTEGER);	 : INTEGER ;
+PROCEDURE   mvwinchstr (w: WINDOW, INTEGER; INTEGER; s: chstring);		 : INTEGER ;
+PROCEDURE   mvwinnstr (w: WINDOW, INTEGER; INTEGER; char *, INTEGER);		 : INTEGER ;
+PROCEDURE   mvwinsch (w: WINDOW, INTEGER; INTEGER; chtype);		 : INTEGER ;
+PROCEDURE   mvwinsnstr (w: WINDOW, INTEGER; INTEGER; char *, INTEGER);	 : INTEGER ;
+PROCEDURE   mvwinsstr (w: WINDOW, INTEGER; INTEGER; char * );		 : INTEGER ;
+PROCEDURE   mvwinstr (w: WINDOW, INTEGER; INTEGER; char * );		 : INTEGER ;
+PROCEDURE   mvwprintw (WINDOW*,INTEGER;INTEGER;  char *,...)	 : INTEGER ;
+PROCEDURE   mvwscanw (w: WINDOW,INTEGER;INTEGER;  char *,...)	 : INTEGER ;
+PROCEDURE   mvwvline (w: WINDOW,INTEGER; INTEGER; chtype, INTEGER);	 : INTEGER ;
+PROCEDURE   napms (INTEGER);					 : INTEGER ;
+PROCEDURE   nl ();					 : INTEGER ;
+PROCEDURE   nocbreak ();				 : INTEGER ;
+PROCEDURE   nodelay (w: WINDOW,NCURSES_BOOL );			 : INTEGER ;
+PROCEDURE   noqiflush ();
+PROCEDURE   noraw ();				 : INTEGER ;
+PROCEDURE   notimeout (w: WINDOW,NCURSES_BOOL );			 : INTEGER ;
+PROCEDURE   overlay (WINDOW*,w: WINDOW);		 : INTEGER ;
+PROCEDURE   overwrite (WINDOW*,w: WINDOW);		 : INTEGER ;
+PROCEDURE   pair_content (short,short*,short* );		 : INTEGER ;
+PROCEDURE   PAIR_NUMBER (INTEGER);				 : INTEGER ;
+PROCEDURE   pechochar (w: WINDOW, chtype);		 : INTEGER ;
+PROCEDURE   pnoutrefresh (WINDOW*,INTEGER;INTEGER;INTEGER;INTEGER;INTEGER;INTEGER); : INTEGER ;
+PROCEDURE   prefresh (w: WINDOW,INTEGER;INTEGER;INTEGER;INTEGER;INTEGER;INTEGER);	 : INTEGER ;
+PROCEDURE   printw ( char *,...)		 : INTEGER ;
+		 ;
+PROCEDURE   putp (char * );				 : INTEGER ;
+PROCEDURE   putwin (w: WINDOW, FILE * );			 : INTEGER ;
+extern    void     qiflush ();
+PROCEDURE   raw ();					 : INTEGER ;
+PROCEDURE   redrawwin (w: WINDOW);			 : INTEGER ;
+PROCEDURE   refresh ();				 : INTEGER ;
+
+PROCEDURE   reset_prog_mode ();			 : INTEGER ;
+PROCEDURE   reset_shell_mode ();			 : INTEGER ;
+PROCEDURE   ripoffline (INTEGER; int ( *init)(w: WINDOW, INTEGER));	 : INTEGER ;
+
+PROCEDURE   scanw ( char *,...)		 : INTEGER ;
+
+PROCEDURE   scr_dump (char * );			 : INTEGER ;
+PROCEDURE   scr_init (char * );			 : INTEGER ;
+PROCEDURE   scrl (INTEGER);					 : INTEGER ;
+PROCEDURE   scroll (w: WINDOW);				 : INTEGER ;
+PROCEDURE   scrollok (w: WINDOW,NCURSES_BOOL );			 : INTEGER ;
+PROCEDURE   scr_restore (char * );			 : INTEGER ;
+PROCEDURE   scr_set (char * );			 : INTEGER ;
+PROCEDURE   setscrreg (INTEGER;INTEGER);				 : INTEGER ;
+extern    SCREEN *     set_term (SCREEN * );
+PROCEDURE   slk_attroff (chtype);			 : INTEGER ;
+PROCEDURE   slk_attr_off (attr_t, void * );		 : INTEGER ;
+PROCEDURE   slk_attron (chtype);			 : INTEGER ;
+PROCEDURE   slk_attr_on (attr_t,void* );			 : INTEGER ;
+PROCEDURE   slk_attrset (chtype);			 : INTEGER ;
+extern    attr_t     slk_attr ();
+PROCEDURE   slk_attr_set (attr_t,short,void* );	 : INTEGER ;
+PROCEDURE   slk_clear ();				 : INTEGER ;
+PROCEDURE   slk_color (short);				 : INTEGER ;
+PROCEDURE   slk_init (INTEGER);				 : INTEGER ;
+extern    char *     slk_label (INTEGER);
+PROCEDURE   slk_noutrefresh ();			 : INTEGER ;
+PROCEDURE   subpad (w: WINDOW, INTEGER; INTEGER; INTEGER; INTEGER);	         : WINDOW ;
+PROCEDURE   subwin (w: WINDOW,INTEGER;INTEGER;INTEGER;INTEGER);	         : WINDOW ;
+PROCEDURE   syncok (w: WINDOW, NCURSES_BOOL );			 : INTEGER ;
+extern    chtype     termattrs ();
+extern    attr_t     term_attrs ();
+extern    char *     termname ();
+PROCEDURE   tigetflag ( char * );		 : INTEGER ;
+PROCEDURE   tigetnum ( char * );		 : INTEGER ;
+extern    char *     tigetstr ( char * );
+PROCEDURE   timeout (INTEGER);
+PROCEDURE   touchline (w: WINDOW, INTEGER; INTEGER);		 : INTEGER ;
+PROCEDURE   touchwin (w: WINDOW);				 : INTEGER ;
+extern    char *     tparm ( char *, ...);
+PROCEDURE   typeahead (INTEGER);				 : INTEGER ;
+PROCEDURE   ungetch (INTEGER);				 : INTEGER ;
+PROCEDURE   untouchwin (w: WINDOW);			 : INTEGER ;
+PROCEDURE   use_env (NCURSES_BOOL );
+PROCEDURE   vidattr (chtype);				 : INTEGER ;
+PROCEDURE   vid_attr (attr_t, short, void * );		 : INTEGER ;
+PROCEDURE   vidputs (chtype, int ( * )(INTEGER));		 : INTEGER ;
+PROCEDURE   vline (chtype, INTEGER);				 : INTEGER ;
+PROCEDURE   vwprintw (w: WINDOW,  char *,va_list);	 : INTEGER ;
+PROCEDURE   vw_printw (w: WINDOW,  char *,va_list);	 : INTEGER ;
+PROCEDURE   vwscanw (w: WINDOW,  char *,va_list);	 : INTEGER ;
+PROCEDURE   vw_scanw (w: WINDOW,  char *,va_list);	 : INTEGER ;
+
+PROCEDURE   waddchnstr (w: WINDOW,s: chstringconst,INTEGER);  : INTEGER ;
+PROCEDURE   waddchstr (w: WINDOW,s: chstring);		 : INTEGER ;
+PROCEDURE   waddnstr (w: WINDOW,char *const,INTEGER);	 : INTEGER ;
+PROCEDURE   waddstr (w: WINDOW,char * );		 : INTEGER ;
+PROCEDURE   wattron (w: WINDOW, INTEGER);			 : INTEGER ;
+PROCEDURE   wattroff (w: WINDOW, INTEGER);			 : INTEGER ;
+PROCEDURE   wattrset (w: WINDOW, INTEGER);			 : INTEGER ;
+PROCEDURE   wattr_get (w: WINDOW, attr_t *, short *, void * );	 : INTEGER ;
+PROCEDURE   wattr_on (w: WINDOW,  attr_t, void * );	 : INTEGER ;
+PROCEDURE   wattr_off (w: WINDOW,  attr_t, void * );	 : INTEGER ;
+PROCEDURE   wattr_set (w: WINDOW, attr_t, short, void * );		 : INTEGER ;
+PROCEDURE   wbkgd (w: WINDOW,chtype);		 : INTEGER ;
+PROCEDURE   wbkgdset (w: WINDOW,chtype);
+PROCEDURE   wborder (w: WINDOW,chtype,chtype,chtype,chtype,chtype,chtype,chtype,chtype);	 : INTEGER ;
+PROCEDURE   wchgat (w: WINDOW, INTEGER; attr_t, short, void * ); : INTEGER ;
+PROCEDURE   wclrtobot (w: WINDOW);			 : INTEGER ;
+PROCEDURE   wclrtoeol (w: WINDOW);			 : INTEGER ;
+PROCEDURE   wcolor_set (WINDOW*,short,void* );		 : INTEGER ;
+PROCEDURE   wcursyncup (w: WINDOW);
+PROCEDURE   wdelch (w: WINDOW);				 : INTEGER ;
+PROCEDURE   wdeleteln (w: WINDOW);			 : INTEGER ;
+PROCEDURE   wechochar (w: WINDOW, chtype);		 : INTEGER ;
+PROCEDURE   werase (w: WINDOW);				 : INTEGER ;
+PROCEDURE   wgetch (w: WINDOW);				 : INTEGER ;
+PROCEDURE   wgetnstr (w: WINDOW,char *,INTEGER);		 : INTEGER ;
+PROCEDURE   wgetstr (w: WINDOW, char * );			 : INTEGER ;
+PROCEDURE   whline (w: WINDOW, chtype, INTEGER);		 : INTEGER ;
+extern    chtype     winch (w: WINDOW);
+PROCEDURE   winchnstr (w: WINDOW, s: chstring, INTEGER);		 : INTEGER ;
+PROCEDURE   winchstr (w: WINDOW, s: chstring);		 : INTEGER ;
+PROCEDURE   winnstr (w: WINDOW, char *, INTEGER);		 : INTEGER ;
+PROCEDURE   winsch (w: WINDOW, chtype);			 : INTEGER ;
+PROCEDURE   winsdelln (w: WINDOW,INTEGER);			 : INTEGER ;
+PROCEDURE   winsertln (w: WINDOW);			 : INTEGER ;
+PROCEDURE   winsnstr (w: WINDOW, char *,INTEGER);	 : INTEGER ;
+PROCEDURE   winsstr (w: WINDOW, char * );		 : INTEGER ;
+PROCEDURE   winstr (w: WINDOW, char * );			 : INTEGER ;
+PROCEDURE   wnoutrefresh (w: WINDOW);			 : INTEGER ;
+PROCEDURE   wprintw (w: WINDOW,  char *,...)	 : INTEGER ;
+PROCEDURE   wredrawln (w: WINDOW,INTEGER;INTEGER);		 : INTEGER ;
+
+PROCEDURE   wscanw (w: WINDOW, f: ARRAY OF CHAR ,...)	 : INTEGER ;
+PROCEDURE   wscrl (w: WINDOW,INTEGER);			 : INTEGER ;
+PROCEDURE   wsetscrreg (w: WINDOW,INTEGER;INTEGER);		 : INTEGER ;
+PROCEDURE   wstandout (w: WINDOW);			 : INTEGER ;
+PROCEDURE   wstandend (w: WINDOW);			 : INTEGER ;
+PROCEDURE   wsyncdown (w: WINDOW);
+PROCEDURE   wsyncup (w: WINDOW);
+PROCEDURE   wtimeout (w: WINDOW,INTEGER);
+PROCEDURE   wtouchln (w: WINDOW,INTEGER;INTEGER;INTEGER);		 : INTEGER ;
+PROCEDURE   wvline (w: WINDOW; ch: chtype; INTEGER);		 : INTEGER ;
+********************)
+
+PROCEDURE   trace (d: INTEGER);
+
+
+END ncurses.
+
+=========================================================================================
+http://verhoeven272.nl/cgi-bin/FS?fruttenboel%2Fmocka&Fruttenboel+Mocka&modtop&svgalib&maincontent
+Graphics programming.
+
+Normally, when you need a good and reliable graphics package, you go for SVGAlib. It's stable, fast and reasonably universal. But, svgalib was written for and in C. And I kind of don't like C. To put it mildly.
+I'm not saying that C is a bad programming language. It's just not my kind of language since it gives too much freedom and almost no protection.
+
+That's why I want to use Modula-2 in combination with the SVGAlib libraries. And Modula-2 offers a construct to do just that: the FOREIGN MODULE. There's an example of a foreign module in the IOport section.
+
+Sources for the FOREIGN MODULEs.
+
+Below are the source files that make up the current 'Vga MODULE'. The first part is in C, the second is the 'DEFINITION MODULE'.
+
+#include <vga.h>
+
+int   Initialize (void)
+{
+   if ( vga_init () == 0 )
+     return 1;
+   else
+     return 0;
+}
+
+void  SetMode (int newmode)
+{
+   vga_setmode (newmode);
+}
+
+int   GetMode (void)
+{
+   return vga_getcurrentmode ();
+}
+
+int   MaxWidth (void)
+{
+   return vga_getxdim ();
+}
+
+int   MaxHeight (void)
+{
+   return vga_getydim ();
+}
+
+void  Clear (void)
+{
+   vga_clear ();
+}
+
+void  SetColour (int colour)
+{
+   vga_setcolor (colour);
+}
+
+void  SetEGAcolour (int colour)
+{
+   vga_setegacolor (colour);
+}
+
+void  SetRGB (int red, int green, int blue)
+{
+   vga_setrgbcolor (red, green, blue);
+}
+
+void   DrawLine (int x0, int y0, int dx, int dy)
+{
+   vga_drawline (x0, y0, x0 + dx, y0 + dy);
+}
+
+void   Plot (int x, int y)
+{
+   vga_drawpixel (x, y);
+}
+
+int    ThisColour (int x, int y)
+{
+   return vga_getpixel (x, y);
+}
+
+void   GetKey (char *ch)
+{
+   *ch = vga_getkey ();
+}
+
+
+These functions are SMALL and all they do is make an interface for Modula-2 to hook itself on. We also get the chance to rename the functions or even change the order and nature of the arguments. As you undoubtedly have seen... :o)
+
+What follows is the source of the 'DEFINITION MODULE', although it is now called a 'FOREIGN MODULE' to indicate that the 'IMPLEMENTATION' section is -not- in Modula-2.
+
+FOREIGN MODULE Vga;
+
+
+TYPE	EGAcolour  = (black, blue, green, cyan, red,    pink,  brown, white,
+		       GREY, BLUE, GREEN, CYAN, RED, MAGENTA, YELLOW, WHITE);
+
+
+PROCEDURE Initialize () : BOOLEAN;
+
+PROCEDURE MaxWidth () : CARDINAL;
+
+PROCEDURE MaxHeight () : CARDINAL;
+
+PROCEDURE Clear;
+
+PROCEDURE SetColour (colour : CARDINAL);
+
+PROCEDURE SetEGAcolour (colour : CARDINAL);
+
+PROCEDURE SetRGB (red, green, blue : CARDINAL);
+
+PROCEDURE DrawLine (x0, y0, dx, dy : CARDINAL);
+
+PROCEDURE Plot (x, y : CARDINAL);
+
+PROCEDURE ThisColour (x, y : CARDINAL) : CARDINAL;
+
+PROCEDURE SetMode (newmode : CARDINAL);
+
+PROCEDURE GetMode () : CARDINAL;
+
+PROCEDURE GetKey (VAR ch : CHAR);
+
+END Vga.
+
+
+Changes to the Mocka compiler
+
+Below, I list the changes to the respective scripts such that Mocka will incorporate the right modules in the linking phase. You need to change just two script files. Remember to do this as 'root' user, otherwise the scripts might not run anymore.
+
+First locate the files 'MC' and '???/sys/link' using the 'locate' command. Switch to the directory that contains the 'MC' script. Then issue the command:
+
+     bash-2.05# cp MC GMC
+
+
+Edit the file as described below. You only need to add ONE token to GMC.
+
+File : /usr/local/bin/MC
+
+Change the line reading
+
+	LINK=${MCLINK-$MOCKADIR/sys/link}
+
+
+into
+
+	LINK=${MCLINK-$MOCKADIR/sys/glink}
+
+
+Now that we have changed the Integrated Development Environment (IDE) such that another linker mechanism has been chosen, we also need to appropriately instruct the linker. That's done in the file in 'sys/glink'.
+
+But first you need to create that file. Locate the file using something similar to:
+
+     bash-2.05# locate /sys/link
+     /usr/local/mocka/sys/link
+
+
+Now create the file 'glink' as follows:
+
+     bash-2.05# cp link glink
+
+
+You only need to change the bottom line of that file to something similar to:
+
+	$LD -o $program -lvga $STAT $PRE $RTS $modules $LIB $POST
+
+
+Rounding up
+
+Well, that's it. If you want to write executables that use SVGAlib graphics in them, just start the Mocka compiler using 'GMC' and do your thing. Don't forget that SVGAlib programs must be SUID root before they can run since there are some special instructions in the Initialize section of SVGAlib. To do that, change to user root and do as follows:
+
+     bash-2.05# chown root:root [filename]
+     bash-2.05# chmod 4755 [filename]
+
+
+This should do the trick.
+
+The current contents of the VGA module is just for testing. If you have ideas for additions or omissions, don't hesitate to implement them. Please report your problems and progress on
+
+A pleasant side effect.
+
+While running some tests to try out graphic mode, I found a strange but pleasant side effect of using the SVGAlib library. Look at the following source and visualize what will happen:
+
+MODULE ttt;
+
+FROM  InOut     IMPORT  Read, Write, WriteLn;
+
+VAR   ch   		: CHAR;
+
+BEGIN
+   LOOP
+      Read (ch);
+      IF  ch = 'X'  THEN  EXIT  END
+   END;
+   Write (ch);
+   WriteLn;
+END ttt.
+
+
+Not too difficult, I think. The program enters an infinite loop and it gets out of it if the 'X' (capital 'x') is pressed. But since Unix runs with buffered I/O, you can enter what you like, nothing will happen before you have pressed the Enter key.
+No big deal; this is what we KNOW about Unix and we got used to it.
+
+Enter the following source:
+
+MODULE svg01;
+
+FROM  InOut      IMPORT  Read, Write, WriteBf, WriteString;
+
+IMPORT Vga;
+
+VAR   OldMode, x, y		: CARDINAL;
+      ch			: CHAR;
+
+BEGIN
+   IF  Vga.Initialize () = FALSE  THEN
+      WriteString ('Could not start SVGAlib libraries. Aborting...');
+      WriteBf;
+      HALT
+   END;
+   OldMode := Vga.GetMode ();
+   Vga.SetMode (4);
+   Vga.SetColour (14);
+   Vga.Clear ();
+   Vga.SetColour (10);
+   FOR y := 125 TO 175 DO
+      FOR x := 100 TO 500 DO
+         Vga.Plot (x, y)
+      END
+   END;
+   LOOP
+      Read (ch);
+      IF  ch = 'X'  THEN  EXIT  END
+   END;
+   Vga.SetMode (OldMode);
+   Write (ch);
+   WriteBf;
+END svg01.
+
+
+This program does a bit more. It initializes the SVGAlib functions and it paints a nice geometrical shape on the screen. It was nice to see how fast it worked. And it proves the power of Mocka as a Modula-2 compiler. The 'FOREIGN MODULES' are very powerful.
+
+But now compile and run this program (with the GMC script). What do you think will happen after the shape is drawn on screen?
+
+I'll tell you: the 'Read' function suddenly doesn't need an Enter key to access the keys you type! Apparently, 'Read' suddenly reads from an -unbuffered- inputstream!
+Just try it. Run the program and touch some keys. Nothing happens, as usual. But as soon as you hit the capital 'X', the program jumps out of its loop and resumes execution.
+
+This opens up a lot of opportunities. Now we won't need the SVGA 'raw' keyboard functions anymore. Cooked will do just as well for us!
+
+Page created 2004, last revised on Tuesday, August 18, 2009 4:45:01 PM
+This page located at http://verhoeven272.nl/fruttenboel/mocka/svgalib.html
+
+Page equipped with GoogleBuster technology
