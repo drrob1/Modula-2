@@ -34,6 +34,7 @@ REVISION HISTORY
  9 Dec 16 -- Will start fixing 2 problems.  (1) if screen timeout is 0, this pgm crashes, and
               (2) will have some way to input a time at which to automatically go to sleep or become groggy.
               And I took out code that was commented out long ago.
+17 Dec 16 -- Added Will Sleep at time.
 --------------------------------------*)
 <*/Resource:FHPacs.RES*>
 MODULE FHPacs;
@@ -105,7 +106,7 @@ CONST
   InputPromptLn1 = " <tab> Sleep in 5; <bsp> Wake up; <del> or <F1> emerg screen timer reset and HALT. ";
   InputPromptLn2 = " <home> stop mouse movement; <end> resume mouse movements. ";
   InputPromptLn3 = " <sp> sleep toggle; <F9> Enter new hour of day to become groggy as 24-hr 2 digit number.";
-  LastMod = "9 Dec 16";
+  LastMod = "17 Dec 16";
   clipfmt = CLIPBOARD_ASCII;
   FHIcon32 = "#100";
   FHIcon16 = "#200";
@@ -196,6 +197,7 @@ VAR
     ans    : CHAR;
     bool   : BOOLEAN;
     dt,DatTim : DateTimeType;
+    GroggyTimeStr : STR10TYP;
 
 BEGIN
     c := 0;
@@ -305,9 +307,12 @@ BEGIN
         EraseToEOL(tw,a);
         WriteLn(tw);
         IF sleep THEN
-          WriteString(tw,' Asleep.',a);
+          WriteString(tw," Asleep.",a);
         ELSE
-          WriteString(tw,' Awake.',a);
+          WriteString(tw," Awake.  Will sleep at ",a);
+          CardToStr(HourOfDayGroggy,GroggyTimeStr);
+          WriteString(tw,GroggyTimeStr,a);
+          WriteString(tw,":00 hours.",a);
         END;
         EraseToEOL(tw,a);
         WriteLn(tw);
