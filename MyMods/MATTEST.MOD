@@ -10,11 +10,19 @@ MODULE MatTest;
         (*                                                      *)
         (********************************************************)
 
+(*
+  REVISION HISTORY
+  ================
+  21 Dec 16 -- Removed all references to complex, which is only for the Eigenvalues anyway
+  22 Dec 16 -- It compiled and worked without the Eigenvalue tests
+*)
+
+
 (* IMPORT Cx; *)
 
 FROM Mat IMPORT
     (* proc *)  Zero, Write, Add, Sub, Mul,
-                Random, Solve, GaussJ, Invert, Eigenvalues;
+                Random, Solve, GaussJ, Invert (*, Eigenvalues *)  ;
 
 (*
 FROM Windows IMPORT
@@ -45,13 +53,13 @@ FROM TextWindows IMPORT
     IsUserMessageWaiting,AddVScrollBar, AddHScrollBar, AddScrollBars,
     SetScrollBarPos, SetWindowData, SetWindowDataNum, GetWindowData, GetWindowDataNum,
     GetWindowSize, SetWindowSize, GetWindowPos, SetWindowPos, CascadeWindow,
-    SetWindowIsBusy, GetWindowDisplayInfo, SetWindowDisplayInfo, 
+    SetWindowIsBusy, GetWindowDisplayInfo, SetWindowDisplayInfo,
     SetScrollDisableWhenNone, SetActiveTabChild, SetTabChildPosition,
     GetForegroundWindow, SetForegroundWindow,
     SetTimer, KillTimer, DisplayHelp,
     Xpos, Ypos, Xorg, Yorg, Xmax, Ymax;
 
-FROM MiscM2 IMPORT WriteCx, CLS, SelectWindow, WriteString, WriteLn, PressAnyKey;
+FROM MiscM2 IMPORT CLS, SelectWindow, WriteString, WriteLn, PressAnyKey;
 
 IMPORT Terminal, BasicDialogs;
 FROM BasicDialogs IMPORT MessageTypes;
@@ -241,7 +249,7 @@ PROCEDURE SingularTest;
 
     END SingularTest;
 
-(************************************************************************)
+(************************************************************************
 
 PROCEDURE InversionTest;
 
@@ -287,7 +295,7 @@ PROCEDURE InversionTest;
 
         PressAnyKey;
         CLS;
-        
+(*
         WriteLn;  WriteString ("EIGENVALUES");  WriteLn;
         WriteString ("The eigenvalues of A are");  WriteLn;
         Eigenvalues (A, W, N);
@@ -301,21 +309,23 @@ PROCEDURE InversionTest;
         FOR j := 1 TO N DO
             WriteString ("    ");  WriteCx (W[j], 5);  WriteLn;
         END (*FOR*);
-
+*)
         PressAnyKey;
         (*CloseWindow (w);*)
 
     END InversionTest;
+*)
 
 (************************************************************************)
 (*                              MAIN PROGRAM                            *)
 (************************************************************************)
 
 BEGIN
-(*
+
     BasicTest;
     SolveTest;
     SingularTest;
-*)
+(*
     InversionTest;
+*)
 END MatTest.

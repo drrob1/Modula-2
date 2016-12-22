@@ -108,11 +108,11 @@ PROCEDURE Invert (A: ARRAY OF ARRAY OF EltType;
 (************************************************************************)
 (*                           EIGENVALUES                                *)
 (************************************************************************)
-
+(*
 PROCEDURE Eigenvalues (A: ARRAY OF ARRAY OF EltType;
                           VAR OUT W: ARRAY OF LONGCOMPLEX;
                           N: CARDINAL);
-
+*)
     (* Finds all the eigenvalues of an NxN matrix.    *)
     (* This procedure does not modify A.              *)
 

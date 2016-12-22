@@ -574,13 +574,13 @@ PROCEDURE Invert (A: ARRAY OF ARRAY OF EltType;
 (************************************************************************)
 (*                         EIGENPROBLEMS                                *)
 (************************************************************************)
-
+(*
 PROCEDURE Balance (VAR INOUT A: ARRAY OF ARRAY OF EltType;  N: CARDINAL);
 
-    (* Replaces A by a better-balanced matrix with the same eigenvalues.*)
-    (* There is no effect on symmetrical matrices.  To minimize the     *)
-    (* effect of rounding, we scale only by a restricted set of scaling *)
-    (* factors derived from the machine's radix.                        *)
+    /* Replaces A by a better-balanced matrix with the same eigenvalues.*/
+    /* There is no effect on symmetrical matrices.  To minimize the     */
+    /* effect of rounding, we scale only by a restricted set of scaling */
+    /* factors derived from the machine's radix.                        */
 
     CONST radix = 2.0;  radixsq = radix*radix;
 
@@ -596,39 +596,39 @@ PROCEDURE Balance (VAR INOUT A: ARRAY OF ARRAY OF EltType;  N: CARDINAL);
                     IF j <> row THEN
                         c := c + ABS(A[j,row]);
                         r := r + ABS(A[row,j]);
-                    END (*IF*);
-                END (*FOR*);
+                    END /*IF*/;
+                END /*FOR*/;
                 IF (c <> 0.0) AND (r <> 0.0) THEN
                     g := r/radix;  f := 1.0;  s := c + r;
                     WHILE c < g DO
                         f := f*radix;  c := c*radixsq;
-                    END (*WHILE*);
+                    END /*WHILE*/;
                     g := r*radix;
                     WHILE c > g DO
                         f := f/radix;  c := c/radixsq;
-                    END (*WHILE*);
+                    END /*WHILE*/;
                     IF (c+r)/f < 0.95*s THEN
                         done := FALSE;  g := 1.0/f;
 
-                        (* Here is the actual transformation: a scaling *)
-                        (* of this row and the corresponding column.    *)
+                        /* Here is the actual transformation: a scaling */
+                        /* of this row and the corresponding column.    */
 
                         FOR j := 0 TO N-1 DO
                             A[row,j] := g*A[row,j];
-                        END (*FOR*);
+                        END /*FOR*/;
                         FOR j := 0 TO N-1 DO
                             A[j,row] := f*A[j,row];
-                        END (*FOR*);
-                    END (*IF*);
+                        END /*FOR*/;
+                    END /*IF*/;
 
-                END (*IF c and r nonzero *);
+                END /*IF c and r nonzero */;
 
-            END (*FOR row := 0 TO N-1*);
+            END /*FOR row := 0 TO N-1*/;
 
         UNTIL done;
 
     END Balance;
-
+*)
 (************************************************************************)
 
 PROCEDURE Hessenberg (VAR INOUT A: ARRAY OF ARRAY OF EltType;  N: CARDINAL);
@@ -743,9 +743,10 @@ PROCEDURE Hessenberg (VAR INOUT A: ARRAY OF ARRAY OF EltType;  N: CARDINAL);
     END Hessenberg;
 
 (************************************************************************)
+(*
+PROCEDURE QR ( A: ARRAY OF ARRAY OF EltType;  VAR OUT W: ARRAY OF LONGCOMPLEX; N: CARDINAL);
+*)
 
-PROCEDURE QR ( A: ARRAY OF ARRAY OF EltType;  VAR OUT W: ARRAY OF LONGCOMPLEX;
-                                             N: CARDINAL);
 (* I have no idea why I had to make the first param, the A matrix, a VAR param for this to work. *)
 (* Could it be a compiler bug? *)
     (* Finds all the eigenvalues of an upper Hessenberg matrix.         *)
@@ -753,7 +754,7 @@ PROCEDURE QR ( A: ARRAY OF ARRAY OF EltType;  VAR OUT W: ARRAY OF LONGCOMPLEX;
 
     (* Source: this is an adaption of code from "Numerical Recipes"     *)
     (* by Press, Flannery, Teutolsky, and Vetterling.                   *)
-
+(*
     VAR last, m, j, k, L, its, i, imax: CARDINAL;
         z, y, x, w, v, u, shift, s, r, q, p, anorm: LONGREAL;
 
@@ -946,15 +947,13 @@ PROCEDURE QR ( A: ARRAY OF ARRAY OF EltType;  VAR OUT W: ARRAY OF LONGCOMPLEX;
         END (* main loop *);
 
     END QR;
-
+*)
 (************************************************************************)
+(*
+PROCEDURE Eigenvalues (A: ARRAY OF ARRAY OF EltType; VAR OUT W: ARRAY OF LONGCOMPLEX; N: CARDINAL);
 
-PROCEDURE Eigenvalues (A: ARRAY OF ARRAY OF EltType;
-                          VAR OUT W: ARRAY OF LONGCOMPLEX;
-                          N: CARDINAL);
-
-    (* Finds all the eigenvalues of an NxN matrix.    *)
-    (* This procedure does not modify A.              *)
+    /* Finds all the eigenvalues of an NxN matrix.    */
+    /* This procedure does not modify A.              */
 
     VAR Acopy: ArrayPtr;
     
@@ -966,9 +965,9 @@ PROCEDURE Eigenvalues (A: ARRAY OF ARRAY OF EltType;
             Hessenberg (Acopy^, N);
             QR (Acopy^, W, N);
             DisposeArray (Acopy, N, N);
-        END (*IF*);
+        END /*IF*/;
     END Eigenvalues;
-
+*)
 (************************************************************************)
 (*                              OUTPUT                                  *)
 (************************************************************************)
