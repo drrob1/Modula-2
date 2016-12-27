@@ -16,11 +16,16 @@ IMPLEMENTATION MODULE Vec;
         (*                                                      *)
         (********************************************************)
 
-FROM Storage IMPORT
-    (* proc *)  ALLOCATE, DEALLOCATE;
+(*  Data types defined in the def module
+TYPE
+    EltType = LONGREAL;
+    VectorPtr = POINTER TO ARRAY OF EltType;
+*)
 
-FROM MiscM2 IMPORT
-    (* proc *)  WriteLn, WriteString, WriteLongReal;
+
+FROM Storage IMPORT (* proc *)  ALLOCATE, DEALLOCATE;
+
+FROM MiscM2 IMPORT (* proc *)  WriteLn, WriteString, WriteLongReal;
 
 (************************************************************************)
 
@@ -30,7 +35,7 @@ FROM MiscM2 IMPORT
 
 PROCEDURE NewVector (N: CARDINAL): VectorPtr;
 
-    (* Creates a vector of N elements. *)
+    (* Creates a vector of N elements, for 0 to N-1. *)
 
     VAR result: VectorPtr;
 
@@ -41,96 +46,102 @@ PROCEDURE NewVector (N: CARDINAL): VectorPtr;
 
 (************************************************************************)
 
-PROCEDURE DisposeVector (VAR (*INOUT*) V: VectorPtr;  N: CARDINAL);
+PROCEDURE DisposeVector (VAR (*INOUT*) V: VectorPtr);
 
     (* Deallocates a vector of N elements. *)
+    (* But N is not used AFAIK.  So I'm taking it out of the param list. *)
 
     BEGIN
+    	IF V <> NIL THEN
         DISPOSE (V);
+        V := NIL
+      END (*if*);
     END DisposeVector;
 
 (************************************************************************)
 (*                          COPYING A VECTOR                            *)
 (************************************************************************)
 
-PROCEDURE Copy (A: ARRAY OF EltType;  N: CARDINAL;
-                         VAR (*OUT*) B: ARRAY OF EltType);
+(*                                                                PROCEDURE Copy (A: ARRAY OF EltType;  N: CARDINAL; VAR (*OUT*) B: ARRAY OF EltType); *)
+PROCEDURE Copy (A: ARRAY OF EltType;  VAR (*OUT*) B: ARRAY OF EltType);
 
     (* Copies an N-element vector A to B. *)
 
-    VAR i: CARDINAL;
+    VAR i,N: CARDINAL;
 
     BEGIN
-        FOR i := 0 TO N-1 DO
-            B[i] := A[i];
-        END (*FOR*);
+    	N  := HIGH(A);
+      FOR i := 0 TO N-1 DO
+        B[i] := A[i];
+      END (*FOR*);
     END Copy;
 
 (************************************************************************)
 (*                          VECTOR ARITHMETIC                           *)
 (************************************************************************)
 
-PROCEDURE Add (A, B: ARRAY OF EltType;  elts: CARDINAL;
-                      VAR (*OUT*) C: ARRAY OF EltType);
+(*                                                           PROCEDURE Add (A, B: ARRAY OF EltType;  elts: CARDINAL; VAR (*OUT*) C: ARRAY OF EltType); *)
+PROCEDURE Add (A, B: ARRAY OF EltType; VAR (*OUT*) C: ARRAY OF EltType);
 
     (* Computes C := A + B.  All vectors have elts elements. *)
 
-    VAR i: CARDINAL;
+    VAR i,elts: CARDINAL;
 
     BEGIN
-        FOR i := 0 TO elts-1 DO
-            C[i] := A[i] + B[i];
-        END (*FOR*);
+    	elts := HIGH(A);
+      FOR i := 0 TO elts-1 DO
+        C[i] := A[i] + B[i];
+      END (*FOR*);
     END Add;
 
 (************************************************************************)
 
-PROCEDURE Sub (A, B: ARRAY OF EltType;  elts: CARDINAL;
-                      VAR (*OUT*) C: ARRAY OF EltType);
+PROCEDURE Sub (A, B: ARRAY OF EltType; VAR (*OUT*) C: ARRAY OF EltType);
 
     (* Computes C := A - B.  All vectors have elts elements.  *)
 
-    VAR i: CARDINAL;
+    VAR i,elts: CARDINAL;
 
     BEGIN
-        FOR i := 0 TO elts-1 DO
-            C[i] := A[i] - B[i];
-        END (*FOR*);
+    	elts := HIGH(A);
+      FOR i := 0 TO elts-1 DO
+        C[i] := A[i] - B[i];
+      END (*FOR*);
     END Sub;
 
 (************************************************************************)
 
-PROCEDURE Mul (A: ARRAY OF ARRAY OF EltType;  B: ARRAY OF EltType;
-                      N1, N2: CARDINAL;
-                      VAR (*OUT*) C: ARRAY OF EltType);
+PROCEDURE Mul (A: ARRAY OF ARRAY OF EltType;  B: ARRAY OF EltType; VAR (*OUT*) C: ARRAY OF EltType);
 
     (* Computes C := A*B, where A is N1xN2 and B is N2x1. *)
 
-    VAR i, j: CARDINAL;  sum: EltType;
+    VAR i,j,N1,N2: CARDINAL;  sum: EltType;
 
     BEGIN
-        FOR i := 0 TO N1-1 DO
-            sum := 0.0;
-            FOR j := 0 TO N2-1 DO
-                sum := sum + A[i,j]*B[j];
-            END (*FOR*);
-            C[i] := sum;
+    	N1 := HIGH(A);
+    	N2 := HIGH(B);
+      FOR i := 0 TO N1-1 DO
+        sum := 0.0;
+        FOR j := 0 TO N2-1 DO
+          sum := sum + A[i,j]*B[j];
         END (*FOR*);
+        C[i] := sum;
+      END (*FOR*);
     END Mul;
 
 (************************************************************************)
 
-PROCEDURE ScalarMul (A: EltType;  B: ARRAY OF EltType;  elts: CARDINAL;
-                                  VAR (*OUT*) C: ARRAY OF EltType);
+PROCEDURE ScalarMul (A: EltType;  B: ARRAY OF EltType; VAR (*OUT*) C: ARRAY OF EltType);
 
     (* Computes C := A*B, where A is scalar and B has elts elements. *)
 
-    VAR i: CARDINAL;
+    VAR i,elts: CARDINAL;
 
     BEGIN
-        FOR i := 0 TO elts-1 DO
-            C[i] := A * B[i];
-        END (*FOR*);
+    	elts := HIGH(B);
+      FOR i := 0 TO elts-1 DO
+        C[i] := A * B[i];
+      END (*FOR*);
     END ScalarMul;
 
 (************************************************************************)
@@ -139,17 +150,17 @@ PROCEDURE ScalarMul (A: EltType;  B: ARRAY OF EltType;  elts: CARDINAL;
 
 PROCEDURE Write (V: ARRAY OF EltType;  N: CARDINAL;  places: CARDINAL);
 
-    (* Writes the N-element vector V to the screen, where each  *)
-    (* column occupies a field "places" characters wide.        *)
+(* Writes the N-element vector V to the screen, where each column occupies a field "places" characters wide. *)
 
-    VAR i: CARDINAL;
+    VAR i,N: CARDINAL;
 
     BEGIN
-        FOR i := 0 TO N-1 DO
-            WriteString ("  ");
-            WriteLongReal (V[i], places-2);
-        END (*FOR*);
-        WriteLn;
+    	N := HIGH(V);
+      FOR i := 0 TO N-1 DO
+        WriteString ("  ");
+        WriteLongReal (V[i], places-2);
+      END (*FOR*);
+      WriteLn;
     END Write;
 
 (************************************************************************)

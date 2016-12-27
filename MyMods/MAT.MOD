@@ -16,15 +16,11 @@ IMPLEMENTATION MODULE Mat;
         (*                                                      *)
         (********************************************************)
 
-FROM Storage IMPORT
-    (* proc *)  ALLOCATE, DEALLOCATE;
+FROM Storage IMPORT (* proc *)  ALLOCATE, DEALLOCATE;
 
-FROM Vec IMPORT
-    (* type *)  VectorPtr,
-    (* proc *)  NewVector, DisposeVector;
+FROM Vec IMPORT (* type *)  VectorPtr, (* proc *)  NewVector, DisposeVector;
 
-FROM LongComplexMath IMPORT
-    (* proc *)  conj;
+FROM LongComplexMath IMPORT (* proc *)  conj;
 
 FROM TextWindows IMPORT
     (* TYPES & CONSTS *)
@@ -56,16 +52,23 @@ FROM TextWindows IMPORT
     Xpos, Ypos, Xorg, Yorg, Xmax, Ymax;
     
 FROM MiscM2 IMPORT Error, WriteString, WriteLn, WriteLongReal, Sqrt;
-
-FROM MYRANDOM IMPORT RANDCARD, RANDREAL;
+	
+FROM MYRAND3 IMPORT RANDCARD, RANDREAL;
 (*
+FROM MYRANDOM IMPORT RANDCARD, RANDREAL;
 FROM Rand IMPORT RANDOM;
+*)
+
+(*  Defined in the def module
+TYPE
+	ArrayPtr = POINTER TO ARRAY OF ARRAY OF LONGREAL;
 *)
 
 (************************************************************************)
 
-CONST small = 1.0E-15;
-
+CONST small = 1.0E-10;
+CONST verysmall = 1.0E-15;
+	
 TYPE
     subscript = [0..8191];
     Permutation = POINTER TO ARRAY subscript OF subscript;
@@ -76,7 +79,7 @@ TYPE
 
 PROCEDURE NewArray (N, M: CARDINAL): ArrayPtr;
 
-    (* Creates an NxM matrix. *)
+    (* Creates an N x M matrix. *)
 
     VAR result: ArrayPtr;
 
@@ -87,9 +90,10 @@ PROCEDURE NewArray (N, M: CARDINAL): ArrayPtr;
 
 (************************************************************************)
 
-PROCEDURE DisposeArray (VAR (*INOUT*) V: ArrayPtr;  N, M: CARDINAL);
+                                                                      (* PROCEDURE DisposeArray (VAR (*INOUT*) V: ArrayPtr;  N, M: CARDINAL); *)
+PROCEDURE DisposeArray (VAR (*INOUT*) V: ArrayPtr);
 
-    (* Deallocates an NxM matrix. *)
+    (* Deallocates an N x M matrix.  Since N,M are not used, I removed them from the param list *)
 
     BEGIN
         DISPOSE (V);
@@ -99,69 +103,81 @@ PROCEDURE DisposeArray (VAR (*INOUT*) V: ArrayPtr;  N, M: CARDINAL);
 (*                          COPYING A MATRIX                            *)
 (************************************************************************)
 
-PROCEDURE Copy (A: ARRAY OF ARRAY OF EltType;  r, c: CARDINAL;
-                         VAR (*OUT*) B: ARRAY OF ARRAY OF EltType);
+                                           (* PROCEDURE Copy (A: ARRAY OF ARRAY OF EltType;  r, c: CARDINAL; VAR (*OUT*) B: ARRAY OF ARRAY OF EltType); *)
+PROCEDURE Copy (A: ARRAY OF ARRAY OF LONGREAL;  r, c: CARDINAL; VAR (*OUT*) B: ARRAY OF ARRAY OF LONGREAL);
 
-    (* Copies an rxc matrix A to B. *)
+    (* Copies an r x c matrix A to B. *)
 
-    VAR i, j: CARDINAL;
+    VAR i,j,r,c: CARDINAL;
 
     BEGIN
-        FOR i := 0 TO r-1 DO
-            FOR j := 0 TO c-1 DO
-                B[i,j] := A[i,j];
-            END (*FOR*);
+    	r := HIGH(A);
+    	c := HIGH(A[0]);
+      FOR i := 0 TO r-1 DO
+        FOR j := 0 TO c-1 DO
+          B[i,j] := A[i,j];
         END (*FOR*);
+      END (*FOR*);
     END Copy;
 
 (************************************************************************)
 (*                        SPECIAL MATRICES                              *)
 (************************************************************************)
 
-PROCEDURE Zero (VAR (*INOUT*) M: ARRAY OF ARRAY OF EltType;  r, c: CARDINAL);
+                                                                     (* PROCEDURE Zero (VAR (*INOUT*) M: ARRAY OF ARRAY OF EltType;  r, c: CARDINAL); *)
+PROCEDURE Zero (VAR (*INOUT*) M: ARRAY OF ARRAY OF LONGREAL);
+
 
     (* Creates an r by c matrix with all zero entries. *)
 
-    VAR i, j: CARDINAL;
+    VAR i,j,r,c: CARDINAL;
 
     BEGIN
-        FOR i := 0 TO r-1 DO
-            FOR j := 0 TO c-1 DO
-                M[i,j] := 0.0;
-            END (*FOR*);
+    	r := HIGH(M);
+    	c := HIGH(M[0]);
+      FOR i := 0 TO r-1 DO
+        FOR j := 0 TO c-1 DO
+          M[i,j] := 0.0;
         END (*FOR*);
+      END (*FOR*);
     END Zero;
 
 (************************************************************************)
 
-PROCEDURE Unit (VAR (*INOUT*) M: ARRAY OF ARRAY OF EltType;  N: CARDINAL);
+                                                                       (* PROCEDURE Unit (VAR (*INOUT*) M: ARRAY OF ARRAY OF EltType;  N: CARDINAL); *)
+PROCEDURE Unit (VAR (*INOUT*) M: ARRAY OF ARRAY OF EltType);
 
     (* Creates an N by N unit matrix. *)
 
-    VAR i: CARDINAL;
+    VAR i,N: CARDINAL;
 
     BEGIN
-        Zero (M, N, N);
-        FOR i := 0 TO N-1 DO
-            M[i,i] := 1.0;
-        END (*FOR*);
+    	N := HIGH(M);
+      Zero(M);                                                                                      (* Zero (M, N, N); *)
+      FOR i := 0 TO N-1 DO
+        M[i,i] := 1.0;
+      END (*FOR*);
     END Unit;
 
 (************************************************************************)
 
-PROCEDURE Random (VAR (*INOUT*) M: ARRAY OF ARRAY OF EltType;  r, c: CARDINAL);
+                                                                     (* PROCEDURE Random (VAR (*INOUT*) M: ARRAY OF ARRAY OF EltType;  r, c: CARDINAL); *)
+PROCEDURE Random (VAR (*INOUT*) M: ARRAY OF ARRAY OF LONGREAL);
 
     (* Creates an r by c matrix with random entries. *)
 
-    VAR i, j: CARDINAL;
+    VAR i,j,r,c: CARDINAL;
 
     BEGIN
-        FOR i := 0 TO r-1 DO
-            FOR j := 0 TO c-1 DO
-                M[i,j] := VAL(EltType, FLOAT(RANDCARD(100)));
-(*                M[i,j] := VAL(EltType, RANDREAL()); *)
-            END (*FOR*);
+    	r := HIGH(M);
+    	c := HIG(M[0]);
+      FOR i := 0 TO r-1 DO
+        FOR j := 0 TO c-1 DO
+        	M[i,j] := LFLOAT(RANDCARD(100));
+                                                                  (*        M[i,j] := VAL(EltType, FLOAT(RANDCARD(100))); *)
+                                                                  (*        M[i,j] := VAL(EltType, RANDREAL()); *)
         END (*FOR*);
+      END (*FOR*);
     END Random;
 
 (************************************************************************)

@@ -17,8 +17,12 @@ DEFINITION MODULE Mat;
         (********************************************************)
 
 TYPE
+	(*
     EltType = LONGREAL;
     ArrayPtr = POINTER TO ARRAY OF ARRAY OF EltType;
+  *)
+    ArrayPtr = POINTER TO ARRAY OF ARRAY OF LONGREAL;
+
 
 (************************************************************************)
 (*                   CREATING AND DESTROYING MATRICES                   *)

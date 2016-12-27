@@ -27,6 +27,7 @@ PROCEDURE NewVector (N: CARDINAL): VectorPtr;
 
     (* Creates a vector of N elements. *)
 
+                                                                     (* PROCEDURE DisposeVector (VAR (*INOUT*) V: VectorPtr;  N: CARDINAL); *)
 PROCEDURE DisposeVector (VAR (*INOUT*) V: VectorPtr;  N: CARDINAL);
 
     (* Deallocates a vector of N elements. *)
@@ -35,8 +36,8 @@ PROCEDURE DisposeVector (VAR (*INOUT*) V: VectorPtr;  N: CARDINAL);
 (*                          ASSIGNMENTS                                 *)
 (************************************************************************)
 
-PROCEDURE Copy (A: ARRAY OF EltType;  N: CARDINAL;
-                         VAR (*OUT*) B: ARRAY OF EltType);
+                                                                (* PROCEDURE Copy (A: ARRAY OF EltType;  N: CARDINAL; VAR (*OUT*) B: ARRAY OF EltType); *)
+PROCEDURE Copy (A: ARRAY OF EltType;  VAR (*OUT*) B: ARRAY OF EltType);
 
     (* Copies an N-element vector A to B. *)
 
@@ -44,24 +45,23 @@ PROCEDURE Copy (A: ARRAY OF EltType;  N: CARDINAL;
 (*                          VECTOR ARITHMETIC                           *)
 (************************************************************************)
 
-PROCEDURE Add (A, B: ARRAY OF EltType;  elts: CARDINAL;
-                      VAR (*OUT*) C: ARRAY OF EltType);
+                                                           (* PROCEDURE Add (A, B: ARRAY OF EltType;  elts: CARDINAL; VAR (*OUT*) C: ARRAY OF EltType); *)
+PROCEDURE Add (A, B: ARRAY OF EltType; VAR (*OUT*) C: ARRAY OF EltType);
 
     (* Computes C := A + B.  All vectors have elts elements. *)
 
-PROCEDURE Sub (A, B: ARRAY OF EltType;  elts: CARDINAL;
-                      VAR (*OUT*) C: ARRAY OF EltType);
+                                                           (* PROCEDURE Sub (A, B: ARRAY OF EltType;  elts: CARDINAL; VAR (*OUT*) C: ARRAY OF EltType); *)
+PROCEDURE Sub (A, B: ARRAY OF EltType;  VAR (*OUT*) C: ARRAY OF EltType);
 
     (* Computes C := A - B.  All vectors have elts elements.  *)
 
-PROCEDURE Mul (A: ARRAY OF ARRAY OF EltType;  B: ARRAY OF EltType;
-                      N1, N2: CARDINAL;
-                      VAR (*OUT*) C: ARRAY OF EltType);
+                              (* PROCEDURE Mul (A: ARRAY OF ARRAY OF EltType;  B: ARRAY OF EltType; N1, N2: CARDINAL; VAR (*OUT*) C: ARRAY OF EltType); *)
+PROCEDURE Mul (A: ARRAY OF ARRAY OF EltType;  B: ARRAY OF EltType; N1, N2: CARDINAL; VAR (*OUT*) C: ARRAY OF EltType);
 
     (* Computes C := A*B, where A is N1xN2 and B is N2x1. *)
 
-PROCEDURE ScalarMul (A: EltType;  B: ARRAY OF EltType;  elts: CARDINAL;
-                                  VAR (*OUT*) C: ARRAY OF EltType);
+                                           (* PROCEDURE ScalarMul (A: EltType;  B: ARRAY OF EltType;  elts: CARDINAL; VAR (*OUT*) C: ARRAY OF EltType); *)
+PROCEDURE ScalarMul (A: EltType;  B: ARRAY OF EltType;  elts: CARDINAL; VAR (*OUT*) C: ARRAY OF EltType);
 
     (* Computes C := A*B, where A is scalar and B has elts elements. *)
 
@@ -69,7 +69,8 @@ PROCEDURE ScalarMul (A: EltType;  B: ARRAY OF EltType;  elts: CARDINAL;
 (*                          SCREEN OUTPUT                               *)
 (************************************************************************)
 
-PROCEDURE Write (V: ARRAY OF EltType;  N: CARDINAL;  places: CARDINAL);
+                                                                         (* PROCEDURE Write (V: ARRAY OF EltType;  N: CARDINAL;  places: CARDINAL); *)
+PROCEDURE Write (V: ARRAY OF EltType; places: CARDINAL);
 
     (* Writes the N-element vector V to the screen, where each  *)
     (* column occupies a field "places" characters wide.        *)
