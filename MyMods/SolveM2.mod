@@ -1,23 +1,23 @@
 MODULE SolveM2;
 (*
-  REVISION
-  --------
+  REVISION HISTORY
+  -------- -------
    2 Mar 05 -- Added prompts to remind me of the file format.
    3 Mar 05 -- Made version 2 write lines like eqn w/o =.
    4 Mar 05 -- Don't need N as 1st line now.
   26 Feb 06 -- Will reject non-numeric entries and allows <tab> as delim.
-  27 Dec 16 -- Started update to ADW Modula-2
+  27 Dec 16 -- Started update to ADW Modula-2 and use updated MAT module.
 *)
 
 FROM SYSTEM IMPORT FUNC;
 FROM Storage IMPORT ALLOCATE, DEALLOCATE;
 
-FROM Mat IMPORT Zero, Write, Add, Sub, Mul,Random, Solve, GaussJ, Invert;
-FROM MiscM2 IMPORT WriteCx, SelectWindow, WriteString, WriteLn, PressAnyKey,
-                   ReadCard, WriteCard, Error, CLS;
+FROM Mat IMPORT Zero, Write, Add, Sub, Mul, Random, Solve, GaussJ, Invert, BelowSmallMakeZero;
+FROM MiscStdInOut IMPORT WriteCx, WriteString, WriteLn, PressAnyKey, ReadCard, WriteCard, Error, CLS;
 
 IMPORT Terminal, BasicDialogs, DlgShell;
 FROM BasicDialogs IMPORT MessageTypes;
+FROM Environment IMPORT GetCommandLine;
 IMPORT Strings,MemUtils;
 IMPORT WholeStr,LongStr, LongConv;
 IMPORT LongMath;
@@ -39,15 +39,14 @@ IMPORT ASCII;
   FROM LongStr IMPORT StrToReal, RealToFloat, RealToEng, RealToFixed, RealToStr;
   FROM SysClock IMPORT DateTime,GetClock,CanGetClock,CanSetClock,IsValidDateTime,SetClock;
 
-CONST MaxN = 6;
-      MenuSep = '|';
+CONST MaxN = 9;
 
 (* MaxRealArray is not square because the B column vector is in last column of IM *)
 TYPE MaxRealArray = ARRAY [1..MaxN],[1..MaxN+1] OF LONGREAL;
 
 VAR
   ch1,ch2,ch3 :  CHAR;
-  bool,inputprocessed :  BOOLEAN;
+  bool,inputprocessed,success :  BOOLEAN;
   sigfig,c1,c2,c3,N,M :  CARDINAL;
   inputline,OpenFileName,str1,str2,str3,str4,str5,str6,str7,str8,filter,str0 : STRTYP;
   longstr     : ARRAY [0..5120] OF CHAR;
@@ -61,7 +60,7 @@ VAR
   tknstate    : FSATYP;
   c,retcod,row,col    : CARDINAL;
   i           : INTEGER;
-  ra1,ra2,ra3,ra4,IM,ans : MaxRealArray;
+  ra1,ra2,ra3,ra4,ra5,IM,ans : MaxRealArray;
   tpv1        : TKNPTRTYP;
 
 
@@ -96,7 +95,7 @@ BEGIN
    RETURNs TRUE is successful and name will contain the file specification
    for the file the user has given.
 *)
-  Reset;
+
   OpenFileName := '';
   FOR row := 1 TO MaxN DO
     FOR col := 1 TO MaxN DO
@@ -108,24 +107,36 @@ BEGIN
   Strings.Append(ASCII.cr,longstr);
   Strings.Append(ASCII.lf,longstr);
   Strings.Append('determined by number of rows and B value is last on each line.',longstr);
-  BasicDialogs.MessageBox(longstr,MsgInfo);
-
-  filter := 'Text Files';
-  Strings.Append(MenuSep,filter);
-  Strings.Append('*.txt',filter);
-  Strings.Append(MenuSep,filter);
-  Strings.Append('All',filter);
-  Strings.Append(MenuSep,filter);
-  Strings.Append('*',filter);
-  Strings.Append(MenuSep,filter);
-  c3 := 1;
-  DlgShell.ConvertToNulls(MenuSep,filter);
-  bool := BasicDialogs.PromptOpenFile(OpenFileName,filter,c3,'','',
+(*
+                                                    BasicDialogs.MessageBox(longstr,MsgInfo);
+                                                    filter := 'Text Files';
+                                                    Strings.Append(MenuSep,filter);
+                                                    Strings.Append('*.txt',filter);
+                                                    Strings.Append(MenuSep,filter);
+                                                    Strings.Append('All',filter);
+                                                    Strings.Append(MenuSep,filter);
+                                                    Strings.Append('*',filter);
+                                                    Strings.Append(MenuSep,filter);
+                                                    c3 := 1;
+                                                    DlgShell.ConvertToNulls(MenuSep,filter);
+                            bool := BasicDialogs.PromptOpenFile(OpenFileName,filter,c3,'','',
                                        'Open matrix values as a text file',FALSE);
-  IF NOT bool THEN
-    Error('Could not open file.  Does it exist?');
+                                                    IF NOT bool THEN
+                                                      Error('Could not open file.  Does it exist?');
+                                                      HALT;
+                                                    END;
+*)
+
+
+  GetCommandLine(OpenFileName);
+  IF LENGTH(OpenFileName) = 0 THEN
+    WriteString(" Usage: ");
+    WriteString(longstr);
     HALT;
-  END;
+  END (* if commandline is empty *);
+
+
+
   ASSIGN2BUF(OpenFileName,mybuf);
   FOPEN(InFile,mybuf,RD);
   N := 0;
@@ -150,6 +161,7 @@ BEGIN
         END;
     END (*while N *);
   END; (* reading loop *)
+
 (* Now need to create A and B matrices *)
   FOR row := 1 TO N DO
         FOR col := 1 TO N DO
@@ -158,33 +170,38 @@ BEGIN
         ra2 [row,1] := IM [row, N+1];
   END;
 
-    WriteString(' coef matrix is:');
-    WriteLn;
-    Write(ra1,N,N,3);
-    WriteLn;
-    WriteString(' Right hand side vector matrix is:');
-    WriteLn;
-    Write(ra2,N,1,3);
-    WriteLn;
+  WriteString(' coef matrix is:');
+  WriteLn;
+  Write(ra1,5);
+  WriteLn;
+  WriteString(' Right hand side vector matrix is:');
+  WriteLn;
+  Write(ra2,5);
+  WriteLn;
 
-(*    PressAnyKey; *)
 
-(*    CLS; *)
+  Solve (ra1, ra2, ans);
 
-    Solve (ra1, ra2, ans, N, 1);
-
-    WriteString ("The solution X to AX = B is");  WriteLn;
-    Write (ans, N, 1, 3);
-    PressAnyKey;
+  WriteString ("The solution X to AX = B is");  WriteLn;
+  Write (ans, 5);
+  PressAnyKey;
 
 (* Check that the solution looks right. *)
 
-    Mul (ra1, ans, N, N, 1, ra3);
-    Sub (ra3, ra2, N, 1, ra4);
-    WriteString ("As a check, AX-B evaluates to");  WriteLn;
-    Write (ra4, N, 1, 4);
+  Mul (ra1, ans, ra3);
+  Sub (ra3, ra2, ra4);
+  WriteString ("As a check, raw AX-B evaluates to");  WriteLn;
+  Write (ra4, 6);
 
-    PressAnyKey;
-    IF tpv1 # NIL THEN DISPOSE(tpv1); END;
-    FCLOSE(InFile);
+  PressAnyKey;
+
+  Copy(ra4,ra5);
+  BelowSmallMakeZero(ra5);
+  WriteString(" Processed Ax-B evaluates to ");
+  WriteLn;
+  Write(ra5, 3);
+  WriteLn;
+
+  IF tpv1 # NIL THEN DISPOSE(tpv1); END;
+  FCLOSE(InFile);
 END SolveM2.

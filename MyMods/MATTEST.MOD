@@ -15,20 +15,12 @@ MODULE MatTest;
   ================
   21 Dec 16 -- Removed all references to complex, which is only for the Eigenvalues anyway
   22 Dec 16 -- It compiled and worked without the Eigenvalue tests
+  27 Dec 16 -- Changed params for VEC and MAT to not need array bounds as params like in C.  Modula-2 never needed that.  C does not have an array type.
 *)
 
-
-(* IMPORT Cx; *)
 
 FROM Mat IMPORT
-    (* proc *)  Zero, Write, Add, Sub, Mul,
-                Random, Solve, GaussJ, Invert (*, Eigenvalues *)  ;
-
-(*
-FROM Windows IMPORT
-    (* type *)  Window, Colour, FrameType, DividerType,
-    (* proc *)  OpenWindow, CloseWindow;
-*)
+    (* proc *)  Zero, Write, Add, Sub, Mul, Random, Solve, GaussJ, Invert;
 
 FROM TextWindows IMPORT
     (* TYPES & CONSTS *)

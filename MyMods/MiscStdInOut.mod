@@ -87,18 +87,17 @@ FROM TextWindows IMPORT
     SetTimer, KillTimer, DisplayHelp,
     Xpos, Ypos, Xorg, Yorg, Xmax, Ymax;
 
-  FROM UTILLIB IMPORT BLANK,NULL,STRTYP,BUFSIZ,BUFTYP,STR10TYP,TRIM,STRLENFNT,STRCMPFNT,
+FROM UTILLIB IMPORT BLANK,NULL,STRTYP,BUFSIZ,BUFTYP,STR10TYP,TRIM,STRLENFNT,STRCMPFNT,
     SCANBACK,SCANFWD,COPYLEFT,COPYRIGHT,FILLCHAR,ASSIGN2BUF;
 
 IMPORT Terminal, BasicDialogs;
 FROM BasicDialogs IMPORT MessageTypes;
 IMPORT ASCII;
-  FROM Environment IMPORT GetCommandLine;
-  FROM REALLIB IMPORT AINT,AMOD,ROUND,PWRI,PWRR;
-  FROM TKNRTNS IMPORT FSATYP,CHARSETTYP,DELIMCH,INI1TKN,INI3TKN,GETCHR,
+FROM Environment IMPORT GetCommandLine;
+FROM TKNRTNS IMPORT FSATYP,CHARSETTYP,DELIMCH,INI1TKN,INI3TKN,GETCHR,
     UNGETCHR,GETTKN,NEWDELIMSET,NEWOPSET,NEWDGTSET,GETTKNSTR,GETTKNEOL,
     UNGETTKN,GETTKNREAL;
-  FROM TIMLIB IMPORT JULIAN,GREGORIAN,TIME2MDY;
+FROM TIMLIBrevised IMPORT JULIAN,GREGORIAN,TIME2MDY;
 (****************************************************************************)
 
   FROM Terminal IMPORT Read, (*WriteString, WriteLn, ReadChar, *) Write, Reset;
@@ -349,13 +348,13 @@ PROCEDURE Error (message: ARRAY OF CHAR);
 
 (************************************************************************)
 PROCEDURE WriteLongCard (n : LONGCARD);
-	VAR s : STRTYP;
+    VAR s : STRTYP;
 
-	BEGIN
-	  LWholeStr.LongCardToStr(n,s);
-	  ADDCOMMAS(s);
-	  WriteString(s);
-	END WriteLongCard;
+    BEGIN
+      LWholeStr.LongCardToStr(n,s);
+      ADDCOMMAS(s);
+      WriteString(s);
+    END WriteLongCard;
 (************************************************************************)
 
 PROCEDURE WriteCard (N: CARDINAL);

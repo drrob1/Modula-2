@@ -16,12 +16,21 @@ IMPLEMENTATION MODULE Mat;
         (*                                                      *)
         (********************************************************)
 
+(*
+  REVISION HISTORY
+  ======== =======
+  28 Dec 16 -- Changed params to not need N or M, as Modula-2 never needed those.  And most of the functions here now return a boolean
+                 to indicate success or failure.  Important point: HIGH() returns HIGH bound, not length of that dimension.
+                 I wrote this after I wrote the Go version, so I confused HIGH() with len() from Go.  They are NOT the same!
+*)
+
+
 FROM Storage IMPORT (* proc *)  ALLOCATE, DEALLOCATE;
 
 FROM Vec IMPORT (* type *)  VectorPtr, (* proc *)  NewVector, DisposeVector;
-
-FROM LongComplexMath IMPORT (* proc *)  conj;
-
+(*
+                                                                                             FROM LongComplexMath IMPORT (* proc *)  conj;
+*)
 FROM TextWindows IMPORT
     (* TYPES & CONSTS *)
     TextWindow, Colors, TextWindowsMsg, TextWindowProcedure,
@@ -45,15 +54,18 @@ FROM TextWindows IMPORT
     IsUserMessageWaiting,AddVScrollBar, AddHScrollBar, AddScrollBars,
     SetScrollBarPos, SetWindowData, SetWindowDataNum, GetWindowData, GetWindowDataNum,
     GetWindowSize, SetWindowSize, GetWindowPos, SetWindowPos, CascadeWindow,
-    SetWindowIsBusy, GetWindowDisplayInfo, SetWindowDisplayInfo, 
+    SetWindowIsBusy, GetWindowDisplayInfo, SetWindowDisplayInfo,
     SetScrollDisableWhenNone, SetActiveTabChild, SetTabChildPosition,
     GetForegroundWindow, SetForegroundWindow,
     SetTimer, KillTimer, DisplayHelp,
     Xpos, Ypos, Xorg, Yorg, Xmax, Ymax;
-    
-FROM MiscM2 IMPORT Error, WriteString, WriteLn, WriteLongReal, Sqrt;
-	
-FROM MYRAND3 IMPORT RANDCARD, RANDREAL;
+
+FROM Float IMPORT Round;
+
+FROM MiscStdInOut IMPORT Error, WriteString, WriteLn, WriteLongReal, Sqrt;
+
+FROM MyRand3revised IMPORT RANDCARD, RANDREAL;
+
 (*
 FROM MYRANDOM IMPORT RANDCARD, RANDREAL;
 FROM Rand IMPORT RANDOM;
@@ -61,14 +73,14 @@ FROM Rand IMPORT RANDOM;
 
 (*  Defined in the def module
 TYPE
-	ArrayPtr = POINTER TO ARRAY OF ARRAY OF LONGREAL;
+    ArrayPtr = POINTER TO ARRAY OF ARRAY OF LONGREAL;
 *)
 
 (************************************************************************)
 
 CONST small = 1.0E-10;
 CONST verysmall = 1.0E-15;
-	
+
 TYPE
     subscript = [0..8191];
     Permutation = POINTER TO ARRAY subscript OF subscript;
@@ -84,7 +96,7 @@ PROCEDURE NewArray (N, M: CARDINAL): ArrayPtr;
     VAR result: ArrayPtr;
 
     BEGIN
-        NEW (result, N-1, M-1);
+        NEW (result, N, M);
         RETURN result;
     END NewArray;
 
@@ -96,35 +108,46 @@ PROCEDURE DisposeArray (VAR (*INOUT*) V: ArrayPtr);
     (* Deallocates an N x M matrix.  Since N,M are not used, I removed them from the param list *)
 
     BEGIN
-        DISPOSE (V);
+        IF V <> NIL THEN
+          DISPOSE (V);
+          V := NIL;
+        END (* if not NIL *);
     END DisposeArray;
 
 (************************************************************************)
 (*                          COPYING A MATRIX                            *)
 (************************************************************************)
 
-                                           (* PROCEDURE Copy (A: ARRAY OF ARRAY OF EltType;  r, c: CARDINAL; VAR (*OUT*) B: ARRAY OF ARRAY OF EltType); *)
-PROCEDURE Copy (A: ARRAY OF ARRAY OF LONGREAL;  r, c: CARDINAL; VAR (*OUT*) B: ARRAY OF ARRAY OF LONGREAL);
+                                           (* PROCEDURE Copy (A: ARRAY OF ARRAY OF LONGREAL;  r, c: CARDINAL; VAR (*OUT*) B: ARRAY OF ARRAY OF LONGREAL); *)
+PROCEDURE Copy (A: ARRAY OF ARRAY OF LONGREAL; VAR (*OUT*) B: ARRAY OF ARRAY OF LONGREAL) : BOOLEAN;
 
     (* Copies an r x c matrix A to B. *)
 
-    VAR i,j,r,c: CARDINAL;
+    VAR i,j,rA,cA,rB,cB: CARDINAL;
 
     BEGIN
-    	r := HIGH(A);
-    	c := HIGH(A[0]);
-      FOR i := 0 TO r-1 DO
-        FOR j := 0 TO c-1 DO
+      rA := HIGH(A);
+      cA := HIGH(A[0]);
+      rB := HIGH(B);
+      cB := HIGH(B[0]);
+
+      IF (rA <> rB) OR (cA <> cB) THEN
+        RETURN FALSE;
+      END;
+
+      FOR i := 0 TO rA DO
+        FOR j := 0 TO cA DO
           B[i,j] := A[i,j];
         END (*FOR*);
       END (*FOR*);
+      RETURN TRUE;
     END Copy;
 
 (************************************************************************)
 (*                        SPECIAL MATRICES                              *)
 (************************************************************************)
 
-                                                                     (* PROCEDURE Zero (VAR (*INOUT*) M: ARRAY OF ARRAY OF EltType;  r, c: CARDINAL); *)
+                                                                     (* PROCEDURE Zero (VAR (*INOUT*) M: ARRAY OF ARRAY OF LONGREAL;  r, c: CARDINAL); *)
 PROCEDURE Zero (VAR (*INOUT*) M: ARRAY OF ARRAY OF LONGREAL);
 
 
@@ -133,10 +156,10 @@ PROCEDURE Zero (VAR (*INOUT*) M: ARRAY OF ARRAY OF LONGREAL);
     VAR i,j,r,c: CARDINAL;
 
     BEGIN
-    	r := HIGH(M);
-    	c := HIGH(M[0]);
-      FOR i := 0 TO r-1 DO
-        FOR j := 0 TO c-1 DO
+      r := HIGH(M);
+      c := HIGH(M[0]);
+      FOR i := 0 TO r DO
+        FOR j := 0 TO c DO
           M[i,j] := 0.0;
         END (*FOR*);
       END (*FOR*);
@@ -144,122 +167,189 @@ PROCEDURE Zero (VAR (*INOUT*) M: ARRAY OF ARRAY OF LONGREAL);
 
 (************************************************************************)
 
-                                                                       (* PROCEDURE Unit (VAR (*INOUT*) M: ARRAY OF ARRAY OF EltType;  N: CARDINAL); *)
-PROCEDURE Unit (VAR (*INOUT*) M: ARRAY OF ARRAY OF EltType);
+                                                                       (* PROCEDURE Unit (VAR (*INOUT*) M: ARRAY OF ARRAY OF LONGREAL;  N: CARDINAL); *)
+PROCEDURE Unit (VAR (*INOUT*) M: ARRAY OF ARRAY OF LONGREAL) : BOOLEAN;
 
     (* Creates an N by N unit matrix. *)
 
     VAR i,N: CARDINAL;
 
     BEGIN
-    	N := HIGH(M);
+      N := HIGH(M);
+      IF N <> HIGH(M[0]) THEN
+        RETURN FALSE;
+      END;
+
       Zero(M);                                                                                      (* Zero (M, N, N); *)
-      FOR i := 0 TO N-1 DO
+      FOR i := 0 TO N DO
         M[i,i] := 1.0;
       END (*FOR*);
+      RETURN TRUE;
     END Unit;
 
 (************************************************************************)
 
-                                                                     (* PROCEDURE Random (VAR (*INOUT*) M: ARRAY OF ARRAY OF EltType;  r, c: CARDINAL); *)
+                                                                   (* PROCEDURE Random (VAR (*INOUT*) M: ARRAY OF ARRAY OF LONGREAL;  r, c: CARDINAL); *)
 PROCEDURE Random (VAR (*INOUT*) M: ARRAY OF ARRAY OF LONGREAL);
 
     (* Creates an r by c matrix with random entries. *)
 
-    VAR i,j,r,c: CARDINAL;
+    VAR
+      i,j,r,c: CARDINAL;
+      f : LONGREAL;
 
     BEGIN
-    	r := HIGH(M);
-    	c := HIG(M[0]);
-      FOR i := 0 TO r-1 DO
-        FOR j := 0 TO c-1 DO
-        	M[i,j] := LFLOAT(RANDCARD(100));
-                                                                  (*        M[i,j] := VAL(EltType, FLOAT(RANDCARD(100))); *)
-                                                                  (*        M[i,j] := VAL(EltType, RANDREAL()); *)
+        r := HIGH(M);
+        c := HIGH(M[0]);
+      FOR i := 0 TO r DO
+        FOR j := 0 TO c DO
+            f := RANDREAL();
+            f := f*100.0;
+            M[i,j] := Round(f);
+                                                                  (*        M[i,j] := VAL(LONGREAL, FLOAT(RANDCARD(100))); *)
+                                                                  (*        M[i,j] := VAL(LONGREAL, RANDREAL()); *)
         END (*FOR*);
       END (*FOR*);
     END Random;
+
+
+PROCEDURE BelowSmallMakeZero(VAR (* InOut *) M : ARRAY OF ARRAY OF LONGREAL);
+
+VAR
+  r,c,N,m : CARDINAL;
+
+BEGIN
+  N := HIGH(M);
+  m := HIGH(M[0]);
+
+  FOR r := 0 TO N DO
+    FOR c := 0 TO m DO
+      IF M[r,c] < small THEN
+        M[r,c] := 0.0
+      END (* if < small *);
+    END (* for c *);
+  END (* for r *);
+END BelowSmallMakeZero;
+
+
 
 (************************************************************************)
 (*                  THE STANDARD ARITHMETIC OPERATIONS                  *)
 (************************************************************************)
 
-PROCEDURE Add (A, B: ARRAY OF ARRAY OF EltType;  r, c: CARDINAL;
-                      VAR (*OUT*) C: ARRAY OF ARRAY OF EltType);
+                      (* PROCEDURE Add (A, B: ARRAY OF ARRAY OF LONGREAL;  r, c: CARDINAL; VAR (*OUT*) C: ARRAY OF ARRAY OF LONGREAL);*)
+PROCEDURE Add (A, B: ARRAY OF ARRAY OF LONGREAL; VAR (*OUT*) C: ARRAY OF ARRAY OF LONGREAL) : BOOLEAN;
 
-    (* Computes C := A + B.  All matrices are rxc. *)
+    (* Computes C := A + B.  All matrices are r x c. *)
 
-    VAR i, j: CARDINAL;
+    VAR i,j,r,c,r2,c2: CARDINAL;
 
     BEGIN
-        FOR i := 0 TO r-1 DO
-            FOR j := 0 TO c-1 DO
-                C[i,j] := A[i,j] + B[i,j];
-            END (*FOR*);
-        END (*FOR*);
+      r := HIGH(A);
+      c := HIGH(A[0]);
+      r2 := HIGH(B);
+      c2 := HIGH(B[0]);
+      IF (r <> r2) OR (c <> c2) THEN
+        Zero(C);
+        RETURN FALSE;
+      END; (* if matrix dimensions don't match *)
+
+      FOR i := 0 TO r DO
+       FOR j := 0 TO c DO
+         C[i,j] := A[i,j] + B[i,j];
+       END (*FOR*);
+      END (*FOR*);
+      RETURN TRUE;
     END Add;
 
 (************************************************************************)
 
-PROCEDURE Sub (A, B: ARRAY OF ARRAY OF EltType;  r, c: CARDINAL;
-                      VAR (*OUT*) C: ARRAY OF ARRAY OF EltType);
+                                      (* PROCEDURE Sub (A, B: ARRAY OF ARRAY OF LONGREAL;  r, c: CARDINAL; VAR (*OUT*) C: ARRAY OF ARRAY OF LONGREAL); *)
+PROCEDURE Sub (A, B: ARRAY OF ARRAY OF LONGREAL; VAR (*OUT*) C: ARRAY OF ARRAY OF LONGREAL) : BOOLEAN;
 
-    (* Computes C := A - B.  All matrices are rxc.  *)
+    (* Computes C := A - B.  All matrices are r x c.  Returns TRUE on a successful operation, else FALSE *)
 
-    VAR i, j: CARDINAL;
+    VAR i,j,r,c,r2,c2: CARDINAL;
 
     BEGIN
-        FOR i := 0 TO r-1 DO
-            FOR j := 0 TO c-1 DO
-                C[i,j] := A[i,j] - B[i,j];
-            END (*FOR*);
+      r := HIGH(A);
+      c := HIGH(A[0]);
+      r2 := HIGH(B);
+      c2 := HIGH(B[0]);
+      IF (r <> r2) OR (c <> c2) THEN
+        Zero(C);
+        RETURN FALSE;
+      END; (* if matrix dimensions don't match *)
+
+      FOR i := 0 TO r DO
+        FOR j := 0 TO c DO
+          C[i,j] := A[i,j] - B[i,j];
         END (*FOR*);
+      END (*FOR*);
+      RETURN TRUE;
     END Sub;
 
 (************************************************************************)
 
-PROCEDURE Mul (A, B: ARRAY OF ARRAY OF EltType;  r, c1, c2: CARDINAL;
-                      VAR (*OUT*) C: ARRAY OF ARRAY OF EltType);
+                                (* PROCEDURE Mul (A, B: ARRAY OF ARRAY OF LONGREAL;  r, c1, c2: CARDINAL; VAR (*OUT*) C: ARRAY OF ARRAY OF LONGREAL); *)
+PROCEDURE Mul (A, B: ARRAY OF ARRAY OF LONGREAL; VAR (*OUT*) C: ARRAY OF ARRAY OF LONGREAL) : BOOLEAN;
 
-    (* Computes C := A*B, where A is rxc1 and B is c1xc2. *)
+(*
+  Computes C := A*B, where A is r x c1 and B is c1 x c2.
+  Returns TRUE on a successful operation, else FALSE.
+*)
 
-    VAR i, j, k: CARDINAL;  temp: EltType;
+    VAR
+      i,j,k,rA,cA,rB,cB: CARDINAL;
+      temp: LONGREAL;
 
     BEGIN
-        FOR i := 0 TO r-1 DO
-            FOR j := 0 TO c2-1 DO
-                temp := 0.0;
-                FOR k := 0 TO c1-1 DO
-                    temp := temp + A[i,k]*B[k,j];
-                END (*FOR*);
-                C[i,j] := temp;
-            END (*FOR*);
-        END (*FOR*);
+      rA := HIGH(A);     (* row A *)
+      cA := HIGH(A[0]);  (* col A *)
+      rB := HIGH(B);     (* row B *)
+      cB := HIGH(B[0]);  (* col B *)
+      IF (cA <> rB) OR (rA <> cB) THEN  (* matrix dimensions don't match.  Abort gracefully *)
+        Zero(C);
+        RETURN FALSE;
+      END; (*if matrix dimensions don't match*)
+
+      FOR i := 0 TO rA DO
+       FOR j := 0 TO cB DO
+         temp := 0.0;
+         FOR k := 0 TO rB DO
+           temp := temp + A[i,k]*B[k,j];
+         END (*FOR*);
+         C[i,j] := temp;
+       END (*FOR*);
+      END (*FOR*);
+      RETURN TRUE;
     END Mul;
 
 (************************************************************************)
 
-PROCEDURE ScalarMul (A: EltType;  B: ARRAY OF ARRAY OF EltType;  r, c: CARDINAL;
-                                  VAR (*OUT*) C: ARRAY OF ARRAY OF EltType);
+                                                        (*  PROCEDURE ScalarMul (A: LONGREAL;  B: ARRAY OF ARRAY OF LONGREAL;  r, c: CARDINAL; VAR (*OUT*) C: ARRAY OF ARRAY OF LONGREAL); *)
+PROCEDURE ScalarMul (A: LONGREAL;  B: ARRAY OF ARRAY OF LONGREAL; VAR (*OUT*) C: ARRAY OF ARRAY OF LONGREAL);
 
-    (* Computes C := A*B, where B is rxc. *)
+    (* Computes C := A*B, where B is r x c. *)
 
-    VAR i, j: CARDINAL;
+    VAR i,j,r,c: CARDINAL;
 
     BEGIN
-        FOR i := 0 TO r-1 DO
-            FOR j := 0 TO c-1 DO
-                C[i,j] := A * B[i,j];
-            END (*FOR*);
+      r := HIGH(B);
+      c := HIGH(B[0]);
+      FOR i := 0 TO r DO
+        FOR j := 0 TO c DO
+          C[i,j] := A * B[i,j];
         END (*FOR*);
+      END (*FOR*);
     END ScalarMul;
 
 (************************************************************************)
 (*                      SOLVING LINEAR EQUATIONS                        *)
 (************************************************************************)
 
-PROCEDURE LUFactor (VAR (*INOUT*) A: ARRAY OF ARRAY OF EltType;  N: CARDINAL;
-                          perm: Permutation;  VAR (*OUT*) oddswaps: BOOLEAN);
+                                         (* PROCEDURE LUFactor (VAR (*INOUT*) A: ARRAY OF ARRAY OF LONGREAL;  N: CARDINAL; perm: Permutation;  VAR (*OUT*) oddswaps: BOOLEAN); *)
+PROCEDURE LUFactor (VAR (*INOUT*) A: ARRAY OF ARRAY OF LONGREAL;  perm: Permutation;  VAR (*OUT*) oddswaps: BOOLEAN) : BOOLEAN;
 
     (* LU decomposition of a square matrix.  We express A in the form   *)
     (* P*L*U, where P is a permutation matrix, L is lower triangular    *)
@@ -278,115 +368,123 @@ PROCEDURE LUFactor (VAR (*INOUT*) A: ARRAY OF ARRAY OF EltType;  N: CARDINAL;
     (* walking through perm^ from start to finish, in the order used    *)
     (* by procedure LUSolve.                                            *)
 
-    VAR row, col, k, pivotrow: CARDINAL;
-        sum, temp, maxval: LONGREAL;  VV: VectorPtr;
+    VAR row, col, k, pivotrow, N : CARDINAL;
+        sum, temp, maxval : LONGREAL;
+        VV: VectorPtr;
 
     BEGIN
-        VV := NewVector (N);
+      N := HIGH(A);
+      IF N <> HIGH(A[0]) THEN
         oddswaps := FALSE;
+        RETURN FALSE;
+      END; (* if A is not square *)
+
+      VV := NewVector (N);
+      oddswaps := FALSE;
 
         (* Start by collecting (in VV), the maximum absolute value in   *)
         (* each row; we'll use this for pivoting decisions.             *)
 
-        FOR row := 0 TO N-1 DO
-            maxval := 0.0;
-            FOR col := 0 TO N-1 DO
-                IF ABS(A[row,col]) > maxval THEN
-                    maxval := ABS(A[row,col]);
-                END (*IF*);
-            END (*FOR*);
-            IF maxval = 0.0 THEN
-                (* An all-zero row can never contribute pivot elements. *)
-                VV^[row] := 0.0;
-            ELSE
-                VV^[row] := 1.0/maxval;
-            END (*IF*);
+      FOR row := 0 TO N DO
+        maxval := 0.0;
+        FOR col := 0 TO N DO
+          IF ABS(A[row,col]) > maxval THEN
+            maxval := ABS(A[row,col]);
+          END (*IF*);
         END (*FOR*);
+        IF maxval = 0.0 THEN
+          (* An all-zero row can never contribute pivot elements. *)
+          VV^[row] := 0.0;
+        ELSE
+          VV^[row] := 1.0/maxval;
+        END (*IF*);
+      END (*FOR*);
 
         (* Crout's method: we work through one column at a time. *)
 
-        FOR col := 0 TO N-1 DO
+      FOR col := 0 TO N DO
 
             (* Upper triangular component of this column - except for   *)
             (* the diagonal element, which we leave until after we've   *)
             (* selected a pivot from on or below the diagonal.          *)
 
-            IF col > 0 THEN
-                FOR row := 0 TO col-1 DO
-                    sum := A[row,col];
-                    IF row > 0 THEN
-                        FOR k := 0 TO row-1 DO
-                           sum := sum - A[row,k] * A[k,col];
-                        END (*FOR*);
-                    END (*IF*);
-                    A[row,col] := sum;
-                END (*FOR*);
+        IF col > 0 THEN
+          FOR row := 0 TO col DO
+            sum := A[row,col];
+            IF row > 0 THEN
+              FOR k := 0 TO row DO
+                sum := sum - A[row,k] * A[k,col];
+              END (*FOR*);
             END (*IF*);
+            A[row,col] := sum;
+          END (*FOR*);
+        END (*IF*);
 
-            (* Lower triangular component in this column.  The results  *)
-            (* we get in this loop will not be correct until we've      *)
-            (* divided by the pivot; but we work out the pivot location *)
-            (* as we go, and come back later for this division.         *)
+        (* Lower triangular component in this column.  The results  *)
+        (* we get in this loop will not be correct until we've      *)
+        (* divided by the pivot; but we work out the pivot location *)
+        (* as we go, and come back later for this division.         *)
 
-            maxval := 0.0;  pivotrow := col;
-            FOR row := col TO N-1 DO
-                sum := A[row,col];
-                IF col > 0 THEN
-                    FOR k := 0 TO col-1 DO
-                       sum := sum - A[row,k] * A[k,col];
-                    END (*FOR*);
-                END (*IF*);
-                A[row,col] := sum;
-                temp := VV^[row] * ABS(sum);
-                IF temp >= maxval THEN
-                    maxval := temp;  pivotrow := row;
-                END (*IF*);
+        maxval := 0.0;  pivotrow := col;
+        FOR row := col TO N DO
+          sum := A[row,col];
+          IF col > 0 THEN
+            FOR k := 0 TO col DO
+              sum := sum - A[row,k] * A[k,col];
             END (*FOR*);
-
-            (* If pivot element was not already on the diagonal, do a   *)
-            (* row swap.                                                *)
-
-            IF pivotrow <> col THEN
-                FOR k := 0 TO N-1 DO
-                    temp := A[pivotrow,k];
-                    A[pivotrow,k] := A[col,k];
-                    A[col,k] := temp;
-                END (*FOR*);
-                oddswaps := NOT oddswaps;
-                VV^[pivotrow] := VV^[col];
-
-                (* We don't bother updating VV^[col] here, because      *)
-                (* its value will never be used again.                  *)
-
-            END (*IF*);
-            perm^[col] := pivotrow;
-
-            (* Finish off the calculation of the lower triangular part  *)
-            (* for this column by scaling by the pivot A[col,col].      *)
-
-            (* Remark: if the pivot is still zero at this stage, then   *)
-            (* all the elements below it are also zero.  The LU         *)
-            (* decomposition in this case is not unique - the original  *)
-            (* matrix is singular, therefore U will also be singular -  *)
-            (* but one solution is to leave all those elements zero.    *)
-
-            temp := A[col,col];
-            IF (col <> N-1) AND (temp <> 0.0) THEN
-                temp := 1.0/temp;
-                FOR row := col+1 TO N-1 DO
-                    A[row,col] := temp*A[row,col];
-                END (*FOR*);
-            END (*IF*);
-
+          END (*IF*);
+          A[row,col] := sum;
+          temp := VV^[row] * ABS(sum);
+          IF temp >= maxval THEN
+            maxval := temp;
+            pivotrow := row;
+          END (*IF*);
         END (*FOR*);
 
+        (* If pivot element was not already on the diagonal, do a   *)
+        (* row swap.                                                *)
+
+        IF pivotrow <> col THEN
+          FOR k := 0 TO N DO
+            temp := A[pivotrow,k];
+            A[pivotrow,k] := A[col,k];
+            A[col,k] := temp;
+          END (*FOR*);
+          oddswaps := NOT oddswaps;
+          VV^[pivotrow] := VV^[col];
+
+          (* We don't bother updating VV^[col] here, because      *)
+          (* its value will never be used again.                  *)
+
+        END (*IF*);
+        perm^[col] := pivotrow;
+
+        (* Finish off the calculation of the lower triangular part  *)
+        (* for this column by scaling by the pivot A[col,col].      *)
+
+        (* Remark: if the pivot is still zero at this stage, then   *)
+        (* all the elements below it are also zero.  The LU         *)
+        (* decomposition in this case is not unique - the original  *)
+        (* matrix is singular, therefore U will also be singular -  *)
+        (* but one solution is to leave all those elements zero.    *)
+
+        temp := A[col,col];
+        IF (col <> N-1) AND (temp <> 0.0) THEN
+          temp := 1.0/temp;
+          FOR row := col+1 TO N DO
+            A[row,col] := temp*A[row,col];
+          END (*FOR*);
+        END (*IF*);
+
+      END (*FOR*);
+
+      RETURN TRUE;
     END LUFactor;
 
 (************************************************************************)
 
-PROCEDURE LUSolve (LU: ARRAY OF ARRAY OF EltType;
-                    VAR (*INOUT*) B: ARRAY OF ARRAY OF EltType;
-                    N, M: CARDINAL;  perm: Permutation);
+                                     (* PROCEDURE LUSolve (LU: ARRAY OF ARRAY OF LONGREAL; VAR (*INOUT*) B: ARRAY OF ARRAY OF LONGREAL; N, M: CARDINAL;  perm: Permutation); *)
+PROCEDURE LUSolve (LU: ARRAY OF ARRAY OF LONGREAL; VAR (*INOUT*) B: ARRAY OF ARRAY OF LONGREAL; perm: Permutation) : BOOLEAN;
 
     (* Solves the equation P*L*U*X = B, where P is a permutation        *)
     (* matrix specified indirectly by perm; L is lower triangular; and  *)
@@ -395,7 +493,9 @@ PROCEDURE LUSolve (LU: ARRAY OF ARRAY OF EltType;
     (* LUfactor above.  On return B is replaced by the solution X.      *)
     (* Dimensions: left side is NxN, B is NxM.                          *)
 
-    VAR i, j, k, ip: CARDINAL;  sum, scale: LONGREAL;
+    VAR
+      i, j, k, ip, N, M : CARDINAL;
+      sum, scale: LONGREAL;
 
     BEGIN
         (* Pass 1: Solve the equation L*Y = B (at the same time sorting *)
@@ -408,9 +508,11 @@ PROCEDURE LUSolve (LU: ARRAY OF ARRAY OF EltType;
         (* those elements of B that have already been sorted into the   *)
         (* correct order.                                               *)
 
-        FOR i := 0 TO N-1 DO
+        N := HIGH(B);
+        M := HIGH(B[0]);
+        FOR i := 0 TO N DO
             ip := perm^[i];
-            FOR j := 0 TO M-1 DO
+            FOR j := 0 TO M DO
                 sum := B[ip,j];
                 B[ip,j] := B[i,j];
                 IF i > 0 THEN
@@ -424,42 +526,68 @@ PROCEDURE LUSolve (LU: ARRAY OF ARRAY OF EltType;
 
         (* Pass 2: solve the equation U*X = Y. *)
 
-        FOR i := N-1 TO 0 BY -1 DO
+        FOR i := N TO 0 BY -1 DO
             scale := LU[i,i];
             IF scale = 0.0 THEN
-                Error ("Matrix is singular");
-                RETURN;
+                (* Error ("Matrix is singular"); I won't print a message, as the return flag indicates failure.  The client module with have to deal with the error. *)
+                RETURN FALSE;
             END (*IF*);
-            FOR j := 0 TO M-1 DO
+            FOR j := 0 TO M DO
                 sum := B[i,j];
-                FOR k := i+1 TO N-1 DO
+                FOR k := i+1 TO N DO
                     sum := sum - LU[i,k] * B[k,j];
                 END (*FOR*);
                 B[i,j] := sum/scale;
             END (*FOR*);
         END (*FOR*);
-
+        RETURN TRUE;
     END LUSolve;
 
 (************************************************************************)
 
-PROCEDURE Solve (A, B: ARRAY OF ARRAY OF EltType;
-                    VAR (*OUT*) X: ARRAY OF ARRAY OF EltType;
-                    N, M: CARDINAL);
+                                               (* PROCEDURE Solve (A, B: ARRAY OF ARRAY OF LONGREAL; VAR (*OUT*) X: ARRAY OF ARRAY OF LONGREAL; N, M: CARDINAL); *)
+PROCEDURE Solve (A, B: ARRAY OF ARRAY OF LONGREAL; VAR (*OUT*) X: ARRAY OF ARRAY OF LONGREAL) : BOOLEAN;
 
     (* Solves the equation AX = B.  In the present version A must be    *)
     (* square and nonsingular.                                          *)
-    (* Dimensions: A is NxN, B is NxM.                                  *)
+    (* Dimensions: A is N x N, B is N x M.                              *)
 
-    VAR LU, error, product: ArrayPtr;
-        perm: Permutation;  s: BOOLEAN;
+    VAR
+      LU, error, product: ArrayPtr;
+      perm: Permutation;
+      s: BOOLEAN;
+      N,M,N2,x1,x2 : CARDINAL;
+      bool : BOOLEAN;
 
     BEGIN
+        N := HIGH(A);
+        N2 := HIGH(A[0]);
+        M := HIGH(B[0]);
+        x1 := HIGH(X);
+        x2 := HIGH(X[0]);
+        IF (N <> N2) OR (M <> x2) OR (N <> x1) THEN (* matrix dim's don't match *)
+          RETURN FALSE
+        END; (* if Matrix dim's are not correct *)
+
         LU := NewArray (N, N);
-        Copy (A, N, N, LU^);  Copy (B, N, M, X);
+
+        bool := Copy(A, LU^);                        (* Copy (A, N, N, LU^);  Copy (B, N, M, X); *)
+        IF NOT bool THEN
+            RETURN FALSE;
+        END;
+        bool := Copy(B,X);                           (*        Copy (B, N, M, X); *)
+        IF NOT bool THEN
+            RETURN FALSE;
+        END;
         ALLOCATE (perm, N*SIZE(subscript));
-        LUFactor (LU^, N, perm, s);
-        LUSolve (LU^, X, N, M, perm);
+        bool := LUFactor(LU^,perm,s);                (* LUFactor (LU^, N, perm, s); *)
+        IF NOT bool THEN
+            RETURN FALSE;
+        END;
+        bool := LUSolve(LU^,X,perm);                 (* LUSolve (LU^, X, N, M, perm); *)
+        IF NOT bool THEN
+            RETURN FALSE;
+        END;
 
         (* For better accuracy, apply one step of iterative     *)
         (* improvement.  (Two or three steps might be better;   *)
@@ -468,31 +596,59 @@ PROCEDURE Solve (A, B: ARRAY OF ARRAY OF EltType;
 
         error := NewArray (N, M);
         product := NewArray (N, M);
-        Mul (A, X, N, N, M, product^);
-        Sub (B, product^, N, M, error^);
-        LUSolve (LU^, error^, N, M, perm);
-        Add (X, error^, N, M, X);
-        DisposeArray (product, N, M);  DisposeArray (error, N, M);
+        bool := Mul(A,X,product^);                   (*        Mul (A, X, N, N, M, product^); *)
+        IF NOT bool THEN
+            RETURN FALSE;
+        END;
+        bool := Sub(B,product^,error^);              (*        Sub (B, product^, N, M, error^); *)
+        IF NOT bool THEN
+            RETURN FALSE;
+        END;
+        bool := LUSolve(LU^,error^,perm);            (*        LUSolve (LU^, error^, N, M, perm); *)
+        IF NOT bool THEN
+            RETURN FALSE;
+        END;
+        bool := Add(X,error^,X);                     (*        Add (X, error^, N, M, X); *)
+        IF NOT bool THEN
+            RETURN FALSE;
+        END;
+        DisposeArray(product);      (*        DisposeArray (product, N, M);  DisposeArray (error, N, M); *)
+        DisposeArray(error);
 
         DEALLOCATE (perm, N*SIZE(subscript));
-        DisposeArray (LU, N, N);
+        DisposeArray (LU);
+        RETURN TRUE;
     END Solve;
 
 (************************************************************************)
 
-PROCEDURE GaussJ (A, B: ARRAY OF ARRAY OF EltType;
-                     VAR (*OUT*) X: ARRAY OF ARRAY OF EltType;
-                     N, M: CARDINAL);
+                                   (* PROCEDURE GaussJ (A, B: ARRAY OF ARRAY OF LONGREAL; VAR (*OUT*) X: ARRAY OF ARRAY OF LONGREAL; N, M: CARDINAL); *)
+PROCEDURE GaussJ (A, B: ARRAY OF ARRAY OF LONGREAL; VAR (*OUT*) X: ARRAY OF ARRAY OF LONGREAL) : BOOLEAN;
 
     (* Solves the equation AX = B by Gauss-Jordan elimination.  In the  *)
     (* present version A must be square and nonsingular.                *)
     (* Dimensions: A is NxN, B is NxM.                                  *)
 
-    VAR W: ArrayPtr;  i, j, k, prow: CARDINAL;
-        pivot, scale, temp: EltType;
+    VAR W: ArrayPtr;
+        i, j, k, prow, N, M, N2, x1, x2: CARDINAL;
+        pivot, scale, temp: LONGREAL;
+        bool: BOOLEAN;
 
     BEGIN
-        W := NewArray (N, N);  Copy (A, N, N, W^);  Copy (B, N, M, X);
+        N := HIGH(A);
+        N2 := HIGH(A[0]);
+        M := HIGH(B[0]);
+        x1 := HIGH(X);
+        x2 := HIGH(X[0]);
+        IF (N <> N2) OR (M <> x2) OR (N <> x1) THEN (* matrix dim's don't match *)
+          RETURN FALSE
+        END; (* if Matrix dim's are not correct *)
+
+
+        W := NewArray (N, N);
+                                                                                                 (*        Copy (A, N, N, W^);  Copy (B, N, M, X); *)
+        Copy (A, W^);
+        Copy (B, X);
 
         (* Remark: we are going to use elementary row operations to     *)
         (* turn W into a unit matrix.  However we don't bother to store *)
@@ -504,26 +660,27 @@ PROCEDURE GaussJ (A, B: ARRAY OF ARRAY OF EltType;
         (* triangular matrix.                                           *)
 
         prow := 0;
-        FOR i := 0 TO N-1 DO
+        FOR i := 0 TO N DO
             pivot := 0.0;
-            FOR j := i TO N-1 DO
+            FOR j := i TO N DO
                 temp := W^[j,i];
                 IF ABS(temp) > ABS(pivot) THEN
                     pivot := temp;  prow := j;
                 END (*IF*);
             END (*FOR*);
             IF ABS(pivot) < small THEN
-                Error ("Coefficient matrix is singular");
+                                                                  (* Error ("Coefficient matrix is singular"); *)
+              RETURN FALSE;
             END (*IF*);
 
             (* Swap rows i and prow. *)
 
-            FOR j := i TO N-1 DO
+            FOR j := i TO N DO
                 temp := W^[i,j];
                 W^[i,j] := W^[prow,j];
                 W^[prow,j] := temp;
             END (*FOR*);
-            FOR j := 0 TO M-1 DO
+            FOR j := 0 TO M DO
                 temp := X[i,j];
                 X[i,j] := X[prow,j];
                 X[prow,j] := temp;
@@ -531,21 +688,21 @@ PROCEDURE GaussJ (A, B: ARRAY OF ARRAY OF EltType;
 
             (* Scale the i'th row of both W and X. *)
 
-            FOR j := i+1 TO N-1 DO
+            FOR j := i+1 TO N DO
                 W^[i,j] := W^[i,j]/pivot;
             END (*FOR*);
-            FOR j := 0 TO M-1 DO
+            FOR j := 0 TO M DO
                 X[i,j] := X[i,j]/pivot;
             END (*FOR*);
 
             (* Implicitly reduce the sub-column below W[i,i] to zero.   *)
 
-            FOR k := i+1 TO N-1 DO
+            FOR k := i+1 TO N DO
                 scale := W^[k,i];
-                FOR j := i+1 TO N-1 DO
+                FOR j := i+1 TO N DO
                     W^[k,j] := W^[k,j] - scale*W^[i,j];
                 END (*FOR*);
-                FOR j := 0 TO M-1 DO
+                FOR j := 0 TO M DO
                     X[k,j] := X[k,j] - scale*X[i,j];
                 END (*FOR*);
             END (*FOR*);
@@ -554,7 +711,7 @@ PROCEDURE GaussJ (A, B: ARRAY OF ARRAY OF EltType;
 
         (* Pass 2: reduce the above-diagonal elements of W to zero.     *)
 
-        FOR i := N-1 TO 1 BY -1 DO
+        FOR i := N TO 1 BY -1 DO
 
             (* Implicitly reduce the sub-column above W[i,i] to zero.   *)
 
@@ -566,32 +723,37 @@ PROCEDURE GaussJ (A, B: ARRAY OF ARRAY OF EltType;
             END (*FOR*);
 
         END (*FOR*);
-
-        DisposeArray (W, N, N);
-
+                                                                                      (* DisposeArray (W, N, N); *)
+        DisposeArray (W);
+        RETURN TRUE;
     END GaussJ;
 
 (************************************************************************)
 
-PROCEDURE Invert (A: ARRAY OF ARRAY OF EltType;
-                           VAR (*INOUT*) X: ARRAY OF ARRAY OF EltType;
-                           N: CARDINAL);
+                                          (* PROCEDURE Invert (A: ARRAY OF ARRAY OF LONGREAL;VAR (*INOUT*) X: ARRAY OF ARRAY OF LONGREAL; N: CARDINAL); *)
+PROCEDURE Invert (A: ARRAY OF ARRAY OF LONGREAL; VAR (*INOUT*) X: ARRAY OF ARRAY OF LONGREAL) : BOOLEAN;
 
     (* Inverts an NxN nonsingular matrix. *)
 
-    VAR I: ArrayPtr;
+    VAR
+        I : ArrayPtr;
+        bool : BOOLEAN;
+        N : CARDINAL;
 
     BEGIN
-        I := NewArray (N, N);  Unit (I^, N);
-        Solve (A, I^, X, N, N);
-        DisposeArray (I, N, N);
+        N := HIGH(A);
+        I := NewArray(N, N);
+        Unit(I^);                                    (* Unit (I^, N); *)
+        bool := Solve (A, I^, X);
+        DisposeArray(I);    (* DisposeArray (I, N, N); *)
+        RETURN bool;
     END Invert;
 
 (************************************************************************)
 (*                         EIGENPROBLEMS                                *)
 (************************************************************************)
 (*
-PROCEDURE Balance (VAR INOUT A: ARRAY OF ARRAY OF EltType;  N: CARDINAL);
+PROCEDURE Balance (VAR INOUT A: ARRAY OF ARRAY OF LONGREAL;  N: CARDINAL);
 
     /* Replaces A by a better-balanced matrix with the same eigenvalues.*/
     /* There is no effect on symmetrical matrices.  To minimize the     */
@@ -647,7 +809,7 @@ PROCEDURE Balance (VAR INOUT A: ARRAY OF ARRAY OF EltType;  N: CARDINAL);
 *)
 (************************************************************************)
 
-PROCEDURE Hessenberg (VAR INOUT A: ARRAY OF ARRAY OF EltType;  N: CARDINAL);
+PROCEDURE Hessenberg (VAR INOUT A: ARRAY OF ARRAY OF LONGREAL;  N: CARDINAL);
 
     (* Transforms an NxN matrix into upper Hessenberg form, i.e. all    *)
     (* entries below the diagonal zero except for the first subdiagonal.*)
@@ -663,7 +825,7 @@ PROCEDURE Hessenberg (VAR INOUT A: ARRAY OF ARRAY OF EltType;  N: CARDINAL);
         IF N <= 2 THEN RETURN END(*IF*);
 
         V := NewVector (N);
-        FOR pos := 1 TO N-2 DO
+        FOR pos := 0 TO N-1 DO
 
             (* At this point in the calculation, A has the form         *)
             (*          A11     A12                                     *)
@@ -680,11 +842,13 @@ PROCEDURE Hessenberg (VAR INOUT A: ARRAY OF ARRAY OF EltType;  N: CARDINAL);
             (* the calculations as well-conditioned as possible, we     *)
             (* allow for a preliminary row and column swap.             *)
 
-            pivot := A[pos,pos-1];  pivotrow := pos;
-            FOR i := pos+1 TO N-1 DO
+            pivot := A[pos,pos-1];
+            pivotrow := pos;
+            FOR i := pos+1 TO N DO
                 temp := A[i,pos-1];
                 IF ABS(temp) > ABS(pivot) THEN
-                    pivot := temp;  pivotrow := i;
+                    pivot := temp;
+                    pivotrow := i;
                 END (*IF*);
             END (*FOR*);
 
@@ -695,7 +859,7 @@ PROCEDURE Hessenberg (VAR INOUT A: ARRAY OF ARRAY OF EltType;  N: CARDINAL);
                 (* necessary this time.  We simply replace all of the   *)
                 (* "approximately zero" entries by 0.0.                 *)
 
-                FOR i := pos TO N-1 DO
+                FOR i := pos TO N DO
                     A[i,pos-1] := 0.0;
                 END (*FOR*);
 
@@ -706,12 +870,12 @@ PROCEDURE Hessenberg (VAR INOUT A: ARRAY OF ARRAY OF EltType;  N: CARDINAL);
                     (* Swap rows pos and pivotrow, and then swap the    *)
                     (* corresponding columns.                           *)
 
-                    FOR j := pos-1 TO N-1 DO
+                    FOR j := pos-1 TO N DO
                         temp := A[pivotrow,j];
                         A[pivotrow,j] := A[pos,j];
                         A[pos,j] := temp;
                     END (*FOR*);
-                    FOR i := 0 TO N-1 DO
+                    FOR i := 0 TO N DO
                         temp := A[i,pivotrow];
                         A[i,pivotrow] := A[i,pos];
                         A[i,pos] := temp;
@@ -725,7 +889,7 @@ PROCEDURE Hessenberg (VAR INOUT A: ARRAY OF ARRAY OF EltType;  N: CARDINAL);
                 (* for i < pos, and V[pos] = 1.0.  We don't bother      *)
                 (* storing those fixed elements explicitly.             *)
 
-                FOR i := pos+1 TO N-1 DO
+                FOR i := pos+1 TO N DO
                     V^[i] := -A[i,pos-1] / pivot;
                 END (*FOR*);
 
@@ -733,9 +897,9 @@ PROCEDURE Hessenberg (VAR INOUT A: ARRAY OF ARRAY OF EltType;  N: CARDINAL);
                 (* structure of T, this affects only rows [pos+1..N].   *)
                 (* We also know that some of the results will be zero.  *)
 
-                FOR i := pos+1 TO N-1 DO
+                FOR i := pos+1 TO N DO
                     A[i,pos-1] := 0.0;
-                    FOR j := pos TO N-1 DO
+                    FOR j := pos TO N DO
                         A[i,j] := A[i,j] + V^[i] * A[pos,j];
                     END (*FOR*);
                 END (*FOR*);
@@ -743,9 +907,9 @@ PROCEDURE Hessenberg (VAR INOUT A: ARRAY OF ARRAY OF EltType;  N: CARDINAL);
                 (* Postmultiplication by the inverse of T.  This affects*)
                 (* only column pos.                                     *)
 
-                FOR i := 0 TO N-1 DO
+                FOR i := 0 TO N DO
                     temp := 0.0;
-                    FOR j := pos+1 TO N-1 DO
+                    FOR j := pos+1 TO N DO
                         temp := temp + A[i,j] * V^[j];
                     END (*FOR*);
                     A[i,pos] := A[i,pos] - temp;
@@ -754,13 +918,13 @@ PROCEDURE Hessenberg (VAR INOUT A: ARRAY OF ARRAY OF EltType;  N: CARDINAL);
             END (*IF*);
 
         END (*FOR*);
-        DisposeVector (V, N);
+        DisposeVector (V);
 
     END Hessenberg;
 
 (************************************************************************)
 (*
-PROCEDURE QR ( A: ARRAY OF ARRAY OF EltType;  VAR OUT W: ARRAY OF LONGCOMPLEX; N: CARDINAL);
+PROCEDURE QR ( A: ARRAY OF ARRAY OF LONGREAL;  VAR OUT W: ARRAY OF LONGCOMPLEX; N: CARDINAL);
 *)
 
 (* I have no idea why I had to make the first param, the A matrix, a VAR param for this to work. *)
@@ -966,13 +1130,13 @@ PROCEDURE QR ( A: ARRAY OF ARRAY OF EltType;  VAR OUT W: ARRAY OF LONGCOMPLEX; N
 *)
 (************************************************************************)
 (*
-PROCEDURE Eigenvalues (A: ARRAY OF ARRAY OF EltType; VAR OUT W: ARRAY OF LONGCOMPLEX; N: CARDINAL);
+PROCEDURE Eigenvalues (A: ARRAY OF ARRAY OF LONGREAL; VAR OUT W: ARRAY OF LONGCOMPLEX; N: CARDINAL);
 
     /* Finds all the eigenvalues of an NxN matrix.    */
     /* This procedure does not modify A.              */
 
     VAR Acopy: ArrayPtr;
-    
+
     BEGIN
         IF N > 0 THEN
             Acopy := NewArray (N, N);
@@ -988,23 +1152,27 @@ PROCEDURE Eigenvalues (A: ARRAY OF ARRAY OF EltType; VAR OUT W: ARRAY OF LONGCOM
 (*                              OUTPUT                                  *)
 (************************************************************************)
 
-PROCEDURE Write (M: ARRAY OF ARRAY OF EltType;  r, c: CARDINAL;  places: CARDINAL);
+                                                                               (* PROCEDURE Write (M: ARRAY OF ARRAY OF LONGREAL;  r, c: CARDINAL;  places: CARDINAL); *)
+PROCEDURE Write (M: ARRAY OF ARRAY OF LONGREAL; places: CARDINAL);
 
     (* Writes the rxc matrix M to the screen, where each column *)
     (* occupies a field "places" characters wide.               *)
 
-    VAR i, j: CARDINAL;
+    VAR i, j, r, c : CARDINAL;
 
     BEGIN
-        FOR i := 0 TO r-1 DO
-            FOR j := 0 TO c-1 DO
-                WriteString ("  ");
-                WriteLongReal (M[i,j], places);
-            END (*FOR*);
-            WriteLn;
+      r := HIGH(M);
+      c := HIGH(M[0]);
+      FOR i := 0 TO r DO
+        FOR j := 0 TO c DO
+          WriteString ("  ");
+          WriteLongReal (M[i,j], places);
         END (*FOR*);
+        WriteLn;
+      END (*FOR*);
     END Write;
 
 (************************************************************************)
+BEGIN
 
 END Mat.
