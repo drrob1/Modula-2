@@ -16,6 +16,7 @@ MODULE MatTestM2;
   21 Dec 16 -- Removed all references to complex, which is only for the Eigenvalues anyway
   22 Dec 16 -- It compiled and worked without the Eigenvalue tests
   27 Dec 16 -- Changed params for VEC and MAT to not need array bounds as params like in C.  Modula-2 never needed that.  C does not have an array type.
+  31 Dec 16 -- It finally works.
 *)
 
 
@@ -151,7 +152,7 @@ PROCEDURE SolveTest;
         IF success THEN
           (* Write the solution. *)
           WriteString ("The solution X to AX = B using Solve is");  WriteLn;
-          Write (X, 2);
+          Write (X, 6);
         ELSE
           WriteString(" Solution to Ax = B failed by Solve.  It was supposed to succeed.");
           WriteLn;
@@ -163,7 +164,7 @@ PROCEDURE SolveTest;
         IF success THEN
           (* Write the solution. *)
           WriteString ("The solution Y to AY = B using GaussJ is");  WriteLn;
-          Write (X, 2);
+          Write (X, 6);
         ELSE
           WriteString(" Solution to AY = B failed by GaussJ.  It was supposed to succeed.");
           WriteLn;
@@ -178,6 +179,12 @@ PROCEDURE SolveTest;
           IF success THEN
             WriteString ("As a check, AX-B evaluates to");  WriteLn;
             Write (D, 5);
+            WriteLn;
+            BelowSmallMakeZero(D);
+            WriteString(" AX-B is below after calling BelowSmallMakeZero ");
+            WriteLn;
+            Write(D,2);
+            WriteLn;
           ELSE
             WriteString(" B-C failed but was supposed to succeed.");
             WriteLn;
@@ -229,7 +236,6 @@ PROCEDURE SingularTest;
           WriteLn;
         END;
         WriteLn;
-
     END SingularTest;
 
 (************************************************************************)
@@ -285,7 +291,7 @@ PROCEDURE InversionTest;
         BelowSmallMakeZero(B);
         WriteString(" Processed product evaluates to ");
         WriteLn;
-        Write(B,5);
+        Write(B,2);
         WriteLn;
     END InversionTest;
 
@@ -295,13 +301,14 @@ PROCEDURE InversionTest;
 (************************************************************************)
 
 BEGIN
-(*
+
     BasicTest;
     PressAnyKey;
-*)
+
     SolveTest;
     PressAnyKey;
     SingularTest;
     PressAnyKey;
     InversionTest;
+    PressAnyKey;
 END MatTestM2.

@@ -22,6 +22,7 @@ IMPLEMENTATION MODULE Mat;
   28 Dec 16 -- Changed params to not need N or M, as Modula-2 never needed those.  And most of the functions here now return a boolean
                  to indicate success or failure.  Important point: HIGH() returns HIGH bound, not length of that dimension.
                  I wrote this after I wrote the Go version, so I confused HIGH() with len() from Go.  They are NOT the same!
+   1 Jan 17 -- It finally works.  That took longer than I expected.
 *)
 
 
@@ -92,11 +93,13 @@ TYPE
 PROCEDURE NewArray (N, M: CARDINAL): ArrayPtr;
 
     (* Creates an N x M matrix. *)
+    (* But is N x M as upper bound, or number of elements?  Doesn't say.  *)
+    (* I'll make it as an upper bound and see what happens                *)
 
     VAR result: ArrayPtr;
 
     BEGIN
-        NEW (result, N, M);
+        NEW (result, N-1, M-1);
         RETURN result;
     END NewArray;
 
@@ -308,7 +311,7 @@ PROCEDURE Mul (A, B: ARRAY OF ARRAY OF LONGREAL; VAR (*OUT*) C: ARRAY OF ARRAY O
       cA := HIGH(A[0]);  (* col A *)
       rB := HIGH(B);     (* row B *)
       cB := HIGH(B[0]);  (* col B *)
-      IF (cA <> rB) OR (rA <> cB) THEN  (* matrix dimensions don't match.  Abort gracefully *)
+      IF (cA <> rB) THEN  (* matrix dimensions don't match.  Abort gracefully *)
         Zero(C);
         RETURN FALSE;
       END; (*if matrix dimensions don't match*)
@@ -373,8 +376,13 @@ PROCEDURE LUFactor (VAR (*INOUT*) A: ARRAY OF ARRAY OF LONGREAL;  perm: Permutat
         VV: VectorPtr;
 
     BEGIN
-      N := HIGH(A);
-      IF N <> HIGH(A[0]) THEN
+(*
+  N is upper bound, not length.  This gives rise to many off by 1 errors.  So I'll just make N the length
+  so I can exactly copy the code I have from before.
+*)
+
+      N := HIGH(A) + 1;  (* So now N is length, or number of elements, not the upper bound of A *)
+      IF (N-1) <> HIGH(A[0]) THEN
         oddswaps := FALSE;
         RETURN FALSE;
       END; (* if A is not square *)
@@ -385,9 +393,9 @@ PROCEDURE LUFactor (VAR (*INOUT*) A: ARRAY OF ARRAY OF LONGREAL;  perm: Permutat
         (* Start by collecting (in VV), the maximum absolute value in   *)
         (* each row; we'll use this for pivoting decisions.             *)
 
-      FOR row := 0 TO N DO
+      FOR row := 0 TO N-1 DO
         maxval := 0.0;
-        FOR col := 0 TO N DO
+        FOR col := 0 TO N-1 DO
           IF ABS(A[row,col]) > maxval THEN
             maxval := ABS(A[row,col]);
           END (*IF*);
@@ -402,17 +410,17 @@ PROCEDURE LUFactor (VAR (*INOUT*) A: ARRAY OF ARRAY OF LONGREAL;  perm: Permutat
 
         (* Crout's method: we work through one column at a time. *)
 
-      FOR col := 0 TO N DO
+      FOR col := 0 TO N-1 DO
 
-            (* Upper triangular component of this column - except for   *)
+            (* Upper triangular component of this column -- except for  *)
             (* the diagonal element, which we leave until after we've   *)
             (* selected a pivot from on or below the diagonal.          *)
 
         IF col > 0 THEN
-          FOR row := 0 TO col DO
+          FOR row := 0 TO col-1 DO
             sum := A[row,col];
             IF row > 0 THEN
-              FOR k := 0 TO row DO
+              FOR k := 0 TO row-1 DO
                 sum := sum - A[row,k] * A[k,col];
               END (*FOR*);
             END (*IF*);
@@ -425,11 +433,12 @@ PROCEDURE LUFactor (VAR (*INOUT*) A: ARRAY OF ARRAY OF LONGREAL;  perm: Permutat
         (* divided by the pivot; but we work out the pivot location *)
         (* as we go, and come back later for this division.         *)
 
-        maxval := 0.0;  pivotrow := col;
-        FOR row := col TO N DO
+        maxval := 0.0;
+        pivotrow := col;
+        FOR row := col TO N-1 DO
           sum := A[row,col];
           IF col > 0 THEN
-            FOR k := 0 TO col DO
+            FOR k := 0 TO col-1 DO
               sum := sum - A[row,k] * A[k,col];
             END (*FOR*);
           END (*IF*);
@@ -439,13 +448,13 @@ PROCEDURE LUFactor (VAR (*INOUT*) A: ARRAY OF ARRAY OF LONGREAL;  perm: Permutat
             maxval := temp;
             pivotrow := row;
           END (*IF*);
-        END (*FOR*);
+        END (*FOR row *);
 
         (* If pivot element was not already on the diagonal, do a   *)
         (* row swap.                                                *)
 
         IF pivotrow <> col THEN
-          FOR k := 0 TO N DO
+          FOR k := 0 TO N-1 DO
             temp := A[pivotrow,k];
             A[pivotrow,k] := A[col,k];
             A[col,k] := temp;
@@ -471,13 +480,13 @@ PROCEDURE LUFactor (VAR (*INOUT*) A: ARRAY OF ARRAY OF LONGREAL;  perm: Permutat
         temp := A[col,col];
         IF (col <> N-1) AND (temp <> 0.0) THEN
           temp := 1.0/temp;
-          FOR row := col+1 TO N DO
+          FOR row := col+1 TO N-1 DO
             A[row,col] := temp*A[row,col];
           END (*FOR*);
         END (*IF*);
 
       END (*FOR*);
-
+      DisposeVector(VV);
       RETURN TRUE;
     END LUFactor;
 
@@ -508,11 +517,11 @@ PROCEDURE LUSolve (LU: ARRAY OF ARRAY OF LONGREAL; VAR (*INOUT*) B: ARRAY OF ARR
         (* those elements of B that have already been sorted into the   *)
         (* correct order.                                               *)
 
-        N := HIGH(B);
-        M := HIGH(B[0]);
-        FOR i := 0 TO N DO
+        N := HIGH(B) + 1;     (* To match orig code, N is number of elements, not high bound *)
+        M := HIGH(B[0]) + 1;  (* Here too *)
+        FOR i := 0 TO N-1 DO
             ip := perm^[i];
-            FOR j := 0 TO M DO
+            FOR j := 0 TO M-1 DO
                 sum := B[ip,j];
                 B[ip,j] := B[i,j];
                 IF i > 0 THEN
@@ -526,15 +535,15 @@ PROCEDURE LUSolve (LU: ARRAY OF ARRAY OF LONGREAL; VAR (*INOUT*) B: ARRAY OF ARR
 
         (* Pass 2: solve the equation U*X = Y. *)
 
-        FOR i := N TO 0 BY -1 DO
+        FOR i := N-1 TO 0 BY -1 DO
             scale := LU[i,i];
             IF scale = 0.0 THEN
                 (* Error ("Matrix is singular"); I won't print a message, as the return flag indicates failure.  The client module with have to deal with the error. *)
                 RETURN FALSE;
             END (*IF*);
-            FOR j := 0 TO M DO
+            FOR j := 0 TO M-1 DO
                 sum := B[i,j];
-                FOR k := i+1 TO N DO
+                FOR k := i+1 TO N-1 DO
                     sum := sum - LU[i,k] * B[k,j];
                 END (*FOR*);
                 B[i,j] := sum/scale;
@@ -556,38 +565,42 @@ PROCEDURE Solve (A, B: ARRAY OF ARRAY OF LONGREAL; VAR (*OUT*) X: ARRAY OF ARRAY
       LU, error, product: ArrayPtr;
       perm: Permutation;
       s: BOOLEAN;
-      N,M,N2,x1,x2 : CARDINAL;
+      N,M : CARDINAL;
+      rA,cA,rB,cB,rX,cX : CARDINAL;
       bool : BOOLEAN;
 
     BEGIN
-        N := HIGH(A);
-        N2 := HIGH(A[0]);
-        M := HIGH(B[0]);
-        x1 := HIGH(X);
-        x2 := HIGH(X[0]);
-        IF (N <> N2) OR (M <> x2) OR (N <> x1) THEN (* matrix dim's don't match *)
+      rA := HIGH(A);
+      cA := HIGH(A[0]);
+      N := rA + 1;  (* N is number of elements, not the high bound *)
+      rB := HIGH(B);
+      cB := HIGH(B[0]);
+      M := cB + 1;  (* M is number of elements, not the high bound *)
+      rX := HIGH(X);
+      cX := HIGH(X[0]);
+      IF (rA <> cA) OR (cA <> rX) OR (rX <> rB) OR (cX <> cB) THEN (* matrix dim's don't match *)
           RETURN FALSE
-        END; (* if Matrix dim's are not correct *)
+      END; (* if Matrix dim's are not correct *)
 
-        LU := NewArray (N, N);
+      LU := NewArray (N, N);
 
-        bool := Copy(A, LU^);                        (* Copy (A, N, N, LU^);  Copy (B, N, M, X); *)
-        IF NOT bool THEN
-            RETURN FALSE;
-        END;
-        bool := Copy(B,X);                           (*        Copy (B, N, M, X); *)
-        IF NOT bool THEN
-            RETURN FALSE;
-        END;
-        ALLOCATE (perm, N*SIZE(subscript));
-        bool := LUFactor(LU^,perm,s);                (* LUFactor (LU^, N, perm, s); *)
-        IF NOT bool THEN
-            RETURN FALSE;
-        END;
-        bool := LUSolve(LU^,X,perm);                 (* LUSolve (LU^, X, N, M, perm); *)
-        IF NOT bool THEN
-            RETURN FALSE;
-        END;
+      bool := Copy(A, LU^);                        (* Copy (A, N, N, LU^);  Copy (B, N, M, X); *)
+      IF NOT bool THEN
+        RETURN FALSE;
+      END;
+      bool := Copy(B,X);                           (*        Copy (B, N, M, X); *)
+      IF NOT bool THEN
+        RETURN FALSE;
+      END;
+      ALLOCATE (perm, N*SIZE(subscript));
+      bool := LUFactor(LU^,perm,s);                (* LUFactor (LU^, N, perm, s); *)
+      IF NOT bool THEN
+        RETURN FALSE;
+      END;
+      bool := LUSolve(LU^,X,perm);                 (* LUSolve (LU^, X, N, M, perm); *)
+      IF NOT bool THEN
+        RETURN FALSE;
+      END;
 
         (* For better accuracy, apply one step of iterative     *)
         (* improvement.  (Two or three steps might be better;   *)
@@ -616,7 +629,7 @@ PROCEDURE Solve (A, B: ARRAY OF ARRAY OF LONGREAL; VAR (*OUT*) X: ARRAY OF ARRAY
         DisposeArray(error);
 
         DEALLOCATE (perm, N*SIZE(subscript));
-        DisposeArray (LU);
+        DisposeArray (LU);  (* This paniced.  I don't know why.  I'll try again *)
         RETURN TRUE;
     END Solve;
 
@@ -635,18 +648,18 @@ PROCEDURE GaussJ (A, B: ARRAY OF ARRAY OF LONGREAL; VAR (*OUT*) X: ARRAY OF ARRA
         bool: BOOLEAN;
 
     BEGIN
-        N := HIGH(A);
-        N2 := HIGH(A[0]);
-        M := HIGH(B[0]);
-        x1 := HIGH(X);
-        x2 := HIGH(X[0]);
+        N := HIGH(A) + 1;
+        N2 := HIGH(A[0]) + 1;
+        M := HIGH(B[0]) + 1;
+        x1 := HIGH(X) + 1;
+        x2 := HIGH(X[0]) + 1;
         IF (N <> N2) OR (M <> x2) OR (N <> x1) THEN (* matrix dim's don't match *)
           RETURN FALSE
         END; (* if Matrix dim's are not correct *)
 
 
         W := NewArray (N, N);
-                                                                                                 (*        Copy (A, N, N, W^);  Copy (B, N, M, X); *)
+                                                               (*        Copy (A, N, N, W^);  Copy (B, N, M, X); *)
         Copy (A, W^);
         Copy (B, X);
 
@@ -660,12 +673,13 @@ PROCEDURE GaussJ (A, B: ARRAY OF ARRAY OF LONGREAL; VAR (*OUT*) X: ARRAY OF ARRA
         (* triangular matrix.                                           *)
 
         prow := 0;
-        FOR i := 0 TO N DO
+        FOR i := 0 TO N-1 DO
             pivot := 0.0;
-            FOR j := i TO N DO
+            FOR j := i TO N-1 DO
                 temp := W^[j,i];
                 IF ABS(temp) > ABS(pivot) THEN
-                    pivot := temp;  prow := j;
+                    pivot := temp;
+                    prow := j;
                 END (*IF*);
             END (*FOR*);
             IF ABS(pivot) < small THEN
@@ -675,12 +689,12 @@ PROCEDURE GaussJ (A, B: ARRAY OF ARRAY OF LONGREAL; VAR (*OUT*) X: ARRAY OF ARRA
 
             (* Swap rows i and prow. *)
 
-            FOR j := i TO N DO
+            FOR j := i TO N-1 DO
                 temp := W^[i,j];
                 W^[i,j] := W^[prow,j];
                 W^[prow,j] := temp;
             END (*FOR*);
-            FOR j := 0 TO M DO
+            FOR j := 0 TO M-1 DO
                 temp := X[i,j];
                 X[i,j] := X[prow,j];
                 X[prow,j] := temp;
@@ -688,21 +702,21 @@ PROCEDURE GaussJ (A, B: ARRAY OF ARRAY OF LONGREAL; VAR (*OUT*) X: ARRAY OF ARRA
 
             (* Scale the i'th row of both W and X. *)
 
-            FOR j := i+1 TO N DO
+            FOR j := i+1 TO N-1 DO
                 W^[i,j] := W^[i,j]/pivot;
             END (*FOR*);
-            FOR j := 0 TO M DO
+            FOR j := 0 TO M-1 DO
                 X[i,j] := X[i,j]/pivot;
             END (*FOR*);
 
             (* Implicitly reduce the sub-column below W[i,i] to zero.   *)
 
-            FOR k := i+1 TO N DO
+            FOR k := i+1 TO N-1 DO
                 scale := W^[k,i];
-                FOR j := i+1 TO N DO
+                FOR j := i+1 TO N-1 DO
                     W^[k,j] := W^[k,j] - scale*W^[i,j];
                 END (*FOR*);
-                FOR j := 0 TO M DO
+                FOR j := 0 TO M-1 DO
                     X[k,j] := X[k,j] - scale*X[i,j];
                 END (*FOR*);
             END (*FOR*);
@@ -711,7 +725,7 @@ PROCEDURE GaussJ (A, B: ARRAY OF ARRAY OF LONGREAL; VAR (*OUT*) X: ARRAY OF ARRA
 
         (* Pass 2: reduce the above-diagonal elements of W to zero.     *)
 
-        FOR i := N TO 1 BY -1 DO
+        FOR i := N-1 TO 1 BY -1 DO
 
             (* Implicitly reduce the sub-column above W[i,i] to zero.   *)
 
@@ -741,7 +755,7 @@ PROCEDURE Invert (A: ARRAY OF ARRAY OF LONGREAL; VAR (*INOUT*) X: ARRAY OF ARRAY
         N : CARDINAL;
 
     BEGIN
-        N := HIGH(A);
+        N := HIGH(A) + 1;
         I := NewArray(N, N);
         Unit(I^);                                    (* Unit (I^, N); *)
         bool := Solve (A, I^, X);
@@ -749,405 +763,6 @@ PROCEDURE Invert (A: ARRAY OF ARRAY OF LONGREAL; VAR (*INOUT*) X: ARRAY OF ARRAY
         RETURN bool;
     END Invert;
 
-(************************************************************************)
-(*                         EIGENPROBLEMS                                *)
-(************************************************************************)
-(*
-PROCEDURE Balance (VAR INOUT A: ARRAY OF ARRAY OF LONGREAL;  N: CARDINAL);
-
-    /* Replaces A by a better-balanced matrix with the same eigenvalues.*/
-    /* There is no effect on symmetrical matrices.  To minimize the     */
-    /* effect of rounding, we scale only by a restricted set of scaling */
-    /* factors derived from the machine's radix.                        */
-
-    CONST radix = 2.0;  radixsq = radix*radix;
-
-    VAR row, j: CARDINAL;  c, r, f, g, s: LONGREAL;
-        done: BOOLEAN;
-
-    BEGIN
-        REPEAT
-            done := TRUE;
-            FOR row := 0 TO N-1 DO
-                c := 0.0;  r := 0.0;
-                FOR j := 0 TO N-1 DO
-                    IF j <> row THEN
-                        c := c + ABS(A[j,row]);
-                        r := r + ABS(A[row,j]);
-                    END /*IF*/;
-                END /*FOR*/;
-                IF (c <> 0.0) AND (r <> 0.0) THEN
-                    g := r/radix;  f := 1.0;  s := c + r;
-                    WHILE c < g DO
-                        f := f*radix;  c := c*radixsq;
-                    END /*WHILE*/;
-                    g := r*radix;
-                    WHILE c > g DO
-                        f := f/radix;  c := c/radixsq;
-                    END /*WHILE*/;
-                    IF (c+r)/f < 0.95*s THEN
-                        done := FALSE;  g := 1.0/f;
-
-                        /* Here is the actual transformation: a scaling */
-                        /* of this row and the corresponding column.    */
-
-                        FOR j := 0 TO N-1 DO
-                            A[row,j] := g*A[row,j];
-                        END /*FOR*/;
-                        FOR j := 0 TO N-1 DO
-                            A[j,row] := f*A[j,row];
-                        END /*FOR*/;
-                    END /*IF*/;
-
-                END /*IF c and r nonzero */;
-
-            END /*FOR row := 0 TO N-1*/;
-
-        UNTIL done;
-
-    END Balance;
-*)
-(************************************************************************)
-
-PROCEDURE Hessenberg (VAR INOUT A: ARRAY OF ARRAY OF LONGREAL;  N: CARDINAL);
-
-    (* Transforms an NxN matrix into upper Hessenberg form, i.e. all    *)
-    (* entries below the diagonal zero except for the first subdiagonal.*)
-    (* This is an "in-place" calculation, i.e. the answer replaces the  *)
-    (* original matrix.                                                 *)
-
-    CONST small = 1.0E-15;
-
-    VAR pos, i, j, pivotrow: CARDINAL;
-        pivot, temp: LONGREAL;  V: VectorPtr;
-
-    BEGIN
-        IF N <= 2 THEN RETURN END(*IF*);
-
-        V := NewVector (N);
-        FOR pos := 0 TO N-1 DO
-
-            (* At this point in the calculation, A has the form         *)
-            (*          A11     A12                                     *)
-            (*          A21     A22                                     *)
-            (* where A11 has (pos+1) rows and columns and is already in *)
-            (* upper Hessenberg form; and A21 is zero except for its    *)
-            (* last two columns.  This time around the loop, we are     *)
-            (* going to transform A such that column (pos-1) of A21 is  *)
-            (* reduced to zero.  The transformation will affect only    *)
-            (* the last column of A11, therefore will not alter its     *)
-            (* Hessenberg property.                                     *)
-
-            (* Step 1: we need A[pos,pos-1] to be nonzero.  To keep     *)
-            (* the calculations as well-conditioned as possible, we     *)
-            (* allow for a preliminary row and column swap.             *)
-
-            pivot := A[pos,pos-1];
-            pivotrow := pos;
-            FOR i := pos+1 TO N DO
-                temp := A[i,pos-1];
-                IF ABS(temp) > ABS(pivot) THEN
-                    pivot := temp;
-                    pivotrow := i;
-                END (*IF*);
-            END (*FOR*);
-
-            IF ABS(pivot) < small THEN
-
-                (* The pivot is essentially zero, so we already have    *)
-                (* the desired property and no transformation is        *)
-                (* necessary this time.  We simply replace all of the   *)
-                (* "approximately zero" entries by 0.0.                 *)
-
-                FOR i := pos TO N DO
-                    A[i,pos-1] := 0.0;
-                END (*FOR*);
-
-            ELSE
-
-                IF pivotrow <> pos THEN
-
-                    (* Swap rows pos and pivotrow, and then swap the    *)
-                    (* corresponding columns.                           *)
-
-                    FOR j := pos-1 TO N DO
-                        temp := A[pivotrow,j];
-                        A[pivotrow,j] := A[pos,j];
-                        A[pos,j] := temp;
-                    END (*FOR*);
-                    FOR i := 0 TO N DO
-                        temp := A[i,pivotrow];
-                        A[i,pivotrow] := A[i,pos];
-                        A[i,pos] := temp;
-                    END (*FOR*);
-
-                END (*IF*);
-
-                (* Now we are going to replace A by T*A*Inverse(T),     *)
-                (* where T is a unit matrix except for column pos.      *)
-                (* That column is equal to a vector V, where V[i] = 0.0 *)
-                (* for i < pos, and V[pos] = 1.0.  We don't bother      *)
-                (* storing those fixed elements explicitly.             *)
-
-                FOR i := pos+1 TO N DO
-                    V^[i] := -A[i,pos-1] / pivot;
-                END (*FOR*);
-
-                (* Premultiplication of A by T.  Because of the special *)
-                (* structure of T, this affects only rows [pos+1..N].   *)
-                (* We also know that some of the results will be zero.  *)
-
-                FOR i := pos+1 TO N DO
-                    A[i,pos-1] := 0.0;
-                    FOR j := pos TO N DO
-                        A[i,j] := A[i,j] + V^[i] * A[pos,j];
-                    END (*FOR*);
-                END (*FOR*);
-
-                (* Postmultiplication by the inverse of T.  This affects*)
-                (* only column pos.                                     *)
-
-                FOR i := 0 TO N DO
-                    temp := 0.0;
-                    FOR j := pos+1 TO N DO
-                        temp := temp + A[i,j] * V^[j];
-                    END (*FOR*);
-                    A[i,pos] := A[i,pos] - temp;
-                END (*FOR*);
-
-            END (*IF*);
-
-        END (*FOR*);
-        DisposeVector (V);
-
-    END Hessenberg;
-
-(************************************************************************)
-(*
-PROCEDURE QR ( A: ARRAY OF ARRAY OF LONGREAL;  VAR OUT W: ARRAY OF LONGCOMPLEX; N: CARDINAL);
-*)
-
-(* I have no idea why I had to make the first param, the A matrix, a VAR param for this to work. *)
-(* Could it be a compiler bug? *)
-    (* Finds all the eigenvalues of an upper Hessenberg matrix.         *)
-    (* On return W contains the eigenvalues.                            *)
-
-    (* Source: this is an adaption of code from "Numerical Recipes"     *)
-    (* by Press, Flannery, Teutolsky, and Vetterling.                   *)
-(*
-    VAR last, m, j, k, L, its, i, imax: CARDINAL;
-        z, y, x, w, v, u, shift, s, r, q, p, anorm: LONGREAL;
-
-    (********************************************************************)
-
-    BEGIN
-        (* Compute matrix norm.  This looks wrong to me, but it seems   *)
-        (* to be giving satisfactory results.                           *)
-
-        anorm := ABS(A[0,0]);
-        FOR i := 1 TO N-1 DO
-            FOR j := i-1 TO N-1 DO
-(* compiler flagged this line w/ an assign range error *)
-            anorm := anorm + ABS(A[i,j]);
-            END (*FOR*);
-        END (*FOR*);
-
-        last  := N-1;  shift := 0.0;
-        its := 0;
-
-        LOOP
-
-            (* Find, if possible, an L such that A[L,L-1] is zero to    *)
-            (* machine accuracy.  If we succeed then A is now block     *)
-            (* diagonal, and we can work independently on the final     *)
-            (* block (rows and columns L to last).                      *)
-
-            L := last;
-            LOOP
-                IF L = 0 THEN EXIT(*LOOP*) END(*IF*);
-                s := ABS(A[L-1,L-1]) + ABS(A[L,L]);
-                IF s = 0.0 THEN s := anorm END(*IF*);
-                IF ABS(A[L,L-1]) + s = s THEN
-                    EXIT (*LOOP*);
-                END (*IF*);
-                DEC (L);
-            END (*LOOP*);
-
-            x := A[last,last];
-            IF L = last THEN
-
-                (* One eigenvalue found. *)
-
-                W[last] := CMPLX (x+shift, 0.0);
-                IF last > 0 THEN DEC (last);  its := 0;
-                ELSE EXIT (*LOOP*);
-                END (*IF*);
-
-            ELSE
-                y := A[last-1,last-1];
-                w := A[last,last-1]*A[last-1,last];
-                IF L = last-1 THEN
-
-                    (* We're down to a 2x2 submatrix, so can work out   *)
-                    (* the eigenvalues directly.                        *)
-
-                    p := 0.5*(y-x);  q := p*p + w;
-                    z := Sqrt(ABS(q));  x := x + shift;
-                    IF q >= 0.0 THEN
-                        IF p < 0.0 THEN z := p - z;
-                        ELSE z := p + z;
-                        END (*IF*);
-                        W[last-1] := CMPLX (x+z, 0.0);
-                        IF z = 0.0 THEN
-                            W[last] := CMPLX (x, 0.0);
-                        ELSE
-                            W[last] := CMPLX (x - w/z, 0.0);
-                        END (*IF*);
-                    ELSE
-                        W[last-1] := CMPLX (x+p, z);
-                        W[last] := conj (W[last-1]);
-                    END (*IF*);
-                    IF last >= 2 THEN DEC (last, 2);  its := 0;
-                    ELSE EXIT (*LOOP*)
-                    END (*IF*);
-
-                ELSE
-
-                    IF its < 10 THEN
-                        INC (its);
-                    ELSE
-                        (* If we're converging too slowly,      *)
-                        (* modify the shift.                    *)
-
-                        shift := shift + x;
-                        FOR i := 0 TO last DO
-                            A[i,i] := A[i,i] - x;
-                        END (*FOR*);
-                        s := ABS(A[last,last-1]) + ABS(A[last-1,last-2]);
-                        x := 0.75*s;
-                        y := x;  w := -0.4375*s*s;
-                        its := 0;
-                    END (*IF*);
-
-                    (* We're now working on a sub-array [L..last] of    *)
-                    (* size 3x3 or greater.  Our goal is to transform   *)
-                    (* the matrix so as to reduce the magnitudes of     *)
-                    (* the elements on the first sub-diagonal, so that  *)
-                    (* after one or more iterations one of them will be *)
-                    (* zero to within machine accuracy.                 *)
-
-                    (* Shortcut: if we can find two consecutive         *)
-                    (* subdiagonal elements whose product is small,     *)
-                    (* we're even better off.                           *)
-
-                    m := last-2;
-                    LOOP
-                        z := A[m,m];  r := x-z;  s := y-z;
-                        p := (r*s-w)/A[m+1,m] + A[m,m+1];
-                        q := A[m+1,m+1] - z - r - s;
-                        r := A[m+2,m+1];
-                        s := ABS(p) + ABS(q) + ABS(r);
-                        p := p/s;  q := q/s;  r := r/s;
-                        IF m = L THEN EXIT(*LOOP*) END(*IF*);
-                        u := ABS(A[m,m-1]) * (ABS(q) + ABS(r));
-                        v := ABS(p) * (ABS(A[m-1,m-1]) + ABS(z)
-                                        + ABS(A[m+1,m+1]));
-                        IF u+v = v THEN EXIT(*LOOP*) END(*IF*);
-                        DEC (m);
-                    END (*LOOP*);
-
-                    A[m+2,m] := 0.0;
-                    FOR i := m+3 TO last DO
-                        A[i,i-2] := 0.0;
-                        A[i,i-3] := 0.0;
-                    END (*FOR*);
-
-                    (* Apply row and column transformations that should *)
-                    (* reduce the magnitudes of subdiagonal elements.   *)
-
-                    FOR k := m TO last-1 DO
-                        IF k <> m THEN
-                            p := A[k,k-1];  q := A[k+1,k-1];
-                            r := 0.0;
-                            IF k <> last-1 THEN
-                                r := A[k+2,k-1];
-                            END (*IF*);
-                            x := ABS(p) + ABS(q) + ABS(r);
-                            IF x <> 0.0 THEN
-                                p := p/x;  q := q/x;  r := r/x;
-                            END (*IF*);
-                        END (*IF*);
-                        s := Sqrt(p*p + q*q + r*r);
-                        IF p < 0.0 THEN s := -s END(*IF*);
-                        IF s <> 0.0 THEN
-                            IF k = m THEN
-                                IF L <> m THEN
-                                    A[k,k-1] := -A[k,k-1];
-                                END(*IF*);
-                            ELSE
-                                A[k,k-1] := -s*x;
-                            END (*IF*);
-                            p := p + s;  x := p/s;  y := q/s;  z := r/s;
-                            q := q/p;  r := r/p;
-
-                            (* Row transformation. *)
-
-                            FOR j := k TO last DO
-(* access violation this line *)p := A[k,j] + q * A[k+1,j];
-                                IF k <> last-1 THEN
-                                    p := p + r * A[k+2,j];
-                                    A[k+2,j] := A[k+2,j] - p*z;
-                                END (*IF*);
-                                A[k+1,j] := A[k+1,j] - p*y;
-                                A[k,j] := A[k,j] - p*x;
-                            END (*FOR*);
-
-                            (* Column transformation. *)
-
-                            imax := k+3;
-                            IF last < imax THEN imax := last END(*IF*);
-                            FOR i := L TO imax DO
-                                p := x * A[i,k] + y * A[i,k+1];
-                                IF k <> last-1 THEN
-                                    p := p + z * A[i,k+2];
-                                    A[i,k+2] := A[i,k+2] - p*r;
-                                END (*IF*);
-                                A[i,k+1] := A[i,k+1] - p*q;
-                                A[i,k] := A[i,k] - p;
-                            END (*FOR*);
-
-                        END (*IF s <> 0.0 *);
-
-                    END (*FOR k := m TO last-1 *);
-
-                END (*IF test for 2x2 or bigger *);
-
-            END (*IF test for 1x1 *);
-
-        END (* main loop *);
-
-    END QR;
-*)
-(************************************************************************)
-(*
-PROCEDURE Eigenvalues (A: ARRAY OF ARRAY OF LONGREAL; VAR OUT W: ARRAY OF LONGCOMPLEX; N: CARDINAL);
-
-    /* Finds all the eigenvalues of an NxN matrix.    */
-    /* This procedure does not modify A.              */
-
-    VAR Acopy: ArrayPtr;
-
-    BEGIN
-        IF N > 0 THEN
-            Acopy := NewArray (N, N);
-            Copy (A, N, N, Acopy^);
-            Balance (Acopy^, N);
-            Hessenberg (Acopy^, N);
-            QR (Acopy^, W, N);
-            DisposeArray (Acopy, N, N);
-        END /*IF*/;
-    END Eigenvalues;
-*)
 (************************************************************************)
 (*                              OUTPUT                                  *)
 (************************************************************************)
@@ -1174,5 +789,5 @@ PROCEDURE Write (M: ARRAY OF ARRAY OF LONGREAL; places: CARDINAL);
 
 (************************************************************************)
 BEGIN
-
+  (* empty module body *)
 END Mat.

@@ -6,6 +6,7 @@ IMPLEMENTATION MODULE MiscStdInOut;
    2 Apr 13 -- Defined SkipLine, which is needed for terminal input.
    3 Apr 13 -- Added WriteLongCard.  And ADDCOMMAS
    5 Jan 15 -- Removed references to the complex family.
+  30 Dec 16 -- Now imports TIMLIBrevised.
 *)
 
         (********************************************************)

@@ -16,6 +16,14 @@ IMPLEMENTATION MODULE Vec;
         (*                                                      *)
         (********************************************************)
 
+(*
+  REVISION HISTORY
+  -------- -------
+  31 Dec 16 -- Finished revision removing N and M as params, instead using HIGH().
+*)
+
+
+
 (*  Data types defined in the def module
 TYPE
                                                           EltType = LONGREAL;
@@ -39,10 +47,13 @@ PROCEDURE NewVector (N: CARDINAL): VectorPtr;
 
     (* Creates a vector of N elements, for 0 to N-1. *)
 
+    (* I think that what actually happens is that N is the upper bound, so it makes    *)
+    (* N+1 elements.  So I'll change the code here and see what happens.  I was right. *)
+
     VAR result: VectorPtr;
 
     BEGIN
-        NEW (result, N);
+        NEW (result, N-1);
         RETURN result;
     END NewVector;
 
