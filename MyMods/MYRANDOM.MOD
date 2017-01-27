@@ -1,4 +1,3 @@
-<*/NOWARN:F*>
 IMPLEMENTATION MODULE MYRANDOM;
 (*
   Based on the RAN1 routine from Numerical Recipies.  3 linear congruential
@@ -8,6 +7,11 @@ IMPLEMENTATION MODULE MYRANDOM;
   m is the modulus.  To make this real R = I/m, which makes 0 <= R < 1.
   Note that R will not equal 1 because 0 <= I < m, or 0 <= I <= m-1.  For
   this reason, bottom half of range is < .5, and top half is >= .5 .
+  
+  REVISION HISTORY
+  -------- -------
+    6 Jan 17 -- Compiled by ADW.
+  
 *)
 IMPORT SYSTEM;
 FROM SysClock IMPORT DateTime, GetClock;
@@ -17,7 +21,7 @@ FROM BasicDialogs IMPORT MessageTypes;
 
 CONST
   DIM        = 97;
-  DIML       = VAL(LONGINT,DIM);
+  DIML       = DIM;                         (*        VAL(LONGINT,DIM); *)
   MAXCARD    = 0FFFFFFFFH;
   MAXINT     = 07FFFFFFFH;
 
@@ -52,9 +56,7 @@ BEGIN
   J    := ORD(DIM*RAN3 DIV M3);
 
   IF (J > DIM) OR (J < 0) THEN
-    BasicDialogs.MessageBox(
-' from Random Number Generator and index J is out of range.  J = ',MsgInfo);
-
+    BasicDialogs.MessageBox(" from Random Number Generator and index J is out of range.  J = ",MsgInfo);
 (*
     WriteCard(J,0);
     WriteLn;
@@ -80,8 +82,7 @@ BEGIN
     RANDREALS[I] := (LFLOAT(RAN1) + LFLOAT(RAN2)*RATIO2)*RATIO1;
   END;
 (*
-  Exercise the generator to improve its randomness.  This is the inner
-exercise loop.  The outer exercising loop occurs in RANDOMIZE.
+  Exercise the generator to improve its randomness.  This is the inner exercise loop.  The outer exercising loop occurs in RANDOMIZE.
 *)
   FOR I := 0 TO 1999 DO
     DUMMY := Next ();

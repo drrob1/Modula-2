@@ -76,6 +76,7 @@ Most of the work of this pgm is done in the PAINT section.  The menu and key sec
               command line.  DISPOSE tpv done from GETTKN when RetCode=1.  So I only need to explicitly do that when
               GETTKN does not return RetCode = 1, ie, when there is a new HourOfDayExit on the command line.
               First param is the timer value, and 2nd param is the hour value.  Cannot set only hour value.
+26 Jan 17 -- Adding code to wiggle mouse, as this is still needed.  I need SS5 to run up until now
 --------------------------------------*)
 
 MODULE ShowTimer;
@@ -176,7 +177,7 @@ CONST
   InputPromptLn4 = " <home> or <PgUp> resume exit at the set time";
   InputPromptLn5 = " <end> or <PgDn> stop exit at the set time. ";
 
-  LastMod = "14 Oct 16";
+  LastMod = "26 Jan 17";
   clipfmt = CLIPBOARD_ASCII;
   ShowTimerIcon32 = '#100';
   ShowTimerIcon16 = '#200';
@@ -184,6 +185,8 @@ CONST
   MouseTimer  = 1;
   ClockTimer = 2;
   OneTimer = 1;
+  MouseMovementAmt = -20;
+  TimeToWiggleMouse = 720; (* 720 sec is 12 min *)
   EmergencyScreenReset = 900;
   DefaultHourOfDayExit = 20;               (* This corresponds to 8 pm *)
   FlagFileName = "st.flg";
@@ -191,13 +194,8 @@ CONST
   VK_a                 = 41h;    (* a key *)
   VK_LMENU             = 0A4h;    (* L alt key *)
   VK_RMENU             = 0A5h;    (* R alt key *)
-  MyNormalWindow        = WinAttrSet{WA_VISIBLE,
-                                     WA_TITLE,
-                                     WA_RESIZABLE,
-                                     WA_SYSMENU,
-                                     WA_HSCROLL,
-                                     WA_VSCROLL
-                                    };
+  MyNormalWindow        = WinAttrSet{WA_VISIBLE, WA_TITLE, WA_RESIZABLE, WA_SYSMENU,
+                                     WA_HSCROLL, WA_VSCROLL };
 
 
 TYPE
@@ -453,15 +451,32 @@ BEGIN
 
     | TWM_TIMER:
 
-      IF msg.timerId = OneTimer THEN   (* Don't need IF timerid here since I now only use 1 timer, but I'll leave it here for a while, just in case.  *)
-        IF WiggleMouse <= 1 THEN
-          CloseWindow(tw,CM_REQUEST);
+      WINUSER.SystemParametersInfo(WINUSER.SPI_GETSCREENSAVERRUNNING,c,boolp,c);
+
+      IF boolp^ THEN     (* if screensaver running, stop it *)
+        INC(ScreenSaving);
+        WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, mousemoveamt),
+                              CAST(DWORD, -mousemoveamt), 0, 0);
+          WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, -mousemoveamt),
+                              CAST(DWORD, mousemoveamt), 0, 0);
+      END; (* if screensaver running *)
+
+(* Don't need IF timerid here since I now only use 1 timer, but I'll leave it here for a while, just in case.  *)
+      IF msg.timerId = OneTimer THEN
+        IF WiggleMouse <= 0 THEN
+          WiggleMouse := SSTimeOut;
+          WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, mousemoveamt),
+                              CAST(DWORD, mousemoveamt), 0, 0);
+          WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, -mousemoveamt),
+                              CAST(DWORD, -mousemoveamt), 0, 0);
+
         ELSE
           DEC(WiggleMouse);
-        END; (* if wigglemouse<=0 *)
+        END; (* if wigglemouse <= 0 *)
+        DEC(WiggleMouse);
         INC(CountUpTimer);
         RepaintScreen(tw);
-      END (*if timerId *);
+      END (* if timerId is the only onetimer; redundant but never removed *);
 
       dt := GetDateTime(DatTim); (* Both of these are out params, just like in C-ish.  Don't know why that's done, but it works. *)
       (* More elaborate than needed, to see if this works *)
@@ -598,11 +613,11 @@ BEGIN
     END;
 
     SetTimer(Win, OneTimer,  1000);
+    NEW(boolp);
 
 (*    SetAutoScroll(Win,TRUE); Will comment this line out to see if I can minimize *)
 (*    SetTimer(Win, MouseTimer,  750); *)
 (*    SetTimer(Win, ClockTimer, 1000); *)
-    NEW(boolp);
 END Start;
 
 
@@ -613,8 +628,8 @@ BEGIN
   aBold := ComposeAttribute(Black, White, BoldFont);
   biggerFont := DefaultFontInfo;
   biggerFont.height := 140;
-  SecondsLeftStr := '';
-  WindowText :=  '';
+  SecondsLeftStr := "";
+  WindowText :=  "";
   ScreenSaving := 0;
   CountUpTimer := 0;
   sleep := FALSE;
