@@ -76,7 +76,9 @@ Most of the work of this pgm is done in the PAINT section.  The menu and key sec
               command line.  DISPOSE tpv done from GETTKN when RetCode=1.  So I only need to explicitly do that when
               GETTKN does not return RetCode = 1, ie, when there is a new HourOfDayExit on the command line.
               First param is the timer value, and 2nd param is the hour value.  Cannot set only hour value.
-26 Jan 17 -- Adding code to wiggle mouse, as this is still needed.  I need SS5 to run up until now
+26 Jan 17 -- Reinserting code to wiggle the mouse pointer, as this functionality is still needed.
+               Need 2 down counters to do this, one for mouse pointer, and one to
+               determine when to exit.
 --------------------------------------*)
 
 MODULE ShowTimer;
@@ -177,7 +179,7 @@ CONST
   InputPromptLn4 = " <home> or <PgUp> resume exit at the set time";
   InputPromptLn5 = " <end> or <PgDn> stop exit at the set time. ";
 
-  LastMod = "26 Jan 17";
+  LastMod = "27 Jan 17";
   clipfmt = CLIPBOARD_ASCII;
   ShowTimerIcon32 = '#100';
   ShowTimerIcon16 = '#200';
@@ -251,6 +253,7 @@ VAR
   INUNT1,OUTUN1                      : MYFILTYP;
   OpenFileName,InName,OutName        : ARRAY [0..255] OF CHAR;
   InBuf, OutBuf                      : ARRAY [1..8*1024] OF CHAR;
+  ExitCountDown : INTEGER;
 
 
 PROCEDURE MakeSleep;
@@ -286,20 +289,25 @@ BEGIN
             WinShell.TerminateDispatchMessages(0);
         END;
         KillTimer(tw, OneTimer);
-(*        KillTimer(tw, ClockTimer); *)
+                                                           (*        KillTimer(tw, ClockTimer); *)
         DISPOSE(boolp);
         RETURN OkayToClose;
 
     | TWM_CREATE:
-(*        FUNC SetWindowIcon(tw, ShowTimerIcon16); *)
         xCaret := 10;
         yCaret := 0;
         inputline := '';
-(*        SetScrollDisableWhenNone(tw,TRUE,TRUE); Will comment out to see if I can minimize *)
-        SSTimeOut := TimeOutReset;
-        WiggleMouse := TimeOutReset;
+        bool := WINUSER.SystemParametersInfo(WINUSER.SPI_GETSCREENSAVETIMEOUT,c,ADR(SSTimeOut),c);
+                                                           (*        SSTimeOut := TimeOutReset; *)
+                                                                (* WiggleMouse := TimeOutReset; *)
+        IF SSTimeOut <= 5 THEN (* Will be 0 if screen saver is to be off *)
+          WiggleMouse := TimeOutReset;
+        ELSE
+          DEC(SSTimeOut,2);  (* Give leeway in case computer is busy or something like that *)
+          WiggleMouse := SSTimeOut;
+        END; (* if Screen Saver set to off *)
+        ExitCountDown := TimeOutReset;
         sleep := FALSE;
-(*        SetForegroundWindow(tw); *)
         SetDisplayMode(tw, DisplayMinimized);
 
     | TWM_SIZE:
@@ -307,21 +315,9 @@ BEGIN
         cxClient := msg.width;
         cyClient := msg.height;
         SnapWindowToFont(tw,TRUE);
-(*      Now commented out to see if I can now minimize.
-        SetDisplayMode(tw,DisplayNormal);
-        SetScrollRangeAllowed(tw,WA_VSCROLL,60);
-        SetScrollBarPos(tw,WA_VSCROLL,0);
-        SetScrollRangeAllowed(tw,WA_HSCROLL,100);
-        SetScrollBarPos(tw,WA_HSCROLL,0);
-        SetCaretType(tw,CtHalfBlock);
-*)
         MoveCaretTo(tw,xCaret,yCaret);
         MakeCaretVisible(tw);
         CaretOn(tw);
-(*      Now commented out to see if I can now minimize, and to see if I didn't break anything.
-        SetWindowEnable(tw,TRUE);
-        SetForegroundWindow(tw);
-*)
 
     | TWM_PAINT:
         HoursLeft := CountUpTimer/3600;
@@ -456,27 +452,32 @@ BEGIN
       IF boolp^ THEN     (* if screensaver running, stop it *)
         INC(ScreenSaving);
         WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, mousemoveamt),
-                              CAST(DWORD, -mousemoveamt), 0, 0);
+                                                                 CAST(DWORD, -mousemoveamt), 0, 0);
           WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, -mousemoveamt),
-                              CAST(DWORD, mousemoveamt), 0, 0);
+                                                                  CAST(DWORD, mousemoveamt), 0, 0);
       END; (* if screensaver running *)
 
-(* Don't need IF timerid here since I now only use 1 timer, but I'll leave it here for a while, just in case.  *)
-      IF msg.timerId = OneTimer THEN
-        IF WiggleMouse <= 0 THEN
-          WiggleMouse := SSTimeOut;
-          WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, mousemoveamt),
-                              CAST(DWORD, mousemoveamt), 0, 0);
-          WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, -mousemoveamt),
+(* Don't need IF timerid here since I now only use 1 timer *)
+
+      IF WiggleMouse <= 0 THEN  (* This counter is usually ~5 min, or ~300 sec *)
+        WiggleMouse := SSTimeOut;
+        WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, mousemoveamt),
+                            CAST(DWORD, mousemoveamt), 0, 0);
+        WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, -mousemoveamt),
                               CAST(DWORD, -mousemoveamt), 0, 0);
 
-        ELSE
-          DEC(WiggleMouse);
-        END; (* if wigglemouse <= 0 *)
+      ELSE
         DEC(WiggleMouse);
-        INC(CountUpTimer);
-        RepaintScreen(tw);
-      END (* if timerId is the only onetimer; redundant but never removed *);
+      END; (* if wigglemouse <= 0 *)
+
+      IF ExitCountDown <= 0 THEN
+        CloseWindow(tw,CM_REQUEST);
+      ELSE
+        DEC(ExitCountDown);
+      END; (* if time to exit *)
+
+      INC(CountUpTimer);
+
 
       dt := GetDateTime(DatTim); (* Both of these are out params, just like in C-ish.  Don't know why that's done, but it works. *)
       (* More elaborate than needed, to see if this works *)
@@ -501,14 +502,11 @@ BEGIN
           FWRSTR(OUTUN1,"escape key was hit.");
           FWRLN(OUTUN1);
           FCLOSE(OUTUN1);
-(*          KillTimer(tw, OneTimer); I put these lines here when the CloseWindow did not work from PAINT section *)
-(*          DISPOSE(boolp);  This crashes *)
-(*          WinShell.TerminateDispatchMessages(0); *)
 
           CloseWindow(tw, CM_REQUEST);
-(*          HALT;    Don't know what else to do here.  Don't think this matters anyway. *)
         END; (* IF time is or after 8 pm *)
 
+      RepaintScreen(tw);
 
     | TWM_KEY:
 
@@ -667,7 +665,9 @@ BEGIN
   IF (NOT inputprocessed) OR (TimeOutReset > 60*60*24) THEN
     TimeOutReset := EmergencyScreenReset;
   END; (* if commandline had garbage or number is too large *)
-  IF FileFunc.FileExists(FlagFileName) THEN FUNC FileFunc.DeleteFile(FlagFileName); END;
+  IF FileFunc.FileExists(FlagFileName) THEN
+    FUNC FileFunc.DeleteFile(FlagFileName);
+  END;
 
   PowerTimeOut := TimeOutReset;
 
