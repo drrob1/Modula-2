@@ -179,7 +179,7 @@ CONST
   InputPromptLn4 = " <home> or <PgUp> resume exit at the set time";
   InputPromptLn5 = " <end> or <PgDn> stop exit at the set time. ";
 
-  LastMod = "27 Jan 17";
+  LastMod = "28 Jan 17";
   clipfmt = CLIPBOARD_ASCII;
   ShowTimerIcon32 = '#100';
   ShowTimerIcon16 = '#200';
@@ -247,13 +247,12 @@ VAR
   mousemoveamt    : INTEGER = -20;
   LongZero        : INTEGER64 = 0;
   boolp           : POINTER TO BOOLEAN;
-  WiggleMouse     : INTEGER;
-  DatTim        : DateTimeType;
-  PROMPT,NAMDFT,TYPDFT,INFNAM,OUTFNAM,TMPBUF,NUMBUF,DRVPATH,INBUF,TOKEN            : BUFTYP;
+  DatTim          : DateTimeType;
+  WiggleMouse,ExitCountDown : INTEGER;
+  PROMPT,NAMDFT,TYPDFT,INFNAM,OUTFNAM,TMPBUF,NUMBUF,DRVPATH,INBUF,TOKEN : BUFTYP;
   INUNT1,OUTUN1                      : MYFILTYP;
   OpenFileName,InName,OutName        : ARRAY [0..255] OF CHAR;
   InBuf, OutBuf                      : ARRAY [1..8*1024] OF CHAR;
-  ExitCountDown : INTEGER;
 
 
 PROCEDURE MakeSleep;
@@ -399,6 +398,13 @@ BEGIN
         WriteString(tw,' Wiggle Mouse or Sleep in : ',a);
         WriteString(tw,str0,a);
         WriteString(tw,' seconds.',a);
+        EraseToEOL(tw,a);
+        WriteLn(tw);
+        WriteLn(tw);
+        IntToStr(ExitCountDown,str6);
+        WriteString(tw," CountDown to Exit in ",a);
+        WriteString(tw,str6,a);
+        WriteString(tw," seconds.",a);
         EraseToEOL(tw,a);
         WriteLn(tw);
         WriteLn(tw);
@@ -597,7 +603,7 @@ BEGIN
                         MainMenu,        (* menu : ARRAY OF CHAR *)
                         ShowTimerIcon16, (* icon : ARRAY OF CHAR *)
                         -1,-1, (* x,y= the initial screen coordinates for the window to be displayed *)
-                        80,40, (* xSize, ySize : COORDINATE *)
+                        80,30, (* xSize, ySize : COORDINATE *)
                         -1,-1, (* xBuffer, yBuffer : COORDINATE *)
                         FALSE,  (* gutter : BOOLEAN *)
                         DefaultFontInfo, (* font : FontInfo *)
