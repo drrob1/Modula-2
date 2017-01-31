@@ -79,8 +79,8 @@ Most of the work of this pgm is done in the PAINT section.  The menu and key sec
 26 Jan 17 -- Reinserting code to wiggle the mouse pointer, as this functionality is still needed.
                Need 2 down counters to do this, one for mouse pointer, and one to
                determine when to exit.
-30 Jan 17 -- Took out the menu option to hide ShowTimer.  But then killing it requires the TaskManager.
-               And I searched and learned that I cannot stop a screen saver by a simulated mouse event.
+30 Jan 17 -- Took out the menu option to hide ShowTimer.  Killing a hidden task requires the TaskManager.
+               I searched and learned that I cannot stop a screen saver by a simulated mouse event.
                But a simulated keybd event can stop it.  So I coded that, also based on a search.
 --------------------------------------*)
 
@@ -785,3 +785,12 @@ PROCEDURE StringToCard(str : ARRAY OF CHAR;
 (* returns the window handle if successfull, otherwise NIL *)
 *)
 
+(*
+  https://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
+  https://www.codeproject.com/articles/7305/keyboard-events-simulation-using-keybd-event-funct
+  VK_SHIFT 0x10    left shift scan code AA, right shift scan code is B6
+  VK_CONTROL 0x11  left control scan code 9D, right control scan code is 
+  VK_MENU 0x12 but I don't have the scan code
+
+
+*)
