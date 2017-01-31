@@ -79,6 +79,9 @@ Most of the work of this pgm is done in the PAINT section.  The menu and key sec
 26 Jan 17 -- Reinserting code to wiggle the mouse pointer, as this functionality is still needed.
                Need 2 down counters to do this, one for mouse pointer, and one to
                determine when to exit.
+30 Jan 17 -- Took out the menu option to hide ShowTimer.  But then killing it requires the TaskManager.
+               And I searched and learned that I cannot stop a screen saver by a simulated mouse event.
+               But a simulated keybd event can stop it.  So I coded that, also based on a search.
 --------------------------------------*)
 
 MODULE ShowTimer;
@@ -179,7 +182,7 @@ CONST
   InputPromptLn4 = " <home> or <PgUp> resume exit at the set time";
   InputPromptLn5 = " <end> or <PgDn> stop exit at the set time. ";
 
-  LastMod = "28 Jan 17";
+  LastMod = "30 Jan 17";
   clipfmt = CLIPBOARD_ASCII;
   ShowTimerIcon32 = '#100';
   ShowTimerIcon16 = '#200';
@@ -308,6 +311,7 @@ BEGIN
         ExitCountDown := TimeOutReset;
         sleep := FALSE;
         SetDisplayMode(tw, DisplayMinimized);
+        NEW(boolp);
 
     | TWM_SIZE:
         GetClientSize(tw,cxScreen,cyScreen);
@@ -393,8 +397,6 @@ BEGIN
         WriteLn(tw);
         WriteLn(tw);
         IntToStr(WiggleMouse, str0);
-        WindowText  :=  str0;
-        SetWindowTitle(tw, WindowText);
         WriteString(tw,' Wiggle Mouse or Sleep in : ',a);
         WriteString(tw,str0,a);
         WriteString(tw,' seconds.',a);
@@ -405,6 +407,21 @@ BEGIN
         WriteString(tw," CountDown to Exit in ",a);
         WriteString(tw,str6,a);
         WriteString(tw," seconds.",a);
+        EraseToEOL(tw,a);
+        WindowText  :=  str6;
+        SetWindowTitle(tw, WindowText);
+        WriteLn(tw);
+        WriteLn(tw);
+        CardToStr(ScreenSaving, ScreenSavingStr);
+        WriteString(tw," Number of times that the screen saver was interrupted is ",a);
+        WriteString(tw,ScreenSavingStr,a);
+        WriteString(tw,".",a);
+        WriteLn(tw);
+        IF boolp^ THEN
+          WriteString(tw," ScreenSaver is on.",a);
+        ELSE
+          WriteString(tw," ScreenSaver is off.",a);
+        END;
         EraseToEOL(tw,a);
         WriteLn(tw);
         WriteLn(tw);
@@ -421,13 +438,14 @@ BEGIN
 *)
          CASE msg.menuId OF
          0   : (* Hide *)
-              SetDisplayMode(tw, DisplayHidden);  (* To experiment with either DisplayHidden or DisplayMinimized *)
-
+(* To experiment with either DisplayHidden or DisplayMinimized.  I'll disable it as it is not what I want anyway
+              SetDisplayMode(tw, DisplayHidden);
+*)
        | 10  : (* Reset Clock *)
               CountUpTimer := 0;
               RepaintScreen(tw);
        | 15  : (* Reset both WiggleMouse and Clock *)
-              WiggleMouse  := TimeOutReset;
+              WiggleMouse  := TimeOutReset; (* same value as SSTimeOut *)
               CountUpTimer := 0;
               RepaintScreen(tw);
        | 17  : (* Stop processing of Exit Time *)
@@ -437,14 +455,14 @@ BEGIN
               ProcessExitTime := TRUE;
               RepaintScreen(tw);
        | 19  : (* Emergency Timer Reset *)
-(*
+(*                Not needed as this rtn does not alter the Power Timeout settings
               FUNC WINUSER.SystemParametersInfo(WINUSER.SPI_SETLOWPOWERTIMEOUT,EmergencyScreenReset,NIL,c);
               FUNC WINUSER.SystemParametersInfo(WINUSER.SPI_SETPOWEROFFTIMEOUT,EmergencyScreenReset,NIL,c);
               PowerTimeOut := EmergencyScreenReset;
               TimeOutReset := PowerTimeOut;
               WiggleMouse := TimeOutReset;
 *)
-              (* I intentionally do not close or HALT here, so I can see the results *)
+       (* I intentionally do not close or HALT here, so I can see the results at next repainting *)
 
        | 20  : (* exit *)
               CloseWindow(tw,CM_REQUEST);
@@ -457,20 +475,18 @@ BEGIN
 
       IF boolp^ THEN     (* if screensaver running, stop it *)
         INC(ScreenSaving);
-        WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, mousemoveamt),
-                                                                 CAST(DWORD, -mousemoveamt), 0, 0);
-          WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, -mousemoveamt),
-                                                                  CAST(DWORD, mousemoveamt), 0, 0);
+        (* WINUSER.keybd_event(bVK : BYTE; bScan : BYTE; dwflags : DWORD; dwExtraInfo : DWORD); *)
+        WINUSER.keybd_event(WINUSER.VK_SPACE,0B9h,0,0);
       END; (* if screensaver running *)
 
 (* Don't need IF timerid here since I now only use 1 timer *)
 
-      IF WiggleMouse <= 0 THEN  (* This counter is usually ~5 min, or ~300 sec *)
-        WiggleMouse := SSTimeOut;
+      IF WiggleMouse <= 0 THEN  (* This counter is usually ~5 min, or ~300 sec, at the hospital. *)
         WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, mousemoveamt),
-                            CAST(DWORD, mousemoveamt), 0, 0);
+                                                     CAST(DWORD, mousemoveamt), 0, 0);
         WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, -mousemoveamt),
-                              CAST(DWORD, -mousemoveamt), 0, 0);
+                                                     CAST(DWORD, -mousemoveamt), 0, 0);
+        WiggleMouse := SSTimeOut;
 
       ELSE
         DEC(WiggleMouse);
@@ -510,7 +526,7 @@ BEGIN
           FCLOSE(OUTUN1);
 
           CloseWindow(tw, CM_REQUEST);
-        END; (* IF time is or after 8 pm *)
+        END; (* IF time is or after 8 pm by default *)
 
       RepaintScreen(tw);
 
@@ -550,8 +566,8 @@ BEGIN
 
  (* FUNC *) CloseWindow(tw, CM_REQUEST);
 
-        | CHR(32):                      (* <space> so close window *)
-            CloseWindow(tw, CM_REQUEST);
+        | CHR(32):                      (* <space> used to close window, now does nothing *)
+                                        (* CloseWindow(tw, CM_REQUEST); *)
 (*        | 'h','H','i','I' :          make hidden, just to test.  To kill a hidden process requires the taskmanager *)
 (*            SetDisplayMode(tw, DisplayHidden);         To experiment with either DisplayHidden or DisplayMinimized *)
 
@@ -617,7 +633,7 @@ BEGIN
     END;
 
     SetTimer(Win, OneTimer,  1000);
-    NEW(boolp);
+    (* NEW(boolp); doesn't seem to be working here. *)
 
 (*    SetAutoScroll(Win,TRUE); Will comment this line out to see if I can minimize *)
 (*    SetTimer(Win, MouseTimer,  750); *)
