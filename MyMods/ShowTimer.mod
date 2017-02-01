@@ -184,7 +184,7 @@ CONST
   InputPromptLn4 = " <home> or <PgUp> resume exit at the set time";
   InputPromptLn5 = " <end> or <PgDn> stop exit at the set time. ";
 
-  LastMod = "30 Jan 17";
+  LastMod = "1 Feb 17";
   clipfmt = CLIPBOARD_ASCII;
   ShowTimerIcon32 = '#100';
   ShowTimerIcon16 = '#200';
