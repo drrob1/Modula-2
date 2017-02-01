@@ -37,6 +37,7 @@ REVISION HISTORY
 17 Dec 16 -- Added Will Sleep at time.
 30 Jan 17 -- Fixed sequence to insert a Ctrl-a keybd_event, I found when searching about stopping an active screen saver.
                https://www.codeproject.com/articles/7305/keyboard-events-simulation-using-keybd-event-funct
+31 Jan 17 -- Had to remove the keybd_event code because it choked the keyboard buffer.  I couldn't enter characters into PACS.               
 --------------------------------------*)
 <*/Resource:FHPacs.RES*>
 MODULE FHPacs;
@@ -104,11 +105,11 @@ FROM LongMath IMPORT sqrt,exp,ln,sin,cos,tan,arctan,arcsin,arccos,power,round,pi
 FROM LowLong IMPORT sign,ulp,intpart,fractpart,trunc (*,round*) ;
 
 CONST
+  LastMod = "31 Jan 17";
   szAppName = "FHPacs";
   InputPromptLn1 = " <tab> Sleep in 5; <bsp> Wake up; <del> or <F1> emerg screen timer reset and HALT. ";
   InputPromptLn2 = " <home> stop mouse movement; <end> resume mouse movements. ";
   InputPromptLn3 = " <sp> sleep toggle; <F9> Enter new hour of day to become groggy as 24-hr 2 digit number.";
-  LastMod = "30 Jan 17";
   clipfmt = CLIPBOARD_ASCII;
   FHIcon32 = "#100";
   FHIcon16 = "#200";
@@ -405,10 +406,12 @@ The solution is to use type casting, like: mouse_event (MOUSEEVENTF_MOVE, CAST(D
                               CAST(DWORD, mousemoveamt), 0, 0);
           WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE, CAST(DWORD, -mousemoveamt),
                               CAST(DWORD, -mousemoveamt), 0, 0);
+(*  Turned out that these lines of code choked the keyboard buffer.  I couldn't enter characters into PACS.                              
           WINUSER.keybd_event(WINUSER.VK_CONTROL,9dh,0,0);  (* ctrl key press *)
           WINUSER.keybd_event(VK_a,9eh,0,0);        (* a key press *)
           WINUSER.keybd_event(VK_a,9eh,WINUSER.KEYEVENTF_KEYUP,0);  (* a key release *)
           WINUSER.keybd_event(WINUSER.VK_CONTROL,9dh,WINUSER.KEYEVENTF_EXTENDEDKEY BOR WINUSER.KEYEVENTF_KEYUP,0);  (* ctrl key release *)
+*)          
         END (* if *);
       ELSIF msg.timerId = ClockTimer THEN
         IF WiggleMouse > 0 THEN DEC(WiggleMouse); END;
