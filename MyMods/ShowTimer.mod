@@ -82,6 +82,8 @@ Most of the work of this pgm is done in the PAINT section.  The menu and key sec
 30 Jan 17 -- Took out the menu option to hide ShowTimer.  Killing a hidden task requires the TaskManager.
                I searched and learned that I cannot stop a screen saver by a simulated mouse event.
                But a simulated keybd event can stop it.  So I coded that, also based on a search.
+ 1 Feb 17 -- Interrupting the screen saver sometimes works.  But it does come on.  I'll try to account for the time it takes for 
+               the clickloop.btm process.  I'll assume that takes up to 15 sec.
 --------------------------------------*)
 
 MODULE ShowTimer;
@@ -305,7 +307,7 @@ BEGIN
         IF SSTimeOut <= 5 THEN (* Will be 0 if screen saver is to be off *)
           WiggleMouse := TimeOutReset;
         ELSE
-          DEC(SSTimeOut,2);  (* Give leeway in case computer is busy or something like that *)
+          DEC(SSTimeOut,15);  (* Give leeway to account for clickloop.btm timing *)
           WiggleMouse := SSTimeOut;
         END; (* if Screen Saver set to off *)
         ExitCountDown := TimeOutReset;
