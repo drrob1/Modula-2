@@ -258,8 +258,9 @@ Assume Destination to be of SIZE at least Nbytes.  That rules out the
 possibility of running up against segment boundaries.
 *)
 
-PROCEDURE InitStringListPointerType(VAR sp : StringDoubleLinkedListPointerType) : StringDoubleLinkedListPointerType;
+PROCEDURE InitStringListPointerType() : StringDoubleLinkedListPointerType;
 (*
+PROCEDURE InitStringListPointerType(VAR sp : StringDoubleLinkedListPointerType) : StringDoubleLinkedListPointerType;
   Purpose of this routine is to init all the fields to either NIL or zero.
 *)
 

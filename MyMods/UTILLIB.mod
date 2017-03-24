@@ -828,8 +828,9 @@ BEGIN
 END GETFNM;
 *)
 
-PROCEDURE InitStringListPointerType(VAR sp : StringDoubleLinkedListPointerType) : StringDoubleLinkedListPointerType;
+PROCEDURE InitStringListPointerType() : StringDoubleLinkedListPointerType;
 (*
+PROCEDURE InitStringListPointerType(VAR sp : StringDoubleLinkedListPointerType) : StringDoubleLinkedListPointerType;
   Purpose of this routine is to init all the fields to either NIL or zero.
 *)
 
@@ -856,7 +857,7 @@ BEGIN
     len := 1;
   END; (* With StringListP *)
 
-  sp := StringListP;
+(*  sp := StringListP;   Decided to not use the syntax that needs this. *)
   RETURN(StringListP);
 
 

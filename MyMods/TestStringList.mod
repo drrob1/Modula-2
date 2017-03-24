@@ -180,7 +180,9 @@ BEGIN
 
 
 
-  StringListP1 := InitStringListPointerType(StringListP2);
+(*  StringListP1 := InitStringListPointerType(StringListP2);  *)
+  StringListP1 := InitStringListPointerType();
+  StringListP2 := InitStringListPointerType();
   AdrToHexStr(StringListP1,s);
   WriteString(" Value of P1 is : ");
   WriteString(s);
@@ -191,10 +193,9 @@ BEGIN
   WriteLn;
 
   IF StringListP1 <> StringListP2 THEN
-    WriteString(" String List P1 and P2 are not equal.  Will Halt now.");
+    WriteString(" String List P1 and P2 are not equal.");
     WriteLn;
     WriteLn;
-    HALT;
   END; (* IF String list pointers are not equal *)
 
   WriteString(" String list pointers are equal. ");
