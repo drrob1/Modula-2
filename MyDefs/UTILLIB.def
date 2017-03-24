@@ -20,11 +20,31 @@ TYPE
   STRTYP   = ARRAY [1..BUFSIZ+1] OF CHAR;(* NOW COMPATIBLE WITH BUFTYP.CHARS *)
   BUFTYP = RECORD
     CHARS : STRTYP; (* ARRAY [1..BUFSIZ+1] OF CHAR; *)
-    LENGTH,           (* NUMBER OF CHARS IN BUF NOT INCL'G SPECIAL CHARS.*)
+    LENGTH,           (* NUMBER OF CHARS IN BUF NOT INCLG SPECIAL CHARS.*)
     COUNT : CARDINAL; (* TOTAL NUMBER OF CHARS IN BUF *)
   END(*RECORD*);
   STR10TYP   = ARRAY [0..10] OF CHAR;
+  STR20TYP = ARRAY [0..20] OF CHAR;
   LONGBITSET = SET OF [0..31];
+
+  StringItemPointerType = POINTER TO StringItemType;
+  StringItemType    = RECORD
+                            Prev : StringItemPointerType;
+                            S    : BUFTYP;
+                            Next : StringItemPointerType;
+                      END; (* StringItemType Record *)
+
+
+  StringDoubleLinkedListType = RECORD
+                  StartOfList, EndOfList, CurrentPlaceInList, PrevPlaceInList : StringItemPointerType;
+                  len : CARDINAL;
+  END; (* StringDoubleLinkedListType Recored *)
+
+  StringDoubleLinkedListPointerType = POINTER TO StringDoubleLinkedListType;
+
+
+
+
 
 PROCEDURE STRLENFNT(CHARRAY : ARRAY OF CHAR) : CARDINAL;
 (*
@@ -237,6 +257,12 @@ Bypasses type, range & index checking -- Use with care.
 Assume Destination to be of SIZE at least Nbytes.  That rules out the
 possibility of running up against segment boundaries.
 *)
+
+PROCEDURE InitStringListPointerType(VAR sp : StringDoubleLinkedListPointerType) : StringDoubleLinkedListPointerType;
+(*
+  Purpose of this routine is to init all the fields to either NIL or zero.
+*)
+
 
 
 END UTILLIB.

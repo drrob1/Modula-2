@@ -23,6 +23,7 @@ MODULE RPNM2;
   16 Apr 16 -- undo, redo commands in HPCALC.
    7 Jul 16 -- UP command in HPCALC.  PI added to help, also in HPCALC.
    8 Jul 16 -- Added line to always display the stack using Dump2Console, and added a startup message.
+  24 Mar 17 -- Now called RPNM2.  And changed the startup message to indicate this is written in Modula-2.
 *)
   FROM SYSTEM IMPORT ADR;
 (*
@@ -189,7 +190,7 @@ BEGIN (********************* MAIN ****************************************)
   END; (* if stackfileexists *)
   PushStacks;
 
-  WriteString(" HP RPN type calculator started.  Last compiled  ");
+  WriteString(" HP RPN type calculator written in Modula-2 started.  Last compiled  ");
   WriteString(LastCompiled);
   WriteString(".");
   WriteLn;

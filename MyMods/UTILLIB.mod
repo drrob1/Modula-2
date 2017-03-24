@@ -29,10 +29,12 @@ Copyright (C) 1987  Robert Solomon MD.  All rights reserved.
   24 Aug 04 -- Added SubStrCMPFNT.
    2 Oct 07 -- Added BUF.LENGTH := BUF.COUNT line and now use std proc LENGTH in TRIM.
   23 Oct 13 -- Added stricmpfnt as a case insensitive comparison function.
-
+  24 Mar 17 -- Started change to a string table type, or maybe a string linked list,
+                to backport what I've done w/ stringslice in Go.
 *)
 
   FROM SYSTEM IMPORT ADDRESS;
+  FROM Storage IMPORT ALLOCATE, DEALLOCATE;
   FROM SWholeIO IMPORT ReadInt, WriteInt, ReadCard, WriteCard;
   FROM STextIO IMPORT ReadString, WriteString, WriteLn, ReadChar, WriteChar, SkipLine;
 
@@ -43,31 +45,51 @@ Copyright (C) 1987  Robert Solomon MD.  All rights reserved.
     THE FOLLOWING ARE DECLARED IN THE DEFINITION MODULE.
 CONST
     BUFSIZ    = 255;
-    CR        = 15C; (* CHR(13) *)
-    LF        = 12C; (* CHR(10) *)
+    CR        = 15C; // CHR(13)
+    LF        = 12C; // CHR(10)
     MAXCARD   = 0FFFFH;
     MAXINT    = 7FFFH;
     MININT    = 8000H;
-    ESC       = 33C; (* CHR(27) *)
+    ESC       = 33C; // CHR(27)
     NULL      = 0C;
     BLANK     = ' ';
     CTRLCOD   = 31;
 
 
 TYPE
-(* THE TYPE HAS ONE MORE THAN BUFSIZ SO ARRAY SUBSCRIPT ERRORS ARE AVOIDED. *)
-  STRTYP = ARRAY [1..BUFSIZ+1] OF CHAR;(* NOW COMPATIBLE WITH BUFTYP.CHARS *)
-  BUFTYP = RECORD
-    CHARS : STRTYP; (* ARRAY [1..BUFSIZ+1] OF CHAR; *)
-    LENGTH,           (* NUMBER OF CHARS IN BUF NOT INCL'G SPECIAL CHARS.*)
-    COUNT : CARDINAL; (* TOTAL NUMBER OF CHARS IN BUF *)
-  END(*RECORD*);
+   THE TYPE HAS ONE MORE THAN BUFSIZ SO ARRAY SUBSCRIPT ERRORS ARE AVOIDED.
+    STRTYP = ARRAY [1..BUFSIZ+1] OF CHAR;  // NOW COMPATIBLE WITH BUFTYP.CHARS
+    BUFTYP = RECORD
+               CHARS : STRTYP;   // ARRAY [1..BUFSIZ+1] OF CHAR;
+               LENGTH,           // NUMBER OF CHARS IN BUF NOT INCL'G SPECIAL CHARS.
+               COUNT : CARDINAL; // TOTAL NUMBER OF CHARS IN BUF
+             END /*RECORD*/;
   STR10TYP = ARRAY [0..10] OF CHAR;
-  CHRPTR   = POINTER TO CHAR;
+  STR20TYP = ARRAY [0..20] OF CHAR;
+
+
+  LONGBITSET = SET OF [0..31];
+
+  StringItemPointerType = POINTER TO StringItemType;
+  StringItemType    = RECORD
+                            Prev : StringItemPointerType;
+                            S    : STRTYP;
+                            Next : StringItemPointerType;
+                      END;  // StringItemType record
+
+
+  StringDoubleLinkedListType = RECORD
+                  StartOfList, EndOfList, CurrentPlaceInList, PrevPlaceInList : StringPointerType;
+                  len : CARDINAL;
+  END;  // StringDoubleLinkedListtype record
+
+  StringDoubleLinkedListPointerType = POINTER TO StringDoubleLinkedListType;
+
 *)
+
 TYPE
   CHRBUF   = ARRAY [0..32737] OF CHAR;
-  CHRPTR   = POINTER TO CHRBUF;
+  CHRPTR   = POINTER TO CHRBUF;  (* Essentially a pointer to CHAR *)
 
 VAR ROOTNAM,TOKEN,inputline : BUFTYP;
     TKNSTATE                : FSATYP;
@@ -805,6 +827,49 @@ BEGIN
   FILNAM.CHARS[FILNAM.COUNT + 1] := NULL;
 END GETFNM;
 *)
+
+PROCEDURE InitStringListPointerType(VAR sp : StringDoubleLinkedListPointerType) : StringDoubleLinkedListPointerType;
+(*
+  Purpose of this routine is to init all the fields to either NIL or zero.
+*)
+
+VAR
+  StringListP : StringDoubleLinkedListPointerType;
+  StringItemP : StringItemPointerType;
+
+BEGIN
+  NEW(StringListP);
+  NEW(StringItemP);
+  WITH StringItemP^ DO
+    Prev := NIL;
+    Next := NIL;
+    S.CHARS := "";
+    S.LENGTH := 0;
+    S.COUNT := 0;
+  END; (* With StringItemP *)
+
+  WITH StringListP^ DO
+    StartOfList := StringItemP;
+    EndOfList := StringItemP;
+    CurrentPlaceInList := StringItemP;
+    PrevPlaceInList := StringItemP;
+    len := 1;
+  END; (* With StringListP *)
+
+  sp := StringListP;
+  RETURN(StringListP);
+
+
+END InitStringListPointerType;
+
+
+(*
+  If this works, I likely need AppendStringToList, PushStringToList, PopStringFromList,
+    DelStringFromList.
+*)
+
+
+
 
 BEGIN
   ROOTNAM.CHARS[1] := NULL;
