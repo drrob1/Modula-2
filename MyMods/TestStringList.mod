@@ -3,8 +3,8 @@ MODULE TestStringList;
 REVISION HISTORY
 ----------------
 13 Oct 13 -- Testing gm2 routines.
-11 Oct 16 -- gm2 was a bust.  I'm testing StonyBrook Modula-2 addition of GetDayTime, backporting C++ and go code I recently wrote.
-24 Mar 17 -- Now will use this code to test the new StringList code I've written.
+11 Oct 16 -- gm2 was a bust.  I'm testing StonyBrook Modula-2 addition of GetDayTime, backporting C++ and go code I recently wrote, now named TestTimLib.
+24 Mar 17 -- Now will use this code to test the new StringList code I've written now named TestStringList.
 *)
 
 
@@ -16,7 +16,7 @@ REVISION HISTORY
     MAXCARDFNT,NULL, COPYLEFT,COPYRIGHT,FILLCHAR,SCANFWD,SCANBACK,
     STRLENFNT,STRCMPFNT,LCHINBUFFNT,MRGBUFS,TRIMFNT,TRIM,RMVCHR,
     APPENDA2B,CONCATAB2C,INSERTAin2B,ASSIGN2BUF, StringItemPointerType,
-    StringDoubleLinkedListPointerType,InitStringListPointerType;
+    StringDoubleLinkedListPointerType,InitStringListPointerType,AppendStringToList,NextStringFromList;
   IMPORT UTILLIB;
 (*                 New String List Types from UTILLIB.def
   StringItemPointerType = POINTER TO StringItemType;
@@ -54,8 +54,10 @@ REVISION HISTORY
     LC                     : LONGCARD;
     dt                     : DateTime;
     dt1,dt2                : DateTimeType;
-    StringListP1,StringListP2 : StringDoubleLinkedListPointerType;
+    StringListP1 : StringDoubleLinkedListPointerType;
     s : STRTYP;
+    b : BUFTYP;
+    StringP : StringItemPointerType;
 
 (******************************************************************************************************)
 
@@ -88,117 +90,34 @@ END AdrToHexStr;
 (**************************************************************************************************)
 
 BEGIN
-  GetClock(dt);
-  WriteString(' From system clock: m d y hr min sec frac zone, DST ');
-  WriteCard(dt.month);
-  WriteString('  ');
-  WriteCard(dt.day);
-  WriteString('  ');
-  WriteCard(dt.year);
-  WriteString('  ');
-  WriteCard(dt.hour);
-  WriteString('  ');
-  WriteCard(dt.minute);
-  WriteString('  ');
-  WriteCard(dt.second);
-  WriteString('  ');
-  WriteCard(dt.fractions);
-  WriteString('  ');
-  WriteInt(dt.zone);
-  IF dt.summerTimeFlag THEN
-    WriteString(' DST');
-  ELSE
-    WriteString(' std time');
-  END;
-  WriteLn;
-  WriteLn;
 
-
-
-
-  TIME2MDY(M,D,Y);
-  WriteString(' From TIME2MDY:');
-  WriteCard(M);
-  WriteString(' / ');
-  WriteCard(D);
-  WriteString(' / ');
-  WriteCard(Y);
-  WriteLn;
-
-  LC := JULIAN(M,D,Y);
-  WriteString('Julian date number: ');
-  WriteLongCard(LC);
-  WriteLn;
-  GREGORIAN(LC,M,D,Y);
-  WriteString(' after gregorian: ');
-  WriteCard(M);
-  WriteString('/');
-  WriteCard(D);
-  WriteString('/');
-  WriteCard(Y);
-  WriteLn;
-
-  dt2 := GetDateTime(dt1);
-
-  WriteString(' dt2: m d y hr min sec frac zone, DST ');
-  WriteCard(dt2.M);
-  WriteString('  ');
-  WriteCard(dt2.D);
-  WriteString('  ');
-  WriteCard(dt2.Yr);
-  WriteString('  ');
-  WriteCard(dt2.Hr);
-  WriteString('  ');
-  WriteCard(dt2.Minutes);
-  WriteString('  ');
-  WriteCard(dt2.Seconds);
-  WriteString('  ');
-  WriteString(dt2.MonthStr);
-  WriteString('  ');
-  WriteString(dt2.DayOfWeekStr);
-  WriteLn;
-  WriteLn;
-
-  WriteString(' dt1: m d y hr min sec frac zone, DST ');
-  WriteCard(dt1.M);
-  WriteString('  ');
-  WriteCard(dt1.D);
-  WriteString('  ');
-  WriteCard(dt1.Yr);
-  WriteString('  ');
-  WriteCard(dt1.Hr);
-  WriteString('  ');
-  WriteCard(dt1.Minutes);
-  WriteString('  ');
-  WriteCard(dt1.Seconds);
-  WriteString('  ');
-  WriteString(dt1.MonthStr);
-  WriteString('  ');
-  WriteString(dt1.DayOfWeekStr);
-  WriteLn;
-  WriteLn;
-
-
-
-(*  StringListP1 := InitStringListPointerType(StringListP2);  *)
   StringListP1 := InitStringListPointerType();
-  StringListP2 := InitStringListPointerType();
   AdrToHexStr(StringListP1,s);
   WriteString(" Value of P1 is : ");
   WriteString(s);
-  WriteString(".    Value of P2 is :");
-  AdrToHexStr(StringListP2,s);
+  WriteLn;
+
+  WriteString(" StartOfList: ");
+  AdrToHexStr(StringListP1^.StartOfList,s);
   WriteString(s);
-  WriteLn;
+  WriteString(", EndOfList: ");
+  AdrToHexStr(StringListP1^.EndOfList,s);
+  WriteString(s);
+  WriteString(", CurrentPlaceInList: ");
+  AdrToHexStr(StringListP1^.CurrentPlaceInList,s);
+  WriteString(s);
+  WriteString(", PrevPlaceInList: ");
+  AdrToHexStr(StringListP1^.PrevPlaceInList,s);
+  WriteString(s);
+  WriteString(", len: ");
+  WriteCard(StringListP1^.len);
   WriteLn;
 
-  IF StringListP1 <> StringListP2 THEN
-    WriteString(" String List P1 and P2 are not equal.");
-    WriteLn;
-    WriteLn;
-  END; (* IF String list pointers are not equal *)
+  AppendStringToList(StringListP1," First String in this double linked list.");
 
-  WriteString(" String list pointers are equal. ");
+  AdrToHexStr(StringListP1,s);
+  WriteString(" After inserting first string.  Value of P1 is : ");
+  WriteString(s);
   WriteLn;
 
   WriteString(" StartOfList: ");
@@ -225,14 +144,50 @@ BEGIN
   WriteString(s);
   WriteString(".  Length of list is : ");
   WriteCard(StringListP1^.len);
+  WriteString(".  Value of NextPosition : ");
+  WriteCard(StringListP1^.NextPosition);
   WriteLn;
 
   WriteString(" Length of the string in the list is : ");
   WriteCard(StringListP1^.CurrentPlaceInList^.S.LENGTH);
+  WriteString(".  String is :");
+  WriteString(StringListP1^.CurrentPlaceInList^.S.CHARS);
   WriteLn;
 
+  StringP := NextStringFromList(StringListP1);
+
+  WriteString(" Now testing NextStringFromList.");
+  WriteLn;
+  WriteString(" Value of the StringP pointer is : ");
+  AdrToHexStr(StringP,s);
+  WriteString(s);
+  WriteLn;
+  WriteString(" String item returned from the NextStringFromList call is:");
+  WriteString(StringP^.S.CHARS);
+
+  AppendStringToList(StringListP1," Second String in this double linked list.");
+  StringP := NextStringFromList(StringListP1);
+
+  WriteString(" Value of the StringP pointer is : ");
+  AdrToHexStr(StringP,s);
+  WriteString(s);
+  WriteLn;
+  WriteString(" String item returned from the NextStringFromList call is:");
+  WriteString(StringP^.S.CHARS);
+
+
+  AppendStringToList(StringListP1," Third String in this double linked list.");
+  StringP := NextStringFromList(StringListP1);
+
+  WriteString(" Value of the StringP pointer is : ");
+  AdrToHexStr(StringP,s);
+  WriteString(s);
+  WriteLn;
+  WriteString(" String item returned from the NextStringFromList call is:");
+  WriteString(StringP^.S.CHARS);
+
+
 
   WriteLn;
   WriteLn;
-
 END TestStringList.

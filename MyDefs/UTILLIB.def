@@ -14,6 +14,9 @@ CONST
     NULL      = 0C;
     BLANK     = ' ';
     CTRLCOD   = 31;
+    nul       = 0C;
+    cr        = CR;
+    lf        = LF;
 
 TYPE
 (* THE TYPE HAS ONE MORE THAN BUFSIZ SO ARRAY SUBSCRIPT ERRORS ARE AVOIDED. *)
@@ -37,7 +40,7 @@ TYPE
 
   StringDoubleLinkedListType = RECORD
                   StartOfList, EndOfList, CurrentPlaceInList, PrevPlaceInList : StringItemPointerType;
-                  len : CARDINAL;
+                  len,NextPosition : CARDINAL;    (* NextPosition is to be used by NextStringFromList *)
   END; (* StringDoubleLinkedListType Recored *)
 
   StringDoubleLinkedListPointerType = POINTER TO StringDoubleLinkedListType;
@@ -265,5 +268,9 @@ PROCEDURE InitStringListPointerType(VAR sp : StringDoubleLinkedListPointerType) 
 *)
 
 
+PROCEDURE AppendStringToList(StringListP : StringDoubleLinkedListPointerType; strng : ARRAY OF CHAR);
+
+
+PROCEDURE NextStringFromList(StringListP : StringDoubleLinkedListPointerType) : StringItemPointerType;
 
 END UTILLIB.

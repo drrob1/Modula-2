@@ -29,8 +29,7 @@ Copyright (C) 1987  Robert Solomon MD.  All rights reserved.
   24 Aug 04 -- Added SubStrCMPFNT.
    2 Oct 07 -- Added BUF.LENGTH := BUF.COUNT line and now use std proc LENGTH in TRIM.
   23 Oct 13 -- Added stricmpfnt as a case insensitive comparison function.
-  24 Mar 17 -- Started change to a string table type, or maybe a string linked list,
-                to backport what I've done w/ stringslice in Go.
+  24 Mar 17 -- Started change to a string linked list, to backport what I've done w/ stringslice in Go.
 *)
 
   FROM SYSTEM IMPORT ADDRESS;
@@ -57,6 +56,8 @@ CONST
 
 
 TYPE
+  LONGBITSET = SET OF [0..31];
+
    THE TYPE HAS ONE MORE THAN BUFSIZ SO ARRAY SUBSCRIPT ERRORS ARE AVOIDED.
     STRTYP = ARRAY [1..BUFSIZ+1] OF CHAR;  // NOW COMPATIBLE WITH BUFTYP.CHARS
     BUFTYP = RECORD
@@ -67,20 +68,17 @@ TYPE
   STR10TYP = ARRAY [0..10] OF CHAR;
   STR20TYP = ARRAY [0..20] OF CHAR;
 
-
-  LONGBITSET = SET OF [0..31];
-
   StringItemPointerType = POINTER TO StringItemType;
   StringItemType    = RECORD
                             Prev : StringItemPointerType;
-                            S    : STRTYP;
+                            S    : BUFTYP;
                             Next : StringItemPointerType;
                       END;  // StringItemType record
 
 
   StringDoubleLinkedListType = RECORD
                   StartOfList, EndOfList, CurrentPlaceInList, PrevPlaceInList : StringPointerType;
-                  len : CARDINAL;
+                  len,NextPosition : CARDINAL;
   END;  // StringDoubleLinkedListtype record
 
   StringDoubleLinkedListPointerType = POINTER TO StringDoubleLinkedListType;
@@ -828,6 +826,7 @@ BEGIN
 END GETFNM;
 *)
 
+(* -------------------------------------------------------------------------- InitStringListPointerType -----------------------------------*)
 PROCEDURE InitStringListPointerType() : StringDoubleLinkedListPointerType;
 (*
 PROCEDURE InitStringListPointerType(VAR sp : StringDoubleLinkedListPointerType) : StringDoubleLinkedListPointerType;
@@ -836,43 +835,98 @@ PROCEDURE InitStringListPointerType(VAR sp : StringDoubleLinkedListPointerType) 
 
 VAR
   StringListP : StringDoubleLinkedListPointerType;
-  StringItemP : StringItemPointerType;
 
 BEGIN
   NEW(StringListP);
-  NEW(StringItemP);
-  WITH StringItemP^ DO
-    Prev := NIL;
-    Next := NIL;
-    S.CHARS := "";
-    S.LENGTH := 0;
-    S.COUNT := 0;
-  END; (* With StringItemP *)
-
   WITH StringListP^ DO
-    StartOfList := StringItemP;
-    EndOfList := StringItemP;
-    CurrentPlaceInList := StringItemP;
-    PrevPlaceInList := StringItemP;
-    len := 1;
+    StartOfList := NIL;
+    EndOfList := NIL;
+    CurrentPlaceInList := NIL;
+    PrevPlaceInList := NIL;
+    len := 0;
+    NextPosition := 0;
   END; (* With StringListP *)
 
-(*  sp := StringListP;   Decided to not use the syntax that needs this. *)
   RETURN(StringListP);
-
-
 END InitStringListPointerType;
 
 
-(*
-  If this works, I likely need AppendStringToList, PushStringToList, PopStringFromList,
-    DelStringFromList.
-*)
+(* -------------------------------------------------------------------------- AppendStringToList -----------------------------------*)
 
-
-
+PROCEDURE AppendStringToList(StringListP : StringDoubleLinkedListPointerType; strng : ARRAY OF CHAR);
+  VAR
+    StringP : StringItemPointerType;
+    i : CARDINAL;
 
 BEGIN
+  IF StringListP = NIL THEN
+    RETURN;
+  END;
+
+  NEW(StringP);
+
+(*                                                    StringP^.Prev := StringListP^.EndOfList; *)
+  StringP^.Prev := NIL;
+  StringP^.Next := NIL;
+  FOR i := 0 TO HIGH(strng) DO
+    StringP^.S.CHARS[i] := strng[i];
+  END; (* for strng *)
+  StringP^.S.LENGTH := HIGH(strng) + 1;
+  StringP^.S.COUNT := StringP^.S.LENGTH;
+
+  IF StringListP^.StartOfList = NIL THEN   (* List is empty *)
+    StringListP^.StartOfList := StringP;
+    StringListP^.PrevPlaceInList := StringP;
+    StringListP^.EndOfList := StringP;
+  ELSE  (* List is not empty *)
+    StringListP^.PrevPlaceInList := StringListP^.EndOfList;
+    StringListP^.EndOfList^.Next := StringP;
+  END; (* if list is empty *)
+
+  StringListP^.EndOfList := StringP;
+  StringListP^.CurrentPlaceInList := StringP;
+  INC(StringListP^.len);
+
+END AppendStringToList;
+
+
+(* -------------------------------------------------------------------------- NextStringFromList -----------------------------------*)
+
+
+PROCEDURE NextStringFromList(StringListP : StringDoubleLinkedListPointerType) : StringItemPointerType;
+  VAR
+    StringP,NextStringP : StringItemPointerType;
+    c : CARDINAL;
+
+BEGIN
+  IF (StringListP = NIL) OR (StringListP^.len = 0) THEN
+    RETURN(NIL);
+  END;
+
+  NextStringP := StringListP^.StartOfList;
+  c := 0;
+
+  WHILE (c < StringListP^.NextPosition) AND (NextStringP <> NIL) DO  (* Walk list forward *)
+    NextStringP := NextStringP^.Next;
+    INC(c);
+  END; (* WHILE walking the list forward *)
+
+  StringP := NextStringP;
+  INC(StringListP^.NextPosition);
+  RETURN(StringP);
+END NextStringFromList;
+
+
+
+
+
+
+
+(*
+  If this works, I likely need AppendStringToList, PushStringToList, PopStringFromList, DelStringFromList, GetStringFromList, NextStringFromList.
+*)
+
+BEGIN (* ----------------------- Module Body ------------------------------------*)
   ROOTNAM.CHARS[1] := NULL;
   MOREFNM := FALSE;
   UPLOW := ORD('a') - ORD('A');
