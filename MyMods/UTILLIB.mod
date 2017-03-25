@@ -865,7 +865,6 @@ BEGIN
 
   NEW(StringP);
 
-(*                                                    StringP^.Prev := StringListP^.EndOfList; *)
   StringP^.Prev := NIL;
   StringP^.Next := NIL;
   FOR i := 0 TO HIGH(strng) DO
@@ -881,6 +880,7 @@ BEGIN
   ELSE  (* List is not empty *)
     StringListP^.PrevPlaceInList := StringListP^.EndOfList;
     StringListP^.EndOfList^.Next := StringP;
+    StringP^.Prev := StringListP^.EndOfList;
   END; (* if list is empty *)
 
   StringListP^.EndOfList := StringP;
@@ -913,6 +913,7 @@ BEGIN
 
   StringP := NextStringP;
   INC(StringListP^.NextPosition);
+  StringListP^.CurrentPlaceInList := StringP;
   RETURN(StringP);
 END NextStringFromList;
 

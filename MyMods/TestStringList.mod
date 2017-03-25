@@ -187,6 +187,17 @@ BEGIN
   WriteString(StringP^.S.CHARS);
 
 
+  AppendStringToList(StringListP1," Fourth string in this double linked list.");
+  StringP := NextStringFromList(StringListP1);
+
+  WriteString(" Value of the StringP pointer is : ");
+  AdrToHexStr(StringP,s);
+  WriteString(s);
+  WriteLn;
+  WriteString(" String item returned from the NextStringFromList call is:");
+  WriteString(StringP^.S.CHARS);
+
+
 
   WriteLn;
   WriteLn;
