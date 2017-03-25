@@ -865,7 +865,7 @@ BEGIN
 
   NEW(StringP);
 
-  StringP^.Prev := StringListP^.EndOfList;                                            (*  StringP^.Prev := NIL; *)
+  StringP^.Prev := StringListP^.EndOfList;
   StringP^.Next := NIL;
   FOR i := 0 TO HIGH(strng) DO
     StringP^.S.CHARS[i+1] := strng[i];
@@ -892,43 +892,97 @@ END AppendStringToList;
 (* -------------------------------------------------------------------------- NextStringFromList -----------------------------------*)
 
 
-PROCEDURE NextStringFromList(StringListP : StringDoubleLinkedListPointerType) : StringItemPointerType;
+PROCEDURE NextStringFromList(StringListP : StringDoubleLinkedListPointerType);
   VAR
-    StringP,NextStringP : StringItemPointerType;
+    NextStringP : StringItemPointerType;
     c : CARDINAL;
 
 BEGIN
-  IF (StringListP = NIL) OR (StringListP^.len = 0) THEN
+  IF StringListP = NIL THEN
+    RETURN;
+  END;
+
+  INC(StringListP^.NextPosition);
+  NextStringP := StringListP^.CurrentPlaceInList^.Next;
+  StringListP^.PrevPlaceInList := StringListP^.CurrentPlaceInList;
+  StringListP^.CurrentPlaceInList := NextStringP;
+  RETURN;
+END NextStringFromList;
+
+(* ------------------------------------------------------------------ GetNextStringFromList ---------------------- *)
+
+PROCEDURE GetNextStringFromList(StringListP : StringDoubleLinkedListPointerType) : StringItemPointerType;
+  VAR
+    StringP : StringItemPointerType;
+
+BEGIN
+  IF StringListP = NIL THEN
     RETURN(NIL);
   END;
 
-  NextStringP := StringListP^.StartOfList;
-  c := 0;
-
-  WHILE (c < StringListP^.NextPosition) AND (NextStringP <> NIL) DO  (* Walk list forward *)
-    NextStringP := NextStringP^.Next;
-    INC(c);
-  END; (* WHILE walking the list forward *)
-
-  StringP := NextStringP;
-  INC(StringListP^.NextPosition);
-  StringListP^.CurrentPlaceInList := StringP;
+  StringP := StringListP^.CurrentPlaceInList;
+  NextStringFromList(StringListP);
   RETURN(StringP);
-END NextStringFromList;
+
+END GetNextStringFromList;
+
+(* -------------------------------------------------- CurrentPointerBeginning ---------------------------- *)
+
+PROCEDURE CurrentPointerBeginning(StringListP : StringDoubleLinkedListPointerType);
+
+BEGIN
+  StringListP^.PrevPlaceInList := StringListP^.CurrentPlaceInList;
+  StringListP^.CurrentPlaceInList := StringListP^.StartOfList;
+END CurrentPointerBeginning;
 
 
+(* -------------------------------------------------- CurrentPointerEnding ---------------------------- *)
 
+PROCEDURE CurrentPointerEnding(StringListP : StringDoubleLinkedListPointerType);
 
+BEGIN
+  StringListP^.PrevPlaceInList := StringListP^.CurrentPlaceInList;
+  StringListP^.CurrentPlaceInList := StringListP^.EndOfList;
+END CurrentPointerEnding;
 
+(* -------------------------------------------------- PrevStringFromList -------------------------------- *)
 
+PROCEDURE PrevStringFromList(StringListP : StringDoubleLinkedListPointerType);
+  VAR
+    PrevStringP : StringItemPointerType;
+    c : CARDINAL;
 
-(*
-  If this works, I likely need AppendStringToList, PushStringToList, PopStringFromList, DelStringFromList, GetStringFromList, NextStringFromList.
-*)
+BEGIN
+  IF StringListP = NIL THEN
+    RETURN;
+  END;
+
+  PrevStringP := StringListP^.CurrentPlaceInList^.Prev;
+  StringListP^.PrevPlaceInList := StringListP^.CurrentPlaceInList;
+  StringListP^.CurrentPlaceInList := PrevStringP;
+  RETURN;
+END PrevStringFromList;
+
+(* -------------------------------------------- GetPrevStringFromList ----------------------------------------- *)
+
+PROCEDURE GetPrevStringFromList(StringListP : StringDoubleLinkedListPointerType) : StringItemPointerType;
+  VAR
+    PrevStringP : StringItemPointerType;
+    c : CARDINAL;
+
+BEGIN
+  IF StringListP = NIL THEN
+    RETURN(NIL);
+  END;
+
+  PrevStringP := StringListP^.CurrentPlaceInList;
+  PrevStringFromList(StringListP);
+
+  RETURN(PrevStringP);
+END GetPrevStringFromList;
 
 BEGIN (* ----------------------- Module Body ------------------------------------*)
   ROOTNAM.CHARS[1] := NULL;
   MOREFNM := FALSE;
   UPLOW := ORD('a') - ORD('A');
 END UTILLIB.
-

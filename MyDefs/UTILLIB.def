@@ -271,6 +271,16 @@ PROCEDURE InitStringListPointerType(VAR sp : StringDoubleLinkedListPointerType) 
 PROCEDURE AppendStringToList(StringListP : StringDoubleLinkedListPointerType; strng : ARRAY OF CHAR);
 
 
-PROCEDURE NextStringFromList(StringListP : StringDoubleLinkedListPointerType) : StringItemPointerType;
+PROCEDURE NextStringFromList(StringListP : StringDoubleLinkedListPointerType);
+
+PROCEDURE GetNextStringFromList(StringListP : StringDoubleLinkedListPointerType) : StringItemPointerType;
+
+PROCEDURE CurrentPointerBeginning(StringListP : StringDoubleLinkedListPointerType);
+
+PROCEDURE CurrentPointerEnding(StringListP : StringDoubleLinkedListPointerType);
+
+PROCEDURE PrevStringFromList(StringListP : StringDoubleLinkedListPointerType);
+
+PROCEDURE GetPrevStringFromList(StringListP : StringDoubleLinkedListPointerType) : StringItemPointerType;
 
 END UTILLIB.

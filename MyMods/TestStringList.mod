@@ -12,11 +12,11 @@ REVISION HISTORY
   FROM MiscStdInOut IMPORT WriteString,WriteLn,PressAnyKey,WriteCard,WriteInt,ReadString,ReadCard,
                      WriteLongCard;
   FROM Storage IMPORT ALLOCATE, DEALLOCATE;
-  FROM UTILLIB IMPORT BUFSIZ,CTRLCOD,STRTYP,STR10TYP,STR20TYP,BUFTYP,
-    MAXCARDFNT,NULL, COPYLEFT,COPYRIGHT,FILLCHAR,SCANFWD,SCANBACK,
-    STRLENFNT,STRCMPFNT,LCHINBUFFNT,MRGBUFS,TRIMFNT,TRIM,RMVCHR,
-    APPENDA2B,CONCATAB2C,INSERTAin2B,ASSIGN2BUF, StringItemPointerType,
-    StringDoubleLinkedListPointerType,InitStringListPointerType,AppendStringToList,NextStringFromList;
+  FROM UTILLIB IMPORT BUFSIZ,CTRLCOD,STRTYP,STR10TYP,STR20TYP,BUFTYP,MAXCARDFNT,NULL,COPYLEFT,COPYRIGHT,FILLCHAR,
+    SCANFWD,SCANBACK, STRLENFNT,STRCMPFNT,LCHINBUFFNT,MRGBUFS,TRIMFNT,TRIM,RMVCHR,APPENDA2B,CONCATAB2C,INSERTAin2B,
+    ASSIGN2BUF, StringItemPointerType,StringDoubleLinkedListPointerType,InitStringListPointerType,
+    AppendStringToList,NextStringFromList,PrevStringFromList,CurrentPointerBeginning,CurrentPointerEnding,
+    GetNextStringFromList,GetPrevStringFromList;
   IMPORT UTILLIB;
 (*                 New String List Types from UTILLIB.def
   StringItemPointerType = POINTER TO StringItemType;
@@ -73,7 +73,10 @@ BEGIN
   M := CAST(CARDINAL,adr);
   REPEAT (* until M = 0 *)
     h := M MOD 16;
-    IF (h <= 9) THEN Str20[i] := CHR(h + ASCZERO) ELSE Str20[i] := CHR(h -10 + ascA) END;
+    IF (h <= 9) THEN
+      Str20[i] := CHR(h + ASCZERO)
+    ELSE
+      Str20[i] := CHR(h -10 + ascA) END;
     INC(i);
     M := M DIV 16;
   UNTIL M = 0;
@@ -87,117 +90,53 @@ BEGIN
   OutStr[j] := 0C;
 END AdrToHexStr;
 
+PROCEDURE WriteStringItem(Prompt : ARRAY OF CHAR; StringP : StringItemPointerType);
+  VAR
+    s : STR20TYP;
+BEGIN
+
+  WriteString(Prompt);
+  WITH StringP^ DO
+    AdrToHexStr(Prev,s);
+    WriteString(s);
+    WriteString("; ");
+    WriteString(S.CHARS);
+    WriteString("; ");
+    AdrToHexStr(Next,s);
+    WriteString(s);
+    WriteLn;
+  END; (* with StringP deref *)
+END WriteStringItem;
+
+
 (**************************************************************************************************)
 
 BEGIN
 
   StringListP1 := InitStringListPointerType();
-  AdrToHexStr(StringListP1,s);
-  WriteString(" Value of P1 is : ");
-  WriteString(s);
-  WriteLn;
-
-  WriteString(" StartOfList: ");
-  AdrToHexStr(StringListP1^.StartOfList,s);
-  WriteString(s);
-  WriteString(", EndOfList: ");
-  AdrToHexStr(StringListP1^.EndOfList,s);
-  WriteString(s);
-  WriteString(", CurrentPlaceInList: ");
-  AdrToHexStr(StringListP1^.CurrentPlaceInList,s);
-  WriteString(s);
-  WriteString(", PrevPlaceInList: ");
-  AdrToHexStr(StringListP1^.PrevPlaceInList,s);
-  WriteString(s);
-  WriteString(", len: ");
-  WriteCard(StringListP1^.len);
-  WriteLn;
 
   AppendStringToList(StringListP1," First String in this double linked list.");
-
-  AdrToHexStr(StringListP1,s);
-  WriteString(" After inserting first string.  Value of P1 is : ");
-  WriteString(s);
-  WriteLn;
-
-  WriteString(" StartOfList: ");
-  AdrToHexStr(StringListP1^.StartOfList,s);
-  WriteString(s);
-  WriteString(", EndOfList: ");
-  AdrToHexStr(StringListP1^.EndOfList,s);
-  WriteString(s);
-  WriteString(", CurrentPlaceInList: ");
-  AdrToHexStr(StringListP1^.CurrentPlaceInList,s);
-  WriteString(s);
-  WriteString(", PrevPlaceInList: ");
-  AdrToHexStr(StringListP1^.PrevPlaceInList,s);
-  WriteString(s);
-  WriteString(", len: ");
-  WriteCard(StringListP1^.len);
-  WriteLn;
-
-  AdrToHexStr(StringListP1^.CurrentPlaceInList^.Prev,s);
-  WriteString(" StringListP1 Prev is : ");
-  WriteString(s);
-  WriteString(".  StringListP1 Next is : ");
-  AdrToHexStr(StringListP1^.CurrentPlaceInList^.Next,s);
-  WriteString(s);
-  WriteString(".  Length of list is : ");
-  WriteCard(StringListP1^.len);
-  WriteString(".  Value of NextPosition : ");
-  WriteCard(StringListP1^.NextPosition);
-  WriteLn;
-
-  WriteString(" Length of the string in the list is : ");
-  WriteCard(StringListP1^.CurrentPlaceInList^.S.LENGTH);
-  WriteString(".  String is :");
-  WriteString(StringListP1^.CurrentPlaceInList^.S.CHARS);
-  WriteLn;
-
-  StringP := NextStringFromList(StringListP1);
-
-  WriteString(" Now testing NextStringFromList.");
-  WriteLn;
-  WriteString(" Value of the StringP pointer is : ");
-  AdrToHexStr(StringP,s);
-  WriteString(s);
-  WriteLn;
-  WriteString(" String item returned from the NextStringFromList call is:");
-  WriteString(StringP^.S.CHARS);
-
   AppendStringToList(StringListP1," Second String in this double linked list.");
-  StringP := NextStringFromList(StringListP1);
-
-  WriteString(" Value of the StringP pointer is : ");
-  AdrToHexStr(StringP,s);
-  WriteString(s);
-  WriteLn;
-  WriteString(" String item returned from the NextStringFromList call is:");
-  WriteString(StringP^.S.CHARS);
-
-
   AppendStringToList(StringListP1," Third String in this double linked list.");
-  StringP := NextStringFromList(StringListP1);
-
-  WriteString(" Value of the StringP pointer is : ");
-  AdrToHexStr(StringP,s);
-  WriteString(s);
-  WriteLn;
-  WriteString(" String item returned from the NextStringFromList call is:");
-  WriteString(StringP^.S.CHARS);
-
-
   AppendStringToList(StringListP1," Fourth string in this double linked list.");
-  StringP := NextStringFromList(StringListP1);
 
-  WriteString(" Value of the StringP pointer is : ");
-  AdrToHexStr(StringP,s);
-  WriteString(s);
+  CurrentPointerBeginning(StringListP1);
+
+  FOR c1 := 1 TO StringListP1^.len DO
+    StringP := GetNextStringFromList(StringListP1);
+    WriteCard(c1);
+    WriteString(": ");
+    WriteStringItem(" String Item: ",StringP);
+  END; (* for range StringList len *)
   WriteLn;
-  WriteString(" String item returned from the NextStringFromList call is:");
-  WriteString(StringP^.S.CHARS);
 
-
+  CurrentPointerEnding(StringListP1);
+  FOR c1 := 1 TO StringListP1^.len DO
+    StringP := GetPrevStringFromList(StringListP1);
+    WriteCard(c1);
+    WriteString(": ");
+    WriteStringItem(" String Item: ",StringP);
+  END; (* for range StringList len *)
 
   WriteLn;
   WriteLn;
