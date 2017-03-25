@@ -76,7 +76,7 @@ BEGIN
     IF (h <= 9) THEN Str20[i] := CHR(h + ASCZERO) ELSE Str20[i] := CHR(h -10 + ascA) END;
     INC(i);
     M := M DIV 16;
-  UNTIL L = 0;
+  UNTIL M = 0;
   j := 1;  (* first posn is a space to leave room for sign char *)
   OutStr[0] := ' ';
   REPEAT (* until i = 0 *)

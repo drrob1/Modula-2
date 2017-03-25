@@ -865,10 +865,10 @@ BEGIN
 
   NEW(StringP);
 
-  StringP^.Prev := NIL;
+  StringP^.Prev := StringListP^.EndOfList;                                            (*  StringP^.Prev := NIL; *)
   StringP^.Next := NIL;
   FOR i := 0 TO HIGH(strng) DO
-    StringP^.S.CHARS[i] := strng[i];
+    StringP^.S.CHARS[i+1] := strng[i];
   END; (* for strng *)
   StringP^.S.LENGTH := HIGH(strng) + 1;
   StringP^.S.COUNT := StringP^.S.LENGTH;
@@ -880,7 +880,6 @@ BEGIN
   ELSE  (* List is not empty *)
     StringListP^.PrevPlaceInList := StringListP^.EndOfList;
     StringListP^.EndOfList^.Next := StringP;
-    StringP^.Prev := StringListP^.EndOfList;
   END; (* if list is empty *)
 
   StringListP^.EndOfList := StringP;
