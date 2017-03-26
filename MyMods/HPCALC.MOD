@@ -36,23 +36,24 @@ IMPLEMENTATION MODULE HPCALC;
   16 Apr 16 -- Added undo, redo commands.  These were first coded in C++ in ubuntu, and were fully debugged today.
   19 May 16 -- Fixed help to include the % operator, that was coded in 2006 but help was never updated back then.
    7 Jul 16 -- Added "UP" command.  I'm surprised that I never thought of this before.  Add PI to help list.  Change pivot for Jul command to current year.
-*)
-(*
-  FROM SLWholeIO IMPORT ReadLongInt,WriteLongInt,ReadLongCard,WriteLongCard;
-  FROM SWholeIO IMPORT ReadInt, WriteInt, ReadCard, WriteCard;
-  FROM STextIO IMPORT ReadString, WriteString, WriteLn, ReadChar, WriteChar, SkipLine;
-  FROM SLongIO IMPORT ReadReal, WriteFloat, WriteEng, WriteFixed, WriteReal;
+  25 Mar 17 -- Backporting string slice equivalent I learned to do in Go.  And replaced "!" with "|" as stack down 
+                 command.  And will use LongStr conversion routines instead of RConversions.
 *)
   IMPORT STextIO;
   IMPORT IOChan, ChanConsts,LowLong,SYSTEM;
-  FROM RealStr IMPORT StrToReal, RealToFloat, RealToEng, RealToFixed, RealToStr;
+  FROM LongStr IMPORT StrToReal, RealToFloat, RealToEng, RealToFixed, RealToStr;
   FROM Environment IMPORT GetCommandLine;
-  FROM UTILLIB IMPORT BLANK,NULL,STRTYP,BUFSIZ,BUFTYP,STR10TYP,TRIM,STRCMPFNT;
+  FROM UTILLIB IMPORT BUFSIZ,CTRLCOD,STRTYP,STR10TYP,STR20TYP,BUFTYP,MAXCARDFNT,NULL,COPYLEFT,COPYRIGHT,FILLCHAR,
+    SCANFWD,SCANBACK, STRLENFNT,STRCMPFNT,LCHINBUFFNT,MRGBUFS,TRIMFNT,TRIM,RMVCHR,APPENDA2B,CONCATAB2C,INSERTAin2B,
+    ASSIGN2BUF, StringItemPointerType,StringDoubleLinkedListPointerType,InitStringListPointerType,
+    AppendStringToList,NextStringFromList,PrevStringFromList,CurrentPointerBeginning,CurrentPointerEnding,
+    GetNextStringFromList,GetPrevStringFromList;
+                                    (* FROM UTILLIB IMPORT BLANK,NULL,STRTYP,BUFSIZ,BUFTYP,STR10TYP,TRIM,STRCMPFNT; *)
   FROM REALLIB IMPORT AINT,AMOD,ROUND,PWRI;
   FROM SysClock IMPORT DateTime,GetClock,CanGetClock,CanSetClock,IsValidDateTime,SetClock;
   FROM LongMath IMPORT sqrt,exp,ln,sin,cos,tan,arctan,arcsin,arccos,power,round,pi;
   FROM LowLong IMPORT sign,ulp,intpart,fractpart,trunc (*,round*) ;
-  IMPORT RConversions, LongStr, LongConv;
+  IMPORT RConversions, LongStr, LongConv, Strings;
   FROM RConversions IMPORT RealToString, RealToStringFixed, StringToReal;
   FROM Conversions IMPORT StringToInt, StrToInt, IntToString, IntToStr, StringToCard,
     StrToCard, CardToString, CardToStr, StringToLong, StrToLong, LongToString, LongToStr;
@@ -90,13 +91,14 @@ VAR
 
 *)
 (* CONST PI        = 3.141592653589793;  now imported from LongMath *)
-
+TYPE 
+    StackRegNamesStringType = ARRAY [X .. T1] OF STR10TYP;
 CONST
     SEMCOL = ';';
     Bottom = 1;
     Top = StackMatrixSize;
-TYPE
-    STR20TYP      = ARRAY [0..20] OF CHAR;
+    LastCompiled = "25 Mar 2017";
+
 VAR
     LASTX,MEMREG : LONGREAL;
     STACK        : RealStack;
@@ -106,6 +108,7 @@ VAR
     str          : STR20TYP;
     bool         : BOOLEAN;
     delimSet     : CHARSETTYP;
+    StackRegNamesString : StackRegNamesStringType;
 
 PROCEDURE STACKUP;
 VAR
@@ -178,36 +181,49 @@ VAR
     NUMSTR : ARRAY [1..80] OF CHAR;
     OK     : BOOLEAN;
     pos    : CARDINAL;
+    StringListP : StringDoubleLinkedListPointerType;
+    line : STRTYP;
 BEGIN
-  WriteString('------------');
-  WriteString('  ||  ');
-  WriteString('--------------------');
-  WriteLn;
-  pos := 0;
-  RealToStringFixed(STACK[T1],15,5,NUMSTR,pos,OK);
-  WriteString(NUMSTR);
-  WriteString('  ||  ');
-  WriteReal(STACK[T1],15);
-  WriteLn;
+  StringListP := InitStringListPOinterType();
+  Strings.Assign("------------",line);
+  Strings.Append("  ||  ",line);
+  Strings.Append("--------------------",line);
+  AppendStringToList(StringListP,line);
+
+  Strings.Assign(StackRegNamesString[T1],line);
+(*                                                This is from RConversions.  I now think LongStr is more what I want.
+                                                                     pos := 0;
+                                                                     RealToStringFixed(STACK[T1],15,5,NUMSTR,pos,OK);
+*)
+  RealToFixed(STACK[T1],6,NUMSTR);
+  Strings.Append(NUMSTR,line);
+  Strings.Append("  ||  ",line);
+  
+  RealToStr(STACK[T1],NUMSTR);
+  Strings.Append(NUMSTR,line);
+  AppendStringToList(StringListP,line);
   FOR S := T2 TO X BY -1 DO
-    WriteString('------------');
-    WriteString('  ||  ');
-    WriteString('--------------------');
-    WriteLn;
-    pos := 0;
-    RealToStringFixed(STACK[S],15,5,NUMSTR,pos,OK);
-    WriteString(NUMSTR);
-    WriteString('  ||  ');
-    WriteReal(STACK[S],15);
-    WriteLn;
-  END(*FOR*);
-  WriteString('------------');
-  WriteString('  ||  ');
-  WriteString('--------------------');
-  WriteLn;
+    Strings.Assign(StackRegNamesString[S],line);
+(*                                                This is from RConversions.  I now think LongStr is more what I want.
+                                                                      pos := 0;
+                                                                      RealToStringFixed(STACK[S],15,5,NUMSTR,pos,OK);
+*)
+    RealToFixed(STACK[S],6,NUMSTR);
+    Strings.Append(NUMSTR,line);
+    Strings.Append("  ||  ",line);
+
+    RealToStr(STACK[S],NUMSTR);
+    Strings.Append(NUMSTR,line);
+    AppendStringToList(StringListP,line);
+  END(* FOR stack from top down *);
+  Strings.Assign("------------",line);
+  Strings.Append("  ||  ",line);
+  Strings.Append("--------------------",line);
+  AppendStringToList(StringListP,line);
 END DUMPSTACK;
 
-PROCEDURE Dump2Console;         (* I changed the looping so that the entire stack is output in the same loop, including the topmost element, T1. *)
+PROCEDURE Dump2Console;
+(* I changed the looping so that the entire stack is output in the same loop, including the topmost element, T1.  DNU since I added the string list code *)
 VAR
     S      : StackRegNames;
     NUMSTR : ARRAY [1..80] OF CHAR;
@@ -370,18 +386,18 @@ VAR
     R        : LONGREAL;
     L        : LONGINT;
     LC       : LONGCARD;
+    StringP  : StringItemPointerType;
+    StringListP : StringDoubleLinkedListPointerType;
+    s : STRTYP;
 
 BEGIN
   TRIM(BUF);
   INI1TKN(BUF);
+  StringListP := InitStringListPointerType();
+
   LOOP  (* UNTIL FINISHED, I.E., RETCOD > 0 *)
     GETTKNREAL(TOKEN,TKNSTATE,L,R,RETCOD);
     I := L;
-(*
-                                                      WriteString('After gettknreal & retcod =');
-                                                      WriteCard(RETCOD,0);
-                                                      WriteLn;
-*)
     IF RETCOD > 0 THEN EXIT; END(*IF*);
     CASE TKNSTATE OF
       DGT :
@@ -400,10 +416,10 @@ BEGIN
            | 18 : (* **  *) STACK[X] := PWRI(STACK[Y],round(STACK[X]));
            | 22 : (* %   *) STACK[X] := STACK[Y] * STACK[X] / 100.;
            ELSE
-             WriteString(TOKEN.CHARS);
-             WriteString(' is an unrecognized operation.');
+             Strings.Assign(TOKEN.CHARS,s);
+             Strings.Append(" is an unrecognized operation.",s);
+             AppendStringToList(StringListP,s);
              STACKUP;
-             WriteLn;
            END(*CASE*);
            IF I <> 22 THEN STACKDN; END; (* Do not move stack for % operator *)
          END(*IF*);
@@ -434,62 +450,36 @@ BEGIN
                 ELSIF STRCMPFNT(TOKEN.CHARS,"REDO") = 0 THEN
                     RollUpStacks;
                 ELSIF STRCMPFNT(TOKEN.CHARS,'HELP') = 0 THEN
-                  WriteString(" SQRT,SQR -- X = sqrt(X) or sqr(X) register.");
-                  WriteLn;
-                  WriteString(" CURT -- Cube Root number in X ");
-                  WriteLn;
-                  WriteString(" RECIP -- reciprocal of X, ie, 1/X.");
-                  WriteLn;
-                  WriteString(" VOL -- Given a volume in X, estimate size of cavity assuming a sphere.");
-                  WriteLn;
-                  WriteString(' STO,RCL  -- store/recall the X register to/from the memory register.');
-                  WriteLn;
-                  WriteString(' `,~,SWAP,SWAPXY,<>,>< -- equivalent commands that swap the X and Y registers.');
-                  WriteLn;
-                  WriteString(' @, LASTX -- put the value of the LASTX register back into the X register.');
-                  WriteLn;
-                  WriteString(' !,DN,ROLLDN -- roll the stack down one register.  X goes to T1.');
-                  WriteLn;
-                  WriteString(' D -- Dump2console.   DUMP -- dump the stack to the terminal.');
-                  WriteLn;
-                  WriteString(' EXP,LN -- evaluate exp(X) or ln(X) and put result back into X.');
-                  WriteLn;
-                  WriteString(' ^   -- evaluate ABS(Y) to the X power, put result in X and pop stack 1 reg.');
-                  WriteLn;
-                  WriteString(' **  -- like "^" but rounds X before calling the PWRI function.');
-                  WriteLn;
-                  WriteString(' %   -- does XY/100, places result in X.  Leaves Y alone.');
-                  WriteLn;
-                  WriteString(' INT, ROUND, FRAC -- do what their names suggest.');
-                  WriteLn;
-                  WriteString(' MOD -- evaluate Y MOD X, put result in X and pop stack 1 reg.');
-                  WriteLn;
-                  WriteString(' SIN,COS,TAN,ARCTAN,ARCSIN,ARCCOS -- In degrees.');
-                  WriteLn;
-                  WriteString(' D2R -- perform degrees to radians conversion of the X register.');
-                  WriteLn;
-                  WriteString(' R2D -- perform radians to degrees conversion of the X register.');
-                  WriteLn;
-                  WriteString(' PI -- goes into the X register.');
-                  WriteLn;
-                  WriteString(' R2D -- perform radians to degrees conversion of the X register.');
-                  WriteLn;
-                  WriteString(" TODAY- Return Julian date number of today's date.  Pop stack x2.");
-                  WriteLn;
-                  WriteString(' GREG-- Return Z month, Y day, X year of Julian date number in X.');
-                  WriteLn;
-                  WriteString(' DOW -- Return day number 1..7 of julian date number in X register.');
-                  WriteLn;
-                  WriteString(' HEX -- Round X register to a longcard and output it in hex format.');
-                  WriteLn;
-                  WriteString(' , or UP -- stack up.  ! or DN -- stack down.');
-                  WriteLn;
-                  WriteString(' HCF -- Push HCF(Y,X) onto stack without removing Y or X.');
-                  WriteLn;
-                  WriteString(" HOL -- Compute the Holidays variable for year in X.");  (* exported by this module for client module to display *)
-                  WriteLn;
-                  WriteString(" undo, redo -- entire stack.  More comprehensive than lastx.");
-                  WriteLn;
+                  AppendStringToList(StringListP," SQRT,SQR,CURT -- X = sqrt(X), sqr(X) or cube root X register.");
+                  AppendStringToList(StringListP," RECIP -- reciprocal of X, ie, 1/X.");
+                  AppendStringToList(StringListP," VOL -- Given a volume in X, estimate size of cavity assuming a sphere.");
+                  AppendStringToList(StringListP," STO,RCL  -- store/recall the X register to/from the memory register.");
+                  AppendStringToList(StringListP," `,~,SWAP,SWAPXY,<>,>< -- equivalent commands that swap the X and Y registers.");
+                  AppendStringToList(StringListP," @, LASTX -- put the value of the LASTX register back into the X register.");
+                  AppendStringToList(StringListP," DN,ROLLDN -- roll the stack down one register.  X goes to T1.");
+                  AppendStringToList(StringListP," D -- Dump2console.   DUMP -- dump the stack to the terminal.");
+                  AppendStringToList(StringListP," EXP,LN -- evaluate exp(X) or ln(X) and put result back into X.");
+                  AppendStringToList(StringListP," ^   -- evaluate ABS(Y) to the X power, put result in X and pop stack 1 reg.");
+                  AppendStringToList(StringListP," **  -- like "^" but rounds X before calling the PWRI function.");
+                  AppendStringToList(StringListP," %   -- does XY/100, places result in X.  Leaves Y alone.");
+                  AppendStringToList(StringListP," INT, ROUND, FRAC -- do what their names suggest.");
+                  AppendStringToList(StringListP," MOD -- evaluate Y MOD X, put result in X and pop stack 1 reg.");
+                  AppendStringToList(StringListP," SIN,COS,TAN,ARCTAN,ARCSIN,ARCCOS -- In degrees.");
+                  AppendStringToList(StringListP," D2R -- perform degrees to radians conversion of the X register.");
+                  AppendStringToList(StringListP," R2D -- perform radians to degrees conversion of the X register.");
+                  AppendStringToList(StringListP," PI -- goes into the X register.");
+                  AppendStringToList(StringListP," R2D -- perform radians to degrees conversion of the X register.");
+                  AppendStringToList(StringListP," TODAY- Return Julian date number of today's date.  Pop stack x2.");
+                  AppendStringToList(StringListP," GREG-- Return Z month, Y day, X year of Julian date number in X.");
+                  AppendStringToList(StringListP," DOW -- Return day number 1..7 of julian date number in X register.");
+                  AppendStringToList(StringListP," HEX -- Round X register to a longcard and output it in hex format.");
+                  AppendStringToList(StringListP," , or UP -- stack up.  | or DN -- stack down.");
+                  AppendStringToList(StringListP," HCF -- Push HCF(Y,X) onto stack without removing Y or X.");
+                  AppendStringToList(StringListP," HOL -- Compute the Holidays variable for year in X.");  (* exported by this module for client module to display *)
+                  AppendStringToList(StringListP," undo, redo -- entire stack.  More comprehensive than lastx.");
+                  Strings.Concat(" Last Compiled ",LastCompiled,s);
+                  AppendStringToList(StringListP,s);
+                  AppendStringToList(StringListP,LastCompiled);
                 ELSIF STRCMPFNT(TOKEN.CHARS,'STO') = 0 THEN
                   MEMREG := STACK[X];
                 ELSIF STRCMPFNT(TOKEN.CHARS,'RCL') = 0 THEN
@@ -513,7 +503,7 @@ BEGIN
                 ELSIF (STRCMPFNT(TOKEN.CHARS,',') = 0) OR (STRCMPFNT(TOKEN.CHARS,'UP') = 0) THEN
                   PushStacks;
                   STACKUP;
-                ELSIF STRCMPFNT(TOKEN.CHARS,'!') = 0 THEN
+                ELSIF STRCMPFNT(TOKEN.CHARS,'|') = 0 THEN
                   PushStacks;
                   STACK[X] := STACK[Y];
                   STACKDN;
@@ -537,7 +527,7 @@ BEGIN
                   PushStacks;
                   STACK[X] := ln(STACK[X]);
                 ELSIF STRCMPFNT(TOKEN.CHARS,'Y^X') = 0 THEN
-(* Now that ^ is an operator, this must be quoted to be parsed as such *)
+                (* Now that ^ is an operator, this must be quoted to be parsed as such *)
                   LASTX := STACK[X];
                   PushStacks;
                   STACK[X] := exp(STACK[X]*ln(ABS(STACK[Y])));
@@ -552,7 +542,6 @@ BEGIN
                 ELSIF STRCMPFNT(TOKEN.CHARS,'ROUND') = 0 THEN
                   LASTX := STACK[X];
                   PushStacks;
-(*                  STACK[X] := LowLong.round(STACK[X],1); doesn't work *)
                   IF STACK[X] >= 0. THEN           (* X is positive or zero *)
                     STACK[X] := AINT(STACK[X] + 0.5);
                   ELSE                             (* X is negative *)
@@ -564,19 +553,11 @@ BEGIN
                     LongCard2HexStr(c,str);
                   ELSE
                     L := VAL(LONGINT,STACK[X]);
-(*
-                    R := AINT(STACK[X]);
-                    c := 0;
-                    RealToStringFixed(R,15,1,str,c,bool);
-                    (*bool := *)StrToLong(str,L);
-                    LongInt2HexStr(L,str);
-*)
                     LC := SYSTEM.CAST(LONGCARD,L);
                     LongCard2HexStr(LC,str);
                   END;
-                  WriteString(' Value of x reg in hex: ');
-                  WriteString(str);
-                  WriteLn;
+                  Strings.Concat(" Value of X reg in hex: ",str,s);
+                  AppendStringToList(StringListP,s);
                 ELSIF STRCMPFNT(TOKEN.CHARS,'HCF') = 0 THEN
                   PushStacks;
                   c1 := TRUNC(ABS(STACK[X]));
@@ -640,13 +621,13 @@ BEGIN
                   STACK[X] := LFLOAT(JULIAN(round(STACK[Z]),round(STACK[Y]),round(STACK[X])));
                   STACKDN;
                   STACKDN;
-                ELSIF STRCMPFNT(TOKEN.CHARS,'TODAY') = 0 THEN
+                ELSIF STRCMPFNT(TOKEN.CHARS,"TODAY") = 0 THEN
                   LASTX := STACK[X];
                   PushStacks;
                   STACKUP;
                   TIME2MDY(C1,C2,C3);
                   STACK[X] := LFLOAT(JULIAN(C1,C2,C3));
-                ELSIF STRCMPFNT(TOKEN.CHARS,'GREG') = 0 THEN
+                ELSIF STRCMPFNT(TOKEN.CHARS,"GREG") = 0 THEN
                   LASTX := STACK[X];
                   PushStacks;
                   STACKUP;
@@ -655,15 +636,16 @@ BEGIN
                   STACK[Z] := LFLOAT(C1);
                   STACK[Y] := LFLOAT(C2);
                   STACK[X] := LFLOAT(C3);
-                ELSIF STRCMPFNT(TOKEN.CHARS,'DOW') = 0 THEN
+                ELSIF STRCMPFNT(TOKEN.CHARS,"DOW") = 0 THEN
                   LASTX := STACK[X];
                   PushStacks;
                   STACK[X] := AMOD(LASTX,7.) + 1.;
-                ELSIF STRCMPFNT(TOKEN.CHARS,'PI') = 0 THEN
+                ELSIF STRCMPFNT(TOKEN.CHARS,"PI") = 0 THEN
                   PushStacks;
                   PUSHX(pi);
                 ELSIF STRCMPFNT(TOKEN.CHARS,"ABOUT") = 0 THEN
-                  (* do nothing, but allows the client module to have an about command without generating an error here *)
+                  Strings.ConCat(" Last compiled ",LastCompiled,s);
+                  AppendStringToList(StringListP,s);
                 ELSIF STRCMPFNT(TOKEN.CHARS,"HOL") = 0 THEN
                   year := ROUND(STACK[X]);  (* Leave year on the stack so client modules can reference it.  *)
                   IF year < 40 THEN
@@ -676,10 +658,9 @@ BEGIN
                     Holidays.valid := TRUE;
                   END (* IF *);
                 ELSE
-                  WriteString(TOKEN.CHARS);
-                  WriteString(' is an unrecognized command.');
-                  WriteLn;
-                END(*IF*);
+                  Strings.Concat(TOKEN.CHARS," is an unrecognized command.",s);
+                  AppendStringToList(StringListP,s);
+                END(* AllElse main IF statement *);
     END(*CASE*);
   END(*LOOP*);
   RETURN(STACK[X]);
@@ -693,4 +674,13 @@ BEGIN (********************* MAIN ****************************************)
   delimSet := CHARSETTYP{BLANK,NULL,SEMCOL};  (* Note absence of COMMA *)
   NEWDELIMSET(delimSet);
   Holidays.valid := FALSE;
+  Strings.Assign("  X: ",StackRegNamesString[X]);
+  Strings.Assign("  Y: ",StackRegNamesString[Y]);
+  Strings.Assign("  Z: ",StackRegNamesString[Z]);
+  Strings.Assign(" T5: ",StackRegNamesString[T5]);
+  Strings.Assign(" T4: ",StackRegNamesString[T4]);
+  Strings.Assign(" T3: ",StackRegNamesString[T3]);
+  Strings.Assign(" T2: ",StackRegNamesString[T2]);
+  Strings.Assign(" T1: ",StackRegNamesString[T1]);
+
 END HPCALC.

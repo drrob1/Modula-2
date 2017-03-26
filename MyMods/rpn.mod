@@ -1,6 +1,6 @@
 <*DEFINE (ConsoleMode,TRUE)*>
 (* (C) 1990-2013.  Robert W. Solomon.  All rights reserved.  *)
-MODULE RPNM2;
+MODULE RPN;
 (*
   This module uses the HPCALC module to simulate an RPN type calculator.
   REVISION HISTORY
@@ -10,7 +10,7 @@ MODULE RPNM2;
   25 Jul 93 -- Output result without trailing insignificant zeros,
                 imported UL2, and changed prompt again.
    3 Mar 96 -- Fixed bug in string display if real2str fails because
-                number is too large (ie, Avogadro's Number).
+                number is too large (ie, Avogadro''s Number).
   18 May 03 -- First Win32 version.  And changed name.
    1 Apr 13 -- Back to console mode pgm that will read from the cmdline.  Intended to be a quick and useful little utility.
                 And will save/restore the stack to/from a file.
@@ -23,21 +23,22 @@ MODULE RPNM2;
   16 Apr 16 -- undo, redo commands in HPCALC.
    7 Jul 16 -- UP command in HPCALC.  PI added to help, also in HPCALC.
    8 Jul 16 -- Added line to always display the stack using Dump2Console, and added a startup message.
+  26 Mar 17 -- HPCALC now outputs a string list instead of directly doing I/O.
 *)
   FROM SYSTEM IMPORT ADR;
 (*
-                                                    FROM SLWholeIO IMPORT ReadLongInt,WriteLongInt,ReadLongCard,WriteLongCard;
-                                                    FROM SWholeIO IMPORT ReadInt, WriteInt, ReadCard, WriteCard;
-                                                    FROM STextIO IMPORT ReadString, WriteString, WriteLn, ReadChar, WriteChar, SkipLine;
-  FROM RealStr IMPORT StrToReal, RealToFloat, RealToEng, RealToFixed, RealToStr;
-  FROM SysClock IMPORT DateTime,GetClock,CanGetClock,CanSetClock,IsValidDateTime,SetClock;
-  FROM LowLong IMPORT sign,ulp,intpart,fractpart,trunc (*,round*) ;
-  FROM LongMath IMPORT sqrt,exp,ln,sin,cos,tan,arctan,arcsin,arccos,power,round,pi;
-  IMPORT RConversions, LongStr, LongConv, WholeStr (*, FormatString *) ;
-  FROM Conversions IMPORT StringToInt, StrToInt, IntToString, IntToStr, StringToCard,
-    StrToCard, CardToString, CardToStr, StringToLong, StrToLong, LongToString, LongToStr;
-  IMPORT Strings,MemUtils,ASCII;
-  FROM ExStrings IMPORT AppendChar, EqualI;
+                            FROM SLWholeIO IMPORT ReadLongInt,WriteLongInt,ReadLongCard,WriteLongCard;
+                            FROM SWholeIO IMPORT ReadInt, WriteInt, ReadCard, WriteCard;
+                            FROM STextIO IMPORT ReadString, WriteString, WriteLn, ReadChar, WriteChar, SkipLine;
+                            FROM RealStr IMPORT StrToReal, RealToFloat, RealToEng, RealToFixed, RealToStr;
+                            FROM SysClock IMPORT DateTime,GetClock,CanGetClock,CanSetClock,IsValidDateTime,SetClock;
+                            FROM LowLong IMPORT sign,ulp,intpart,fractpart,trunc (*,round*) ;
+                            FROM LongMath IMPORT sqrt,exp,ln,sin,cos,tan,arctan,arcsin,arccos,power,round,pi;
+                            IMPORT RConversions, LongStr, LongConv, WholeStr (*, FormatString *) ;
+                            FROM Conversions IMPORT StringToInt, StrToInt, IntToString, IntToStr, StringToCard,
+                               StrToCard, CardToString, CardToStr, StringToLong, StrToLong, LongToString, LongToStr;
+                            IMPORT Strings,MemUtils,ASCII;
+                            FROM ExStrings IMPORT AppendChar, EqualI;
 *)
   IMPORT STextIO, SWholeIO, SLWholeIO;
   FROM RConversions IMPORT RealToString, RealToStringFixed, StringToReal;
@@ -78,7 +79,7 @@ MODULE RPNM2;
   FROM HolidayCalc IMPORT HolType, GetHolidays;
 
 CONST
-  LastCompiled = "11 July 16";
+  LastCompiled = "26 Mar 2017";
 
 VAR
   C,c,K,STRLEN,NON0POSN,NONBLPOSN,RetCode : CARDINAL;
@@ -311,7 +312,7 @@ BEGIN (********************* MAIN ****************************************)
   OpenCreateFile(StackFile,StackFileName,ReadWriteDenyWrite);
   WriteBlock(StackFile, ADR(stk), SIZE(stk) );
   CloseFile(StackFile);
-END RPNM2.
+END RPN.
 
 (* PROCEDURE GETSTACK(VAR STK : ARRAY OF LONGREAL; VAR RETCOD : CARDINAL);*)
 (* StackRegNames = (X,Y,Z,T5,T4,T3,T2,T1);  *)
