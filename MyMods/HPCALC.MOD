@@ -36,16 +36,18 @@ IMPLEMENTATION MODULE HPCALC;
   16 Apr 16 -- Added undo, redo commands.  These were first coded in C++ in ubuntu, and were fully debugged today.
   19 May 16 -- Fixed help to include the % operator, that was coded in 2006 but help was never updated back then.
    7 Jul 16 -- Added "UP" command.  I'm surprised that I never thought of this before.  Add PI to help list.  Change pivot for Jul command to current year.
-  25 Mar 17 -- Backporting string slice equivalent I learned to do in Go.  And replaced "!" with "|" as stack down 
-                 command.  And will use LongStr conversion routines instead of RConversions.
+  26 Mar 17 -- Backporting string slice equivalent I learned to do in Go.  And replaced "!" with "|" as stack down
+                 command.  And will use LongStr conversion routines instead of RConversions.  This rtn no
+                 longer does I/O.  I don''t want the Dump2Console procedure used anymore.
 *)
+  FROM SYSTEM IMPORT ADR;
   IMPORT STextIO;
   IMPORT IOChan, ChanConsts,LowLong,SYSTEM;
   FROM LongStr IMPORT StrToReal, RealToFloat, RealToEng, RealToFixed, RealToStr;
   FROM Environment IMPORT GetCommandLine;
-  FROM UTILLIB IMPORT BUFSIZ,CTRLCOD,STRTYP,STR10TYP,STR20TYP,BUFTYP,MAXCARDFNT,NULL,COPYLEFT,COPYRIGHT,FILLCHAR,
-    SCANFWD,SCANBACK, STRLENFNT,STRCMPFNT,LCHINBUFFNT,MRGBUFS,TRIMFNT,TRIM,RMVCHR,APPENDA2B,CONCATAB2C,INSERTAin2B,
-    ASSIGN2BUF, StringItemPointerType,StringDoubleLinkedListPointerType,InitStringListPointerType,
+  FROM UTILLIB IMPORT BLANK,NULL,BUFSIZ,CTRLCOD,STRTYP,STR10TYP,STR20TYP,BUFTYP,MAXCARDFNT,COPYLEFT,COPYRIGHT,
+    FILLCHAR,SCANFWD,SCANBACK, STRLENFNT,STRCMPFNT,LCHINBUFFNT,MRGBUFS,TRIMFNT,TRIM,RMVCHR,APPENDA2B,CONCATAB2C,
+    INSERTAin2B,ASSIGN2BUF, StringItemPointerType,StringDoubleLinkedListPointerType,InitStringListPointerType,
     AppendStringToList,NextStringFromList,PrevStringFromList,CurrentPointerBeginning,CurrentPointerEnding,
     GetNextStringFromList,GetPrevStringFromList;
                                     (* FROM UTILLIB IMPORT BLANK,NULL,STRTYP,BUFSIZ,BUFTYP,STR10TYP,TRIM,STRCMPFNT; *)
@@ -58,8 +60,7 @@ IMPLEMENTATION MODULE HPCALC;
   FROM Conversions IMPORT StringToInt, StrToInt, IntToString, IntToStr, StringToCard,
     StrToCard, CardToString, CardToStr, StringToLong, StrToLong, LongToString, LongToStr;
 (*
-                                            FROM TOKENIZE IMPORT FSATYP,DELIMCH,INI1TKN,GETCHR,UNGETCHR,GETTKN,
-                                              UNGETTKN,GETTKNREAL;
+                              FROM TOKENIZE IMPORT FSATYP,DELIMCH,INI1TKN,GETCHR,UNGETCHR,GETTKN, UNGETTKN,GETTKNREAL;
 *)
   FROM TKNRTNS IMPORT FSATYP,CHARSETTYP,DELIMCH,INI1TKN,INI3TKN,GETCHR,
     UNGETCHR,GETTKN,NEWDELIMSET,NEWOPSET,NEWDGTSET,GETTKNSTR,GETTKNEOL,
@@ -91,7 +92,7 @@ VAR
 
 *)
 (* CONST PI        = 3.141592653589793;  now imported from LongMath *)
-TYPE 
+TYPE
     StackRegNamesStringType = ARRAY [X .. T1] OF STR10TYP;
 CONST
     SEMCOL = ';';
@@ -109,7 +110,9 @@ VAR
     bool         : BOOLEAN;
     delimSet     : CHARSETTYP;
     StackRegNamesString : StackRegNamesStringType;
+(*    StringListP  : StringDoubleLinkedListPOinterType;  Not sure if I want this here *)
 
+(*****************************************************)
 PROCEDURE STACKUP;
 VAR
     S : StackRegNames;
@@ -119,6 +122,7 @@ BEGIN
   END(*FOR*);
 END STACKUP;
 
+(*****************************************************)
 PROCEDURE STACKDN;
 VAR
     S : StackRegNames;
@@ -128,6 +132,7 @@ BEGIN
   END(*FOR*);
 END STACKDN;
 
+(*****************************************************)
 PROCEDURE STACKROLLDN;
 VAR
     TEMP : LONGREAL;
@@ -138,6 +143,7 @@ BEGIN
   STACK[T1] := TEMP;
 END STACKROLLDN;
 
+(*****************************************************)
 PROCEDURE PUSHX(R : LONGREAL);
 BEGIN
   STACKUP;
@@ -149,6 +155,7 @@ BEGIN
   RETURN(STACK[X]);
 END READX;
 
+(*****************************************************)
 PROCEDURE SWAPXY;
 VAR TEMP : LONGREAL;
 BEGIN
@@ -157,6 +164,24 @@ BEGIN
   STACK[Y] := TEMP;
 END SWAPXY;
 
+(*****************************************************)
+PROCEDURE TruncateInsigZeros(VAR INOUT str : ARRAY OF CHAR);
+VAR
+  StrLen, Non0Posn, NonBlPosn : CARDINAL;
+
+BEGIN
+      StrLen := Strings.Length(str);
+      (* Scanback for first nonzero char.  This is the new length of the string *)
+      Non0Posn := SCANBACK(ADR(str),StrLen,'0',FALSE);
+      str[Non0Posn] := NULL; (* Terminate string at 1-st insignificant 0 *)
+      NonBlPosn := SCANFWD(ADR(str),Non0Posn,BLANK,FALSE) -1;
+(*
+   Remove the leading blanks by copying the non-blank string to the beginning, including the terminating null char.
+*)
+      COPYLEFT(ADR(str[NonBlPosn]),ADR(str),Non0Posn-NonBlPosn+1);
+END TruncateInsigZeros;
+
+(*****************************************************)
 PROCEDURE GETSTACK(VAR STK : ARRAY OF LONGREAL; VAR RETCOD : CARDINAL);
 VAR
     S : StackRegNames;
@@ -175,7 +200,8 @@ BEGIN
   END(*FOR*);
 END GETSTACK;
 
-PROCEDURE DUMPSTACK;
+(*****************************************************)
+PROCEDURE DUMPSTACK() : StringDoubleLinkedListPointerType;
 VAR
     S      : StackRegNames;
     NUMSTR : ARRAY [1..80] OF CHAR;
@@ -184,7 +210,7 @@ VAR
     StringListP : StringDoubleLinkedListPointerType;
     line : STRTYP;
 BEGIN
-  StringListP := InitStringListPOinterType();
+  StringListP := InitStringListPointerType();
   Strings.Assign("------------",line);
   Strings.Append("  ||  ",line);
   Strings.Append("--------------------",line);
@@ -196,10 +222,12 @@ BEGIN
                                                                      RealToStringFixed(STACK[T1],15,5,NUMSTR,pos,OK);
 *)
   RealToFixed(STACK[T1],6,NUMSTR);
+  TruncateInsigZeros(NUMSTR);
   Strings.Append(NUMSTR,line);
   Strings.Append("  ||  ",line);
-  
+
   RealToStr(STACK[T1],NUMSTR);
+  TruncateInsigZeros(NUMSTR);
   Strings.Append(NUMSTR,line);
   AppendStringToList(StringListP,line);
   FOR S := T2 TO X BY -1 DO
@@ -209,10 +237,12 @@ BEGIN
                                                                       RealToStringFixed(STACK[S],15,5,NUMSTR,pos,OK);
 *)
     RealToFixed(STACK[S],6,NUMSTR);
+    TruncateInsigZeros(NUMSTR);
     Strings.Append(NUMSTR,line);
     Strings.Append("  ||  ",line);
 
     RealToStr(STACK[S],NUMSTR);
+    TruncateInsigZeros(NUMSTR);
     Strings.Append(NUMSTR,line);
     AppendStringToList(StringListP,line);
   END(* FOR stack from top down *);
@@ -220,10 +250,15 @@ BEGIN
   Strings.Append("  ||  ",line);
   Strings.Append("--------------------",line);
   AppendStringToList(StringListP,line);
+  RETURN StringListP;
 END DUMPSTACK;
 
+(*****************************************************)
 PROCEDURE Dump2Console;
-(* I changed the looping so that the entire stack is output in the same loop, including the topmost element, T1.  DNU since I added the string list code *)
+(*
+  I changed the looping so that the entire stack is output in the same loop, including the topmost element, T1.
+  DNU since I added the string list code.
+*)
 VAR
     S      : StackRegNames;
     NUMSTR : ARRAY [1..80] OF CHAR;
@@ -248,6 +283,7 @@ BEGIN
   STextIO.WriteLn;
 END Dump2Console;
 
+(*****************************************************)
 PROCEDURE LongCard2HexStr(L : LONGCARD; VAR OutStr : ARRAY OF CHAR);
 CONST  ASCZERO = ORD('0');
        ascA    = ORD('A');
@@ -272,6 +308,7 @@ BEGIN
   OutStr[j] := 0C;
 END LongCard2HexStr;
 
+(*****************************************************)
 PROCEDURE LongInt2HexStr(L : LONGINT; VAR OutStr : ARRAY OF CHAR);
 VAR
    IsNeg : BOOLEAN;
@@ -340,25 +377,15 @@ BEGIN
 END RollUpStacks;
 (*****************************************************)
 
-(*****************************************************)
-
-(*****************************************************)
-
-
-(*****************************************************)
-
 PROCEDURE HCF(a,b : CARDINAL) : CARDINAL;
 (*     a = bt + r, then hcf(a,b) = hcf(b,r)          *)
 
-VAR r : CARDINAL;
+VAR
+  r : CARDINAL;
 
 BEGIN
   IF a < b THEN
-(*
-    C1 := a;
-    a := b;
-    b := C1;
-*)
+                                                                                      (* C1 := a; a := b; b := C1; *)
     a := a BXOR b;
     b := a BXOR b;
     a := a BXOR b;
@@ -372,18 +399,19 @@ BEGIN
 END HCF;
 
 
-PROCEDURE GETRESULT(BUF : BUFTYP) : LONGREAL;
+PROCEDURE GETRESULT(BUF : BUFTYP; VAR R : LONGREAL) : StringDoubleLinkedListPointerType;
 (*
 ************************* GETRESULT **********************************
+old signature was this: PROCEDURE GETRESULT(BUF : BUFTYP) : LONGREAL;
 Gets the result of the operations in the input line.  Parses and does the
-operations.
+operations.  Returns R as a VAR param now, and returns StringListP which is either NIL or has a string list.
 *)
 VAR
     RETCOD,c,c1,c2,year : CARDINAL;
     I        : INTEGER;
     TOKEN    : BUFTYP;
     TKNSTATE : FSATYP;
-    R        : LONGREAL;
+                                                             (*   R        : LONGREAL; *)
     L        : LONGINT;
     LC       : LONGCARD;
     StringP  : StringItemPointerType;
@@ -393,7 +421,7 @@ VAR
 BEGIN
   TRIM(BUF);
   INI1TKN(BUF);
-  StringListP := InitStringListPointerType();
+  StringListP := NIL;
 
   LOOP  (* UNTIL FINISHED, I.E., RETCOD > 0 *)
     GETTKNREAL(TOKEN,TKNSTATE,L,R,RETCOD);
@@ -416,6 +444,7 @@ BEGIN
            | 18 : (* **  *) STACK[X] := PWRI(STACK[Y],round(STACK[X]));
            | 22 : (* %   *) STACK[X] := STACK[Y] * STACK[X] / 100.;
            ELSE
+             StringListP := InitStringListPointerType();
              Strings.Assign(TOKEN.CHARS,s);
              Strings.Append(" is an unrecognized operation.",s);
              AppendStringToList(StringListP,s);
@@ -450,6 +479,7 @@ BEGIN
                 ELSIF STRCMPFNT(TOKEN.CHARS,"REDO") = 0 THEN
                     RollUpStacks;
                 ELSIF STRCMPFNT(TOKEN.CHARS,'HELP') = 0 THEN
+                  StringListP := InitStringListPointerType();
                   AppendStringToList(StringListP," SQRT,SQR,CURT -- X = sqrt(X), sqr(X) or cube root X register.");
                   AppendStringToList(StringListP," RECIP -- reciprocal of X, ie, 1/X.");
                   AppendStringToList(StringListP," VOL -- Given a volume in X, estimate size of cavity assuming a sphere.");
@@ -460,7 +490,7 @@ BEGIN
                   AppendStringToList(StringListP," D -- Dump2console.   DUMP -- dump the stack to the terminal.");
                   AppendStringToList(StringListP," EXP,LN -- evaluate exp(X) or ln(X) and put result back into X.");
                   AppendStringToList(StringListP," ^   -- evaluate ABS(Y) to the X power, put result in X and pop stack 1 reg.");
-                  AppendStringToList(StringListP," **  -- like "^" but rounds X before calling the PWRI function.");
+                  AppendStringToList(StringListP," **  -- like '^' but rounds X before calling the PWRI function.");
                   AppendStringToList(StringListP," %   -- does XY/100, places result in X.  Leaves Y alone.");
                   AppendStringToList(StringListP," INT, ROUND, FRAC -- do what their names suggest.");
                   AppendStringToList(StringListP," MOD -- evaluate Y MOD X, put result in X and pop stack 1 reg.");
@@ -477,9 +507,8 @@ BEGIN
                   AppendStringToList(StringListP," HCF -- Push HCF(Y,X) onto stack without removing Y or X.");
                   AppendStringToList(StringListP," HOL -- Compute the Holidays variable for year in X.");  (* exported by this module for client module to display *)
                   AppendStringToList(StringListP," undo, redo -- entire stack.  More comprehensive than lastx.");
-                  Strings.Concat(" Last Compiled ",LastCompiled,s);
+                  Strings.Concat(" Last Compiled HPCALC.MOD ",LastCompiled,s);
                   AppendStringToList(StringListP,s);
-                  AppendStringToList(StringListP,LastCompiled);
                 ELSIF STRCMPFNT(TOKEN.CHARS,'STO') = 0 THEN
                   MEMREG := STACK[X];
                 ELSIF STRCMPFNT(TOKEN.CHARS,'RCL') = 0 THEN
@@ -517,7 +546,7 @@ BEGIN
                   PushStacks;
                   PUSHX(LASTX);
                 ELSIF STRCMPFNT(TOKEN.CHARS,'DUMP') = 0 THEN
-                  DUMPSTACK;
+                  StringListP := DUMPSTACK();
                 ELSIF STRCMPFNT(TOKEN.CHARS,'EXP') = 0 THEN
                   LASTX := STACK[X];
                   PushStacks;
@@ -556,6 +585,7 @@ BEGIN
                     LC := SYSTEM.CAST(LONGCARD,L);
                     LongCard2HexStr(LC,str);
                   END;
+                  StringListP := InitStringListPointerType();
                   Strings.Concat(" Value of X reg in hex: ",str,s);
                   AppendStringToList(StringListP,s);
                 ELSIF STRCMPFNT(TOKEN.CHARS,'HCF') = 0 THEN
@@ -644,7 +674,8 @@ BEGIN
                   PushStacks;
                   PUSHX(pi);
                 ELSIF STRCMPFNT(TOKEN.CHARS,"ABOUT") = 0 THEN
-                  Strings.ConCat(" Last compiled ",LastCompiled,s);
+                  StringListP := InitStringListPointerType();
+                  Strings.Concat(" Last compiled HPCALC.MOD ",LastCompiled,s);
                   AppendStringToList(StringListP,s);
                 ELSIF STRCMPFNT(TOKEN.CHARS,"HOL") = 0 THEN
                   year := ROUND(STACK[X]);  (* Leave year on the stack so client modules can reference it.  *)
@@ -658,12 +689,14 @@ BEGIN
                     Holidays.valid := TRUE;
                   END (* IF *);
                 ELSE
+                  StringListP := InitStringListPointerType();
                   Strings.Concat(TOKEN.CHARS," is an unrecognized command.",s);
                   AppendStringToList(StringListP,s);
                 END(* AllElse main IF statement *);
     END(*CASE*);
   END(*LOOP*);
-  RETURN(STACK[X]);
+  R := STACK[X];
+  RETURN StringListP;                                                      (*  RETURN(STACK[X]); *)
 END GETRESULT;
 
 BEGIN (********************* MAIN ****************************************)
@@ -684,3 +717,10 @@ BEGIN (********************* MAIN ****************************************)
   Strings.Assign(" T1: ",StackRegNamesString[T1]);
 
 END HPCALC.
+(*****************************************************)
+
+(*****************************************************)
+
+
+(*****************************************************)
+

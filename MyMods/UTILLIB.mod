@@ -31,6 +31,7 @@ Copyright (C) 1987  Robert Solomon MD.  All rights reserved.
   23 Oct 13 -- Added stricmpfnt as a case insensitive comparison function.
   24 Mar 17 -- Started change to a string linked list, to backport what I've done w/ stringslice in Go.
   25 Mar 17 -- Finished the string linked list code.
+  26 Mar 17 -- Finally removed GETFNM code that was moved to MyFIO long ago.
 *)
 
   FROM SYSTEM IMPORT ADDRESS;
@@ -700,132 +701,6 @@ BEGIN
     RETURN(C);                  (* Scan failed    *)
   END(*IF*);
 END SCANBACK;
-
-(*
-PROCEDURE GETFNM(PROMPT,NAMDFT,TYPDFT : BUFTYP; VAR FILNAM : BUFTYP);
-(*
-********************************** GETFNM *******************************
-GET FILE NAME SUBROUTINE.
-THIS ROUTINE WILL GET A FILE NAME FROM THE TERMINAL, AND ALLOW DEFAULTS
-FOR THE ENTIRE FILE NAME AND/OR THE EXTENSION.
-PROMPT--THIS IS THE PROMPT TO BE PRINTED TO THE TERMINAL BEFORE THE
-      FILENAME IS REQUESTED.  IT MUST HAVE A COLON, : , AS ITS LAST
-      CHARACTER TO OPERATE NORMALLY.
-NAMDFT--THIS IS THE NAME DEFAULT STRING THAT HAS THE FILE NAME THAT WILL
-      BE USEDIF NO INPUT NAME IS ENTERED.  THIS MUST HAVE THE .EXT AS
-      WELL AS THE NAME PART; THE TYPDFT WILL NOT BE APPENDED TO THE
-      DEFAULT NAME.
-TYPDFT--IS A 4 BYTE ARRAY THAT IS THE DEFAULT TYPE (EXTENSION) OF THE
-      FILE.  IF A DOT IS NOT PRESENT IN THE INPUT CHARACTER STRING,
-      THIS ARRAY WILL BE APPENDED TO THE INPUT STRING TO YIELD THE
-      FULL FILENAME.
-FILNAM--IS THE OUTPUT FILENAME THAT IS A COMBINATION OF THE INPUT
-    STRING, THE TYPE DEFAULT, AND THE NAME DEFAULT, AS IS APPROPRIATE.
-
-FUNCTION VALUE RETURNED WILL BE FALSE IF THE DEFAULT NAME WAS USED, I.E.,
-NO NAME WAS INPUT FROM TERMINAL.  FUNCTION VALUE WILL BE TRUE OTHERWISE.
-  IF A NAME IS INPUT WITHOUT AN EXTENSION, BEFORE THE DEFAULT EXTENSION IS
-APPENDED, IT IS STORED IN THE ROOTNAM BUFFER.  WHEN NO STRING IS INPUT, THIS
-NAME WITH THE DEFAULT EXTENSION APPENDED IS USED BEFORE THE FULL DEFAULT NAME
-IS.
-
-INPUT FROM GBL VAR'S:  NULL, BLANK.
-*)
-
-CONST
-  DOT = '.';
-  COLON = ':';
-  NAMSIZ = 80;
-  PROMPTSIZ = 30;
-  TYPSIZ = 4;
-
-VAR
-  EOFFLG, ERRFLG, DOTFLG            : BOOLEAN;
-  I, J, RETCOD, c                   : CARDINAL;
-  DFTLEN, PROMPTLEN, STRLEN, NAMLEN : CARDINAL;
-  TMPBUF                            : BUFTYP;
-  SUM                               : INTEGER;
-
-BEGIN
-  DOTFLG := FALSE;
-  NAMLEN := 0;
-
-  REPEAT      (*UNTIL NOT ERRFLG*)
-    ERRFLG := FALSE;
-    IF MOREFNM THEN
-      GETTKNSTR(TOKEN,SUM,RETCOD);
-      IF RETCOD = 0 THEN
-        MOREFNM := (DELIMCH = BLANK); (* re-iterate because may be *)
-        FILNAM := TOKEN;              (* needed for TMPBUF FILNAM. *)
-      ELSE  (* THIS BRANCH SHOULD NEVER BE NEEDED. *)
-        FILNAM.COUNT := 0;
-        MOREFNM := FALSE;
-        WriteString('*Warning* From GETFNM, MOREFNM is true but RETCOD # 0.');
-        WriteLn;
-      END(*IF*);
-    ELSE
-      WriteString(PROMPT.CHARS);
-      FOR J := 1 TO BUFSIZ+1 DO
-        TMPBUF.CHARS[J] := BLANK
-      END(*FOR*);
-      ReadString(TMPBUF.CHARS);
-      WriteLn;
-      SkipLine;
-      TRIM(TMPBUF);
-      INI1TKN(TMPBUF);
-      GETTKNSTR(TOKEN,SUM,RETCOD);
-      IF RETCOD = 0 THEN
-        MOREFNM := (DELIMCH = BLANK);
-        FILNAM := TOKEN;
-      ELSE
-        FILNAM.COUNT := 0;  (* JUST TO MAKE SURE, BUT SHOULD ALREADY BE 0. *)
-        MOREFNM := FALSE;
-     END(*IF*);
-    END(*IF*);
-    I := 1;
-    WHILE I <= FILNAM.COUNT DO
-      IF FILNAM.CHARS[I] = DOT THEN DOTFLG := TRUE; END(*IF*);
-      INC(I);
-    END(*WHILE*);
-    FILNAM.LENGTH := I-1;
-
-    IF FILNAM.LENGTH = 0 THEN
-      IF ROOTNAM.CHARS[1] = 0C THEN
-(* ROOTNAM IS NULL, SO CONTINUE WITH USING THE FULL DEFAULT NAME. *)
-(* NULL STRING.  USE DEFAULT. *)
-
-        I := 1;
-        FILNAM.LENGTH := NAMDFT.COUNT;
-        WHILE I <= FILNAM.LENGTH DO
-          FILNAM.CHARS[I] := NAMDFT.CHARS[I];
-          INC(I);
-        END(*WHILE*);
-        DOTFLG := TRUE;
-      ELSE
-        FILNAM := ROOTNAM;
-        DOTFLG := FALSE;
-      END(*IF*);
-    END(*IF*);
-    IF NOT DOTFLG THEN
-      ROOTNAM := FILNAM;   (* STORE NAME WITHOUT EXTENSION. *)
-      (* APPEND TYPE SINCE NO TYPE INPUT *)
-      IF FILNAM.COUNT+TYPSIZ > NAMSIZ THEN
-        WriteString('NAME TOO LONG AFTER APPENDING TYPE. TRY AGAIN.');
-        WriteLn;
-        ERRFLG := TRUE
-      ELSE   (*NO ERROR*)
-        FOR I := 1 TO TYPSIZ DO
-            FILNAM.CHARS[FILNAM.LENGTH + I ] := TYPDFT.CHARS[I]
-        END(*FOR*);
-        INC(FILNAM.LENGTH, TYPSIZ);
-      END(*IF*)
-    END(*IF*);
-  UNTIL NOT ERRFLG;
-  FILNAM.COUNT := FILNAM.LENGTH;
-(* NULL TERMINATE FILNAM STRING *)
-  FILNAM.CHARS[FILNAM.COUNT + 1] := NULL;
-END GETFNM;
-*)
 
 (* -------------------------------------------------------------------------- InitStringListPointerType -----------------------------------*)
 PROCEDURE InitStringListPointerType() : StringDoubleLinkedListPointerType;

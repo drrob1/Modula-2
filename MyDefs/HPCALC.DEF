@@ -25,14 +25,16 @@ VAR
 PROCEDURE PUSHX(R : LONGREAL);
 PROCEDURE READX() : LONGREAL;
 PROCEDURE GETSTACK(VAR STK : ARRAY OF LONGREAL; VAR RETCOD : CARDINAL);
-PROCEDURE DUMPSTACK;
-PROCEDURE Dump2Console;
+PROCEDURE DUMPSTACK() : StringDoubleLinkedListPointerType;
+                         (* I don''t want this used after I added the string list code.   PROCEDURE Dump2Console; *)
+PROCEDURE TruncateInsigZeros(VAR INOUT str : ARRAY OF CHAR);
 PROCEDURE PushStacks;
 PROCEDURE RollDownStacks;
 PROCEDURE RollUpStacks;
-PROCEDURE GETRESULT(BUF:BUFTYP) : LONGREAL;
+PROCEDURE GETRESULT(BUF : BUFTYP; VAR R : LONGREAL) : StringDoubleLinkedListPointerType;
 (*
 ************************* GETRESULT **********************************
+old signature was this: PROCEDURE GETRESULT(BUF : BUFTYP) : LONGREAL;
 Gets the result of the operations in the input line.  Parses and does the
 operations.
 *)
