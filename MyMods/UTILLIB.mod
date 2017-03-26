@@ -30,6 +30,7 @@ Copyright (C) 1987  Robert Solomon MD.  All rights reserved.
    2 Oct 07 -- Added BUF.LENGTH := BUF.COUNT line and now use std proc LENGTH in TRIM.
   23 Oct 13 -- Added stricmpfnt as a case insensitive comparison function.
   24 Mar 17 -- Started change to a string linked list, to backport what I've done w/ stringslice in Go.
+  25 Mar 17 -- Finished the string linked list code.
 *)
 
   FROM SYSTEM IMPORT ADDRESS;

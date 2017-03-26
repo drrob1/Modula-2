@@ -5,6 +5,7 @@ REVISION HISTORY
 13 Oct 13 -- Testing gm2 routines.
 11 Oct 16 -- gm2 was a bust.  I'm testing StonyBrook Modula-2 addition of GetDayTime, backporting C++ and go code I recently wrote, now named TestTimLib.
 24 Mar 17 -- Now will use this code to test the new StringList code I've written now named TestStringList.
+25 Mar 17 -- Finished TestStringList, and it works.
 *)
 
 
