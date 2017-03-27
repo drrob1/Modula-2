@@ -210,41 +210,28 @@ VAR
 BEGIN
   StringListP := InitStringListPointerType();
   Strings.Assign("----------------",line);
-  Strings.Append("  |  ",line);
-  Strings.Append("-----------------------",line);
+  Strings.Append("--+--",line);
+  Strings.Append("------------------",line);
   AppendStringToList(StringListP,line);
-
-  Strings.Assign(StackRegNamesString[T1],line);
-(*                                              This is from RConversions.  I now think LongStr is more what I want.
-                                                                    pos := 0;
-                                                                    RealToStringFixed(STACK[T1],15,5,NUMSTR,pos,OK);
-*)
-  RealToFixed(STACK[T1],6,Xstr);
-  TruncateInsigZeros(Xstr);
-  ok := FormatString("%-13s |  ",NUMSTR,Xstr);
-  Strings.Append(NUMSTR,line);
-  RealToStr(STACK[T1],NUMSTR);
-  TruncateInsigZeros(NUMSTR);
-  Strings.Append(NUMSTR,line);
-  AppendStringToList(StringListP,line);
-  FOR S := T2 TO X BY -1 DO
-    Strings.Assign(StackRegNamesString[S],line);
-(*                                              This is from RConversions.  I now think LongStr is more what I want.
+  FOR S := T1 TO X BY -1 DO
+(*
+                                                                     Strings.Assign(StackRegNamesString[S],line);
+                                              This is from RConversions.  I now think LongStr is more what I want.
                                                                      pos := 0;
                                                                      RealToStringFixed(STACK[S],15,5,NUMSTR,pos,OK);
 *)
     RealToFixed(STACK[S],6,Xstr);
     TruncateInsigZeros(Xstr);
-    ok := FormatString("%-13s |  ",NUMSTR,Xstr);
-    Strings.Append(NUMSTR,line);
+    ok := FormatString("%-4s%-13s |  ",NUMSTR,StackRegNamesString[S],Xstr); (* NUMSTR receives the sprintf string *)
+    Strings.Assign(NUMSTR,line);
     RealToStr(STACK[S],NUMSTR);
     TruncateInsigZeros(NUMSTR);
     Strings.Append(NUMSTR,line);
     AppendStringToList(StringListP,line);
   END(* FOR stack from top down *);
   Strings.Assign("----------------",line);
-  Strings.Append("  |  ",line);
-  Strings.Append("-----------------------",line);
+  Strings.Append("--+--",line);
+  Strings.Append("------------------",line);
   AppendStringToList(StringListP,line);
   RETURN StringListP;
 END DUMPSTACK;
@@ -703,14 +690,14 @@ BEGIN (********************* MAIN ****************************************)
   delimSet := CHARSETTYP{BLANK,NULL,SEMCOL};  (* Note absence of COMMA *)
   NEWDELIMSET(delimSet);
   Holidays.valid := FALSE;
-  Strings.Assign("  X: ",StackRegNamesString[X]);
-  Strings.Assign("  Y: ",StackRegNamesString[Y]);
-  Strings.Assign("  Z: ",StackRegNamesString[Z]);
-  Strings.Assign(" T5: ",StackRegNamesString[T5]);
-  Strings.Assign(" T4: ",StackRegNamesString[T4]);
-  Strings.Assign(" T3: ",StackRegNamesString[T3]);
-  Strings.Assign(" T2: ",StackRegNamesString[T2]);
-  Strings.Assign(" T1: ",StackRegNamesString[T1]);
+  Strings.Assign(" X: ",StackRegNamesString[X]);
+  Strings.Assign(" Y: ",StackRegNamesString[Y]);
+  Strings.Assign(" Z: ",StackRegNamesString[Z]);
+  Strings.Assign("T5: ",StackRegNamesString[T5]);
+  Strings.Assign("T4: ",StackRegNamesString[T4]);
+  Strings.Assign("T3: ",StackRegNamesString[T3]);
+  Strings.Assign("T2: ",StackRegNamesString[T2]);
+  Strings.Assign("T1: ",StackRegNamesString[T1]);
 
 END HPCALC.
 (*****************************************************)
