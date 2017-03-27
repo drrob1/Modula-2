@@ -39,18 +39,19 @@ IMPLEMENTATION MODULE HPCALC;
   26 Mar 17 -- Backporting string slice equivalent I learned to do in Go.  And replaced "!" with "|" as stack down
                  command.  And will use LongStr conversion routines instead of RConversions.  This rtn no
                  longer does I/O.  I don''t want the Dump2Console procedure used anymore.
+  27 Mar 17 -- FormatString used in DumpStack.
 *)
   FROM SYSTEM IMPORT ADR;
   IMPORT STextIO;
   IMPORT IOChan, ChanConsts,LowLong,SYSTEM;
   FROM LongStr IMPORT StrToReal, RealToFloat, RealToEng, RealToFixed, RealToStr;
   FROM Environment IMPORT GetCommandLine;
+  FROM FormatString IMPORT FormatString;
   FROM UTILLIB IMPORT BLANK,NULL,BUFSIZ,CTRLCOD,STRTYP,STR10TYP,STR20TYP,BUFTYP,MAXCARDFNT,COPYLEFT,COPYRIGHT,
     FILLCHAR,SCANFWD,SCANBACK, STRLENFNT,STRCMPFNT,LCHINBUFFNT,MRGBUFS,TRIMFNT,TRIM,RMVCHR,APPENDA2B,CONCATAB2C,
     INSERTAin2B,ASSIGN2BUF, StringItemPointerType,StringDoubleLinkedListPointerType,InitStringListPointerType,
     AppendStringToList,NextStringFromList,PrevStringFromList,CurrentPointerBeginning,CurrentPointerEnding,
     GetNextStringFromList,GetPrevStringFromList;
-                                    (* FROM UTILLIB IMPORT BLANK,NULL,STRTYP,BUFSIZ,BUFTYP,STR10TYP,TRIM,STRCMPFNT; *)
   FROM REALLIB IMPORT AINT,AMOD,ROUND,PWRI;
   FROM SysClock IMPORT DateTime,GetClock,CanGetClock,CanSetClock,IsValidDateTime,SetClock;
   FROM LongMath IMPORT sqrt,exp,ln,sin,cos,tan,arctan,arcsin,arccos,power,round,pi;
@@ -59,9 +60,6 @@ IMPLEMENTATION MODULE HPCALC;
   FROM RConversions IMPORT RealToString, RealToStringFixed, StringToReal;
   FROM Conversions IMPORT StringToInt, StrToInt, IntToString, IntToStr, StringToCard,
     StrToCard, CardToString, CardToStr, StringToLong, StrToLong, LongToString, LongToStr;
-(*
-                              FROM TOKENIZE IMPORT FSATYP,DELIMCH,INI1TKN,GETCHR,UNGETCHR,GETTKN, UNGETTKN,GETTKNREAL;
-*)
   FROM TKNRTNS IMPORT FSATYP,CHARSETTYP,DELIMCH,INI1TKN,INI3TKN,GETCHR,
     UNGETCHR,GETTKN,NEWDELIMSET,NEWOPSET,NEWDGTSET,GETTKNSTR,GETTKNEOL,
     UNGETTKN,GETTKNREAL;
@@ -98,7 +96,7 @@ CONST
     SEMCOL = ';';
     Bottom = 1;
     Top = StackMatrixSize;
-    LastCompiled = "25 Mar 2017";
+    LastCompiled = "27 Mar 2017";
 
 VAR
     LASTX,MEMREG : LONGREAL;
@@ -203,52 +201,50 @@ END GETSTACK;
 (*****************************************************)
 PROCEDURE DUMPSTACK() : StringDoubleLinkedListPointerType;
 VAR
-    S      : StackRegNames;
-    NUMSTR : ARRAY [1..80] OF CHAR;
-    OK     : BOOLEAN;
-    pos    : CARDINAL;
+    S : StackRegNames;
+    NUMSTR,Xstr : ARRAY [1..80] OF CHAR;
+    ok : BOOLEAN;
+    pos : CARDINAL;
     StringListP : StringDoubleLinkedListPointerType;
     line : STRTYP;
 BEGIN
   StringListP := InitStringListPointerType();
-  Strings.Assign("------------",line);
-  Strings.Append("  ||  ",line);
-  Strings.Append("--------------------",line);
+  Strings.Assign("----------------",line);
+  Strings.Append("  |  ",line);
+  Strings.Append("-----------------------",line);
   AppendStringToList(StringListP,line);
 
   Strings.Assign(StackRegNamesString[T1],line);
-(*                                                This is from RConversions.  I now think LongStr is more what I want.
-                                                                     pos := 0;
-                                                                     RealToStringFixed(STACK[T1],15,5,NUMSTR,pos,OK);
+(*                                              This is from RConversions.  I now think LongStr is more what I want.
+                                                                    pos := 0;
+                                                                    RealToStringFixed(STACK[T1],15,5,NUMSTR,pos,OK);
 *)
-  RealToFixed(STACK[T1],6,NUMSTR);
-  TruncateInsigZeros(NUMSTR);
+  RealToFixed(STACK[T1],6,Xstr);
+  TruncateInsigZeros(Xstr);
+  ok := FormatString("%-13s |  ",NUMSTR,Xstr);
   Strings.Append(NUMSTR,line);
-  Strings.Append("  ||  ",line);
-
   RealToStr(STACK[T1],NUMSTR);
   TruncateInsigZeros(NUMSTR);
   Strings.Append(NUMSTR,line);
   AppendStringToList(StringListP,line);
   FOR S := T2 TO X BY -1 DO
     Strings.Assign(StackRegNamesString[S],line);
-(*                                                This is from RConversions.  I now think LongStr is more what I want.
-                                                                      pos := 0;
-                                                                      RealToStringFixed(STACK[S],15,5,NUMSTR,pos,OK);
+(*                                              This is from RConversions.  I now think LongStr is more what I want.
+                                                                     pos := 0;
+                                                                     RealToStringFixed(STACK[S],15,5,NUMSTR,pos,OK);
 *)
-    RealToFixed(STACK[S],6,NUMSTR);
-    TruncateInsigZeros(NUMSTR);
+    RealToFixed(STACK[S],6,Xstr);
+    TruncateInsigZeros(Xstr);
+    ok := FormatString("%-13s |  ",NUMSTR,Xstr);
     Strings.Append(NUMSTR,line);
-    Strings.Append("  ||  ",line);
-
     RealToStr(STACK[S],NUMSTR);
     TruncateInsigZeros(NUMSTR);
     Strings.Append(NUMSTR,line);
     AppendStringToList(StringListP,line);
   END(* FOR stack from top down *);
-  Strings.Assign("------------",line);
-  Strings.Append("  ||  ",line);
-  Strings.Append("--------------------",line);
+  Strings.Assign("----------------",line);
+  Strings.Append("  |  ",line);
+  Strings.Append("-----------------------",line);
   AppendStringToList(StringListP,line);
   RETURN StringListP;
 END DUMPSTACK;
