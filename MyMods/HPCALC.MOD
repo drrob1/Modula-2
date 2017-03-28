@@ -40,6 +40,7 @@ IMPLEMENTATION MODULE HPCALC;
                  command.  And will use LongStr conversion routines instead of RConversions.  This rtn no
                  longer does I/O.  I don''t want the Dump2Console procedure used anymore.
   27 Mar 17 -- FormatString used in DumpStack.
+  28 Mar 17 -- Removed depracated RConversion code, reversed ^ and ** to match Go version, and fixed help text.
 *)
   FROM SYSTEM IMPORT ADR;
   IMPORT STextIO;
@@ -96,7 +97,7 @@ CONST
     SEMCOL = ';';
     Bottom = 1;
     Top = StackMatrixSize;
-    LastCompiled = "27 Mar 2017";
+    LastCompiled = "28 Mar 2017";
 
 VAR
     LASTX,MEMREG : LONGREAL;
@@ -214,12 +215,6 @@ BEGIN
   Strings.Append("------------------",line);
   AppendStringToList(StringListP,line);
   FOR S := T1 TO X BY -1 DO
-(*
-                                                                     Strings.Assign(StackRegNamesString[S],line);
-                                              This is from RConversions.  I now think LongStr is more what I want.
-                                                                     pos := 0;
-                                                                     RealToStringFixed(STACK[S],15,5,NUMSTR,pos,OK);
-*)
     RealToFixed(STACK[S],6,Xstr);
     TruncateInsigZeros(Xstr);
     ok := FormatString("%-4s%-13s |  ",NUMSTR,StackRegNamesString[S],Xstr); (* NUMSTR receives the sprintf string *)
@@ -423,8 +418,8 @@ BEGIN
            | 10 : (* Subt *) STACK[X] := STACK[Y] - STACK[X];
            | 12 : (* Mult *) STACK[X] := STACK[Y] * STACK[X];
            | 14 : (* Div *) STACK[X] := STACK[Y] / STACK[X];
-           | 16 : (* ^   *) STACK[X] := exp(STACK[X]*ln(ABS(STACK[Y])));
-           | 18 : (* **  *) STACK[X] := PWRI(STACK[Y],round(STACK[X]));
+           | 16 : (* ^   *) STACK[X] := PWRI(STACK[Y],round(STACK[X]));
+           | 18 : (* **  *) STACK[X] := exp(STACK[X]*ln(ABS(STACK[Y])));
            | 22 : (* %   *) STACK[X] := STACK[Y] * STACK[X] / 100.;
            ELSE
              StringListP := InitStringListPointerType();
@@ -472,8 +467,8 @@ BEGIN
                   AppendStringToList(StringListP," DN,ROLLDN -- roll the stack down one register.  X goes to T1.");
                   AppendStringToList(StringListP," D -- Dump2console.   DUMP -- dump the stack to the terminal.");
                   AppendStringToList(StringListP," EXP,LN -- evaluate exp(X) or ln(X) and put result back into X.");
-                  AppendStringToList(StringListP," ^   -- evaluate ABS(Y) to the X power, put result in X and pop stack 1 reg.");
-                  AppendStringToList(StringListP," **  -- like '^' but rounds X before calling the PWRI function.");
+                  AppendStringToList(StringListP," ^   -- evaluate Y to the X power using PWRI func, put result in X.");
+                  AppendStringToList(StringListP," **  -- evaluate ABS(Y) to the X power using exp() and ln().");
                   AppendStringToList(StringListP," %   -- does XY/100, places result in X.  Leaves Y alone.");
                   AppendStringToList(StringListP," INT, ROUND, FRAC -- do what their names suggest.");
                   AppendStringToList(StringListP," MOD -- evaluate Y MOD X, put result in X and pop stack 1 reg.");
