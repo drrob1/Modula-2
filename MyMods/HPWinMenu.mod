@@ -65,6 +65,8 @@ REVISION HISTORY
 19 May 16 -- Fixed output help text for the % command, originally coded in 2006 but, oddly enough, the help was never updated.
 20 May 16 -- Added F2 to F1 for help.  To match the cpp version.
  7 Jul 16 -- Added UP command, and added PI to help.
+29 Mar 17 -- Backported HPCALC rtns to match Go.  Pass a linked list of strings, and operators to match Go.
+               Removed code that was commented out long ago.
 --------------------------------------*)
 
 MODULE HPWinMenu;
@@ -78,39 +80,27 @@ FROM ExStrings IMPORT
     AppendChar, EqualI;
 FROM TextWindows IMPORT
     (* TYPES & CONSTS *)
-    TextWindow, Colors, TextWindowsMsg, TextWindowProcedure,
-    NormalFont, BoldFont, ItalicFont, FontInfo, WinAttr, ClipboardFormat,
-    DisplayModes, ScreenAttribute, CaretTypes,
-    TWMessageRec, ResponseType, CloseModes, CloseWindow, NormalWindow, NormalChildWindow,
-    FontWeights, DefaultFontInfo, COORDINATE, WindowDisplayInfo, WindowTypes,
+    TextWindow, Colors, TextWindowsMsg, TextWindowProcedure, NormalFont, BoldFont, ItalicFont, FontInfo, WinAttr,
+    ClipboardFormat, DisplayModes, ScreenAttribute, CaretTypes, TWMessageRec, ResponseType, CloseModes,
+    CloseWindow, NormalWindow, NormalChildWindow, FontWeights, DefaultFontInfo, COORDINATE, WindowDisplayInfo,
+    WindowTypes,
     (* VARS *)
     (* PROCS *)
-    ComposeAttribute, CreateWindow, SpecialKeys,
-    GetClientSize, SetClientSize, SnapWindowToFont, SetScrollRangeAllowed,
-    MoveCaretTo, GetCaretPos, CaretOn, CaretOff, ShowCaret, HideCaret, SetCaretType,
+    ComposeAttribute, CreateWindow, SpecialKeys, GetClientSize, SetClientSize, SnapWindowToFont,
+    SetScrollRangeAllowed, MoveCaretTo, GetCaretPos, CaretOn, CaretOff, ShowCaret, HideCaret, SetCaretType,
     IsCaretVisible, MakeCaretVisible, PutStringAt, PutAttrAt, WriteString,
     WriteStringAt, WriteCellsAt, WriteCells, WriteLn, EraseToEOL, ChangeAttr,
-    ReadBufferString, RepaintRect, RepaintScreen, PaintOff, PaintOn,
-    SetAutoScroll, WinShellToTextWindowMessage,
-    MakeRowVisible, IsRectVisible, MakeRectVisible, GetVisibleRect,
-    GetBufferRect, EraseScreen, EraseRect, GetWinShellHandle, FindTextWindow,
-    SetDisplayMode,GetDisplayMode,SetWindowEnable, (*  SetWindowTitle, *)
+    ReadBufferString, RepaintRect, RepaintScreen, PaintOff, PaintOn, SetAutoScroll, WinShellToTextWindowMessage,
+    MakeRowVisible, IsRectVisible, MakeRectVisible, GetVisibleRect, GetBufferRect, EraseScreen, EraseRect,
+    GetWinShellHandle, FindTextWindow, SetDisplayMode,GetDisplayMode,SetWindowEnable, (*  SetWindowTitle, *)
     IsMinimized, IsMaximized, SetWindowTitle, SendUserMessage, PostUserMessage,
-    IsUserMessageWaiting,AddVScrollBar, AddHScrollBar, AddScrollBars,
-    SetScrollBarPos, SetWindowData, SetWindowDataNum, GetWindowData, GetWindowDataNum,
-    GetWindowSize, SetWindowSize, GetWindowPos, SetWindowPos, CascadeWindow,
-    SetWindowIsBusy, GetWindowDisplayInfo, SetWindowDisplayInfo,
-    SetScrollDisableWhenNone, SetActiveTabChild, SetTabChildPosition,
-    GetForegroundWindow, SetForegroundWindow, SetWindowFont,
-    SetTimer, KillTimer, DisplayHelp, SetWindowIcon,
-    OpenClipboard, CloseClipboard, EmptyClipboard, ClipboardFormatAvailable,
-    AllocClipboardMemory, UnlockClipboardMemory, SetClipboard, GetClipboard,
+    IsUserMessageWaiting,AddVScrollBar, AddHScrollBar, AddScrollBars, SetScrollBarPos, SetWindowData,
+    SetWindowDataNum, GetWindowData, GetWindowDataNum, GetWindowSize, SetWindowSize, GetWindowPos, SetWindowPos,
+    CascadeWindow, SetWindowIsBusy, GetWindowDisplayInfo, SetWindowDisplayInfo, SetScrollDisableWhenNone,
+    SetActiveTabChild, SetTabChildPosition, GetForegroundWindow, SetForegroundWindow, SetWindowFont,
+    SetTimer, KillTimer, DisplayHelp, SetWindowIcon, OpenClipboard, CloseClipboard, EmptyClipboard,
+    ClipboardFormatAvailable, AllocClipboardMemory, UnlockClipboardMemory, SetClipboard, GetClipboard,
     Xpos, Ypos, Xorg, Yorg, Xmax, Ymax;
-(*
-                     FROM WinShell IMPORT
-                       Window, StartupDisplayMode, WinShellMsg, MessageRec, SetResourceFile, DispatchMessages, TerminateDispatchMessages, LoadString, CloseAllChildren, /*NormalWindow,*/
-                       AddStatusLine, SetStatusFormat, WriteStatusField, /*CreateWindow, WindowTypes,*/ ClientTypes, ClientCreateData, TabPosition;
-*)
 IMPORT WinShell;
 FROM FileFunc IMPORT EOL, FileSpecString, NameString, FileAttributes, FileAttributeSet,
     SearchEntry, FileNameParts (*drive path name extension*), FileTypes, DeviceTypes,
@@ -131,13 +121,10 @@ FROM FileFunc IMPORT EOL, FileSpecString, NameString, FileAttributes, FileAttrib
     MakeDir, CreateDirTree, DeleteDir, DirExists, RenameDir, GetDefaultPath,
     SetDefaultPath, GetDeviceFreeSpace, GetDeviceFreeSpaceEx, GetDeviceType;
 FROM DlgShell IMPORT
-    NotifyType, NotifyResult, CONTROL, ControlType, DialogPositions,
-    ModelessDialog, GetDialogParent;
+    NotifyType, NotifyResult, CONTROL, ControlType, DialogPositions, ModelessDialog, GetDialogParent;
 IMPORT Storage;
 IMPORT Terminal, BasicDialogs;
 FROM BasicDialogs IMPORT MessageTypes;
-                                   (* IMPORT Lib; Part of TSLib *)
-                                   (* IMPORT MATHLIB; Part of TSlib that uses longreals. *)
 IMPORT LongMath;
 IMPORT ASCII;
 FROM Environment IMPORT GetCommandLine,GetSymbol;
@@ -146,26 +133,20 @@ IMPORT RConversions, LongStr, LongConv,FormatString;
 FROM RConversions IMPORT RealToString, RealToStringFixed, StringToReal;
 FROM Conversions IMPORT StringToInt, StrToInt, IntToString, IntToStr, StringToCard,
     StrToCard, CardToString, CardToStr, StringToLong, StrToLong, LongToString, LongToStr;
-(*
-  FROM TOKENIZE IMPORT FSATYP,DELIMCH,INI1TKN,GETCHR,UNGETCHR,GETTKN,
-    UNGETTKN,GETTKNREAL;
-*)
 FROM TKNRTNS IMPORT FSATYP,CHARSETTYP,DELIMCH,INI1TKN,INI3TKN,GETCHR,
     UNGETCHR,GETTKN,NEWDELIMSET,NEWOPSET,NEWDGTSET,GETTKNSTR,GETTKNEOL,
     UNGETTKN,GETTKNREAL;
-FROM TIMLIB IMPORT JULIAN,GREGORIAN,TIME2MDY;
-(****************************************************************************)
-(*
-  FROM SLWholeIO IMPORT ReadLongInt,WriteLongInt,ReadLongCard,WriteLongCard;
-  FROM SWholeIO IMPORT ReadInt, WriteInt, ReadCard, WriteCard;
-  FROM STextIO IMPORT ReadString, WriteString, WriteLn, ReadChar, WriteChar, SkipLine;
-*)
+FROM TIMLIBrevised IMPORT JULIAN,GREGORIAN,TIME2MDY;
 FROM LongStr IMPORT StrToReal,RealToFloat,RealToEng,RealToFixed,RealToStr,ConvResults;
 IMPORT IOChan, ChanConsts,LowLong;
 FROM SLongIO IMPORT ReadReal, WriteFloat, WriteEng, WriteFixed, WriteReal;
+(****************************************************************************)
 
-FROM UTILLIB IMPORT BLANK,NULL,STRTYP,BUFSIZ,BUFTYP,STR10TYP,TRIM,STRLENFNT,STRCMPFNT,
-    SubStrCMPFNT,SCANBACK,SCANFWD,COPYLEFT,ASSIGN2BUF,RMVCHR;
+FROM UTILLIB IMPORT BUFSIZ,CTRLCOD,STRTYP,STR10TYP,STR20TYP,BUFTYP,MAXCARDFNT,BLANK,NULL,COPYLEFT,COPYRIGHT,
+  FILLCHAR,SCANFWD,SCANBACK, STRLENFNT,STRCMPFNT,LCHINBUFFNT,stricmpfnt,SubStrCMPFNT,MRGBUFS,TRIMFNT,TRIM,RMVCHR,
+  APPENDA2B,CONCATAB2C,INSERTAin2B,ASSIGN2BUF, StringItemPointerType,StringDoubleLinkedListPointerType,
+  InitStringListPointerType,AppendStringToList,NextStringFromList,PrevStringFromList,CurrentPointerBeginning,
+  CurrentPointerEnding,GetNextStringFromList,GetPrevStringFromList;
 FROM SysClock IMPORT DateTime,GetClock,CanGetClock,CanSetClock,IsValidDateTime,SetClock;
 FROM LongMath IMPORT sqrt,exp,ln,sin,cos,tan,arctan,arcsin,arccos,power,round,pi;
 FROM LowLong IMPORT sign,ulp,intpart,fractpart,trunc (*,round*) ;
@@ -176,18 +157,19 @@ FROM HolidayCalc IMPORT HolType, GetHolidays;
 
 CONST
   szAppName = "HPWinMenu";
-  InputPrompt = 'Enter cmd or HELP : ';
-  LastMod = '7 Jul 16';
+  InputPrompt = "Enter cmd or HELP : ";
+  LastMod = "29 Mar 17";
   clipfmt = CLIPBOARD_ASCII;
   HalfCalcIcon = '#100';
   FullGreenIcon = '#200';
   HalfGreenIcon = '#300';
   RegFileName = "HPReg.sav";
   StackFileName = "HPStack.sav";
+  MainWindowHeight = 20;
 
 TYPE
   OutStateTyp = (fix,float,gen);
-  STR20TYP    = ARRAY [0..20] OF CHAR;
+(*                                                                           STR20TYP    = ARRAY [0..20] OF CHAR; *)
   pstrtyp     = POINTER TO STRTYP;  (* remember this is a 1-origin array *)
   charsetyp   = SET OF CHAR;
 
@@ -230,40 +212,10 @@ VAR
   slen              : CARDINAL;
 
 
-(*
-    FontWeights         = (FwLight, FwNormal, FwDemiBold, FwBold, FwHeavy);
-
-    CharacterSets       = (
-                           LATIN1_CHARSET,/*ansi, iso*/
-                           LATIN2_CHARSET,/*latin + eastern europe*/
-                           SYMBOL_CHARSET,
-                           ASCII_CHARSET,
-                           DEFAULT_CHARSET
-                          );
-    FontInfo            =
-        RECORD
-        height          : INTEGER;/* positive = tenths of a point.
-                                                100 = 10.0 points
-                                                105 = 10.5 points.
-                                     negative = device pixels
-                                  */
-        italic          : BOOLEAN;
-        fixedPitch      : BOOLEAN;/* if TRUE then only fixed pitch */
-                                  /* if FALSE then any pitch, including fixed */
-        weight          : FontWeights;
-        charSet         : CharacterSets;
-        name            : ARRAY [0..63] OF CHAR;/* font family name.
-                                                   GTK
-                                                     may also optionally include the font foundary in the name.
-                                                     the foundary and font family name are separated by the '-' character.
-                                                */
-        END;
-*)
-
 (**********************************************************************)
 PROCEDURE writestack(tw : TextWindow);
-         (* In:  sigfig, stk                                                   *)
-         (* Out: Xstr                                                          *)
+         (* gbl In:  sigfig, stk                                                   *)
+         (* gbl Out: Xstr                                                          *)
 
 VAR strarray : ARRAY [1..8] OF STRTYP;
     c,ignoreretcod,pos : CARDINAL;
@@ -285,40 +237,40 @@ BEGIN
   END;
   PaintOff(tw);
 
-  WriteStringAt(tw,0,1,'                X :',aBold);
+  WriteStringAt(tw,0,1,"                X :",aBold);
   WriteString(tw,strarray[STACKSIZE-7],aInvertedYellow);
   EraseToEOL(tw,a); WriteLn(tw);
   Xstr :=  strarray[1];
 
-  WriteString(tw, 'T1:',a);
+  WriteString(tw,"T1:",a);
   WriteString(tw,strarray[STACKSIZE],a);
   EraseToEOL(tw,a); WriteLn(tw);
 
-  WriteString(tw,'T2:',a);
+  WriteString(tw,"T2:",a);
   WriteString(tw,strarray[STACKSIZE-1],a);
   EraseToEOL(tw,a); WriteLn(tw);
 
-  WriteString(tw,'T3:',a);
+  WriteString(tw,"T3:",a);
   WriteString(tw,strarray[STACKSIZE-2],a);
   EraseToEOL(tw,a); WriteLn(tw);
 
-  WriteString(tw,'T4:',a);
+  WriteString(tw,"T4:",a);
   WriteString(tw,strarray[STACKSIZE-3],a);
   EraseToEOL(tw,a); WriteLn(tw);
 
-  WriteString(tw,'T5:',a);
+  WriteString(tw,"T5:",a);
   WriteString(tw,strarray[STACKSIZE-4],a);
   EraseToEOL(tw,a); WriteLn(tw);
 
-  WriteString(tw,'Z :',a);
+  WriteString(tw,"Z :",a);
   WriteString(tw,strarray[STACKSIZE-5],a);
   EraseToEOL(tw,a); WriteLn(tw);
 
-  WriteString(tw,'Y :',a);
+  WriteString(tw,"Y :",a);
   WriteString(tw,strarray[STACKSIZE-6],a);
   EraseToEOL(tw,a); WriteLn(tw);
 
-  WriteString(tw,'X :',aBold);
+  WriteString(tw,"X :",aBold);
   WriteString(tw,strarray[STACKSIZE-7],aInverted);
   EraseToEOL(tw,a); WriteLn(tw);
 
@@ -328,62 +280,61 @@ END writestack;
 (****************************************************************)
 PROCEDURE writehelp(tw : TextWindow);
 BEGIN
-     longstr := ' This is an RPN style calculator.';
-(*     WriteStringAt(tw,0,10,longstr,a); WriteLn(tw); *)
+     longstr := " This is an RPN style calculator written in Modula-2.";
      WriteStringAt(tw,0,0,longstr,a);
-     longstr := ' fix, float, gen -- output string format options.';
+     longstr := " fix, float, gen -- output string format options.";
      WriteString(tw,longstr,a); WriteLn(tw);
-     longstr := ' SQRT,SQR -- X = sqrt(X) or sqr(X) register.';
+     longstr := " SQRT,SQR -- X = sqrt(X) or sqr(X) register.";
      WriteString(tw,longstr,a); WriteLn(tw);
-     longstr := ' STO,RCL  -- store/recall the X register to/from the memory register.';
+     longstr := " STO,RCL  -- store/recall the X register to/from the memory register.";
      WriteString(tw,longstr,a); WriteLn(tw);
-     longstr := '    Now allows single letter or number to designate the register 0..35';
+     longstr := "    Now allows single letter or number to designate the register 0..35";
      WriteString(tw,longstr,a); WriteLn(tw);
-     longstr := '    Must be first cmd on line for this, else reg from a different module is used.';
+     longstr := "    Must be first cmd on line for this, else reg from a different module is used.";
      WriteString(tw,longstr,a); WriteLn(tw);
      longstr := " ZEROREG -- Zeros all of the registers, but not the stack.";
      WriteString(tw,longstr,a); WriteLn(tw);
      longstr := " SHOREG -- Shows the non-zero registers in its own window.";
      WriteString(tw,longstr,a); WriteLn(tw);
-     longstr := ' SWAP,SWAPXY,<>,><,~,`, side arrow keys -- equivalent commands that swap the X and Y registers.';
+     longstr := " SWAP,SWAPXY,<>,><,~,`, side arrow keys -- equivalent commands that swap the X and Y registers.";
      WriteString(tw,longstr,a); WriteLn(tw);
-     longstr := ' LASTX,@ -- put the value of the LASTX register back into the X register.';
+     longstr := " LASTX,@ -- put the value of the LASTX register back into the X register.";
      WriteString(tw,longstr,a); WriteLn(tw);
-     longstr := ' !, DN, ROLLDN -- roll the stack down one register.  X goes to T1.';
+     longstr := " |, DN, ROLLDN -- roll the stack down one register.  X goes to T1.";
      WriteString(tw,longstr,a); WriteLn(tw);
      WriteString(tw," , or UP -- stack up operation.",a); WriteLn(tw);
-     longstr := ' Up or Down arrow, PageUp, Home, etc -- Stack movement commands done immediately.';
+     longstr := " Up or Down arrow, PageUp, Home, etc -- Stack movement commands done immediately.";
      WriteString(tw,longstr,a); WriteLn(tw);
-     longstr := ' EXP,LN -- evaluate exp(X) or ln(X) and put result back into X.';
+     longstr := " EXP,LN -- evaluate exp(X) or ln(X) and put result back into X.";
      WriteString(tw,longstr,a); WriteLn(tw);
-     longstr := ' ^   -- evaluate ABS(Y) to the X power, put result in X and pop stack 1 reg.';
+     longstr := " ^   -- Y to the X power using PWRI, put result in X and pop stack 1 reg.  Rounds X";
      WriteString(tw,longstr,a); WriteLn(tw);
-     longstr := ' **  -- like "^" but rounds X before calling the PWRI function.';
+     longstr := " **  -- ABS(Y) to the X power, put result in X and pop stack 1 reg, using exp and ln()";
      WriteString(tw,longstr,a); WriteLn(tw);
-     longstr := ' INT, ROUND, FRAC, PI -- all on X reg.';
+     longstr := " INT, ROUND, FRAC, PI -- all on X reg.";
      WriteString(tw,longstr,a); WriteLn(tw);
-     longstr := ' MOD -- evaluate Y MOD X, put result in X and pop stack 1 reg.';
+     longstr := " MOD -- evaluate Y MOD X, put result in X and pop stack 1 reg.";
      WriteString(tw,longstr,a); WriteLn(tw);
      WriteString(tw," %   -- does XY/100, places result in X.  Leaves Y alone.",a); WriteLn(tw);
-     longstr := ' SIN,COS,TAN,ARCTAN,ARCSIN,ARCCOS -- Now in degrees.';
+     longstr := " SIN,COS,TAN,ARCTAN,ARCSIN,ARCCOS -- Now in degrees.";
      WriteString(tw,longstr,a); WriteLn(tw);
-     longstr := ' D2R, R2D -- perform degrees / radians conversion of the X register.';
+     longstr := " D2R, R2D -- perform degrees / radians conversion of the X register.";
      WriteString(tw,longstr,a); WriteLn(tw);
-     longstr := ' JUL -- Julian date num Z month, Y day, X year.  Pop stack x2.';
+     longstr := " JUL -- Julian date num Z month, Y day, X year.  Pop stack x2.";
      WriteString(tw,longstr,a); WriteLn(tw);
      longstr := " TODAY- Julian date num of today's date.  Pop stack x2.";
      WriteString(tw,longstr,a); WriteLn(tw);
-     longstr := ' GREG-- Return Z month, Y day, X year of Julian date number in X.';
+     longstr := " GREG-- Return Z month, Y day, X year of Julian date number in X.";
      WriteString(tw,longstr,a); WriteLn(tw);
-     longstr := ' DOW -- Return day number 1..7 of julian date number in X register.';
+     longstr := " DOW -- Return day number 1..7 of julian date number in X register.";
      WriteString(tw,longstr,a); WriteLn(tw);
-     longstr :=' HEX -- Round X register to a longcard and output hex fmt.';
+     longstr :=" HEX -- Round X register to a longcard and output hex fmt.";
      WriteString(tw,longstr,a); WriteLn(tw);
-     longstr :=' PRIME -- Returns TRUE or FALSE of X reg.';
+     longstr :=" PRIME -- Returns TRUE or FALSE of X reg.";
      WriteString(tw,longstr,a); WriteLn(tw);
-     longstr :=' HCF -- Pushs highest common factor of Y and X onto stack.';
+     longstr :=" HCF -- Pushs highest common factor of Y and X onto stack.";
      WriteString(tw,longstr,a); WriteLn(tw);
-     longstr := ' TOCLIP, FROMCLIP -- Send to/from clipboard.';
+     longstr := " TOCLIP, FROMCLIP -- Send to/from clipboard.";
      WriteString(tw,longstr,a); WriteLn(tw);
      longstr := " Allows substitutions: = for +, ; for *, ' for + and ',' for -, and _ is unary minus .";
      WriteString(tw,longstr,a); WriteLn(tw);
@@ -399,7 +350,6 @@ BEGIN
      WriteString(tw,longstr,a); WriteLn(tw);
      longstr := " undo,redo -- works on entire stack as a whole.  More comprehensive than lastx";
      WriteString(tw,longstr,a); WriteLn(tw);
-
 END writehelp;
 (*****************************************************************)
 PROCEDURE WriteReg(tw : TextWindow);
@@ -440,8 +390,6 @@ BEGIN
       WriteLn(tw);
     END; (* if reg = 0 *)
   END; (* for *)
-
-
 END WriteReg;
 
 
@@ -586,6 +534,9 @@ VAR
   ch1,ch2 : CHAR;
   ok      : BOOLEAN;
   str     : STRTYP;
+  StringListP : StringDoubleLinkedListPointerType;
+  StringP : StringItemPointerType;
+  R : LONGREAL;
 
 BEGIN
   LOOP (* dummy loop to allow EXIT on errors, as RETURN is only allowed in functions, not procedures. *)
@@ -614,10 +565,10 @@ BEGIN
          ch2 := inputline[5];
        RMVCHR(inputbuf,1,3);
          IF ch1 IN opset THEN
-         GETRESULT(inputbuf);
+         GETRESULT(inputbuf,R);
        ELSIF ch2 IN opset THEN
          RMVCHR(inputbuf,1,1);  (* remove ch1 *)
-         GETRESULT(inputbuf);
+         GETRESULT(inputbuf,R);
        END;
      END;
    ELSIF SubStrCMPFNT(inputline,'RCL') THEN
@@ -628,10 +579,10 @@ BEGIN
          ch2 := inputline[5];
        RMVCHR(inputbuf,1,3);
          IF ch1 IN opset THEN
-         GETRESULT(inputbuf);
+         GETRESULT(inputbuf,R);
        ELSIF ch2 IN opset THEN
          RMVCHR(inputbuf,1,1);
-         GETRESULT(inputbuf);
+         GETRESULT(inputbuf,R);
        END;
      END;
    ELSIF STRCMPFNT(inputline,"ZEROREG") = 0 THEN
@@ -725,7 +676,7 @@ BEGIN
      END;
      PUSHX(r);
    ELSIF STRCMPFNT(inputline,"HOL") = 0 THEN
-     GETRESULT(inputbuf);
+     GETRESULT(inputbuf,R);
      MoveCaretTo(tw,0,12);
      IF Holidays.valid THEN
        WriteString(tw," For year ",a);
@@ -820,7 +771,23 @@ BEGIN
     SetAutoScroll(HelpWin,TRUE);
     writehelp(HelpWin)
    ELSE  (* Now must process the cmd, which is the whole reason for this pgm existing! *)
-     GETRESULT(inputbuf);
+     StringListP := GETRESULT(inputbuf,R);
+     IF StringListP <> NIL THEN
+       MoveCaretTo(tw,0,12);
+       CurrentPointerBeginning(StringListP);
+       FOR C := 1 TO StringListP^.len DO
+         StringP := GetNextStringFromList(StringListP);
+         WriteString(tw,StringP^.S.CHARS,a);
+         EraseToEOL(tw,a);
+         WriteLn(tw);
+       END; (* FOR StringListP has strings to print *)
+       C := StringListP^.len + 12;
+       WHILE C < MainWindowHeight DO
+         EraseToEOL(tw,a);
+         WriteLn(tw);
+         INC(C);
+       END; (* While still have lines to be erased *)
+     END; (* IF string list pointer is not NIL *)
    END;
    RepaintScreen(tw);
    EXIT;
@@ -846,30 +813,29 @@ BEGIN
         SnapWindowToFont(tw,TRUE);
         SetDisplayMode(tw,DisplayVisible);
 (*
-                                             DisplayModes        = (
-                                                                    DisplayNormal, /* will activate window, make it visible and reverses minimized or maximized */
-                                                                    DisplayVisible,/* makes window visible, will not activate window */
-                                                                    DisplayHidden, /* hides window, active window changes */
-                                                                    DisplayMinimized,/* minimizes window, does not change active window */
-                                                                    DisplayMaximized /* will activate window, maximizes window */
-                                                                    ) BIG;
+                    DisplayModes        = (
+                      DisplayNormal,    // will activate window, make it visible and reverses minimized or maximized
+                      DisplayVisible,   // makes window visible, will not activate window
+                      DisplayHidden,    // hides window, active window changes
+                      DisplayMinimized, // minimizes window, does not change active window
+                      DisplayMaximized  // will activate window, maximizes window
+                                           ) BIG;
 *)
         SetScrollRangeAllowed(tw,WA_VSCROLL,60);
         SetScrollBarPos(tw,WA_VSCROLL,0);
         SetScrollRangeAllowed(tw,WA_HSCROLL,100);
         SetScrollBarPos(tw,WA_HSCROLL,0);
         SetCaretType(tw,CtHalfBlock);
-(*                                           MoveCaretTo(tw,xCaret,yCaret); *)
+(*                                                                                 MoveCaretTo(tw,xCaret,yCaret); *)
         MakeCaretVisible(tw);
         CaretOn(tw);
         SetWindowEnable(tw,TRUE);
-(*                                           SetForegroundWindow(tw); not for a child window *)
+(*                                                                SetForegroundWindow(tw); not for a child window *)
     | TWM_GAINFOCUS, TWM_ACTIVATEAPP :
         MakeCaretVisible(tw);
         RepaintScreen(tw);
     | TWM_PAINT:
-                                             (*        WriteReg(RegWin); *)
-
+                                                                         (*        WriteReg(RegWin); *)
     | TWM_NOTIFYSCROLL:
     | TWM_KEY:
         SetForegroundWindow(Win);
@@ -1385,7 +1351,7 @@ BEGIN
                         "#100",                   (* menu : ARRAY OF CHAR *)
                         FullGreenIcon,            (* icon : ARRAY OF CHAR *)
                          1, 1, (* -1,-1,  x,y= the initial screen coordinates for the window to be displayed *)
-                        60,20, (* xSize, ySize : COORDINATE *)
+                        90,MainWindowHeight, (* xSize, ySize : COORDINATE *)
                         800,200, (* xBuffer, yBuffer : COORDINATE *)
                         FALSE,  (* gutter : BOOLEAN *)
                         biggerFont, (* DefaultFontInfo, /* font : FontInfo */ *)
@@ -1404,9 +1370,9 @@ BEGIN
                         '', (* name : ARRAY OF CHAR *)
                         '', (* menu : ARRAY OF CHAR *)
                         HalfCalcIcon, (* "#100", *)       (* icon : ARRAY OF CHAR *)
-                        750, 10, (* x, y = the initial screen coordinates for the window to be displayed.  If a parameter is -1 then the operating system will choose a default location for that coordinate.
-                                               These positions are in pixels and are relative to the parent window client area origin for child windows, or relative to the screen origin for all other windows. *)
-                        30,20, (* xSize, ySize : COORDINATE *)
+                        1050, 10, (* x, y = the initial screen coordinates for the window to be displayed.  If a parameter is -1 then the operating system will choose a default location for that coordinate.
+                                 These positions are in pixels and are relative to the parent window client area origin for child windows, or relative to the screen origin for all other windows. *)
+                        30,MainWindowHeight, (* xSize, ySize : COORDINATE *)
                         500,200, (* xBuffer, yBuffer : COORDINATE *)
                         FALSE,  (* gutter : BOOLEAN *)
                         biggerFont, (* DefaultFontInfo, /* font : FontInfo */ *)

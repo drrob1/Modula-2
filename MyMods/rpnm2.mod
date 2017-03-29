@@ -25,6 +25,7 @@ MODULE RPNM2;
    8 Jul 16 -- Added line to always display the stack using Dump2Console, and added a startup message.
   26 Mar 17 -- HPCALC now outputs a string list instead of directly doing I/O.  All I/O now done here.
   27 Mar 17 -- Renamed module to RPNM2.
+  29 Mar 17 -- Removed some WriteLn's.
 *)
 
   FROM SYSTEM IMPORT ADR;
@@ -65,7 +66,7 @@ MODULE RPNM2;
   FROM HolidayCalc IMPORT HolType, GetHolidays;
 
 CONST
-  LastCompiled = "27 Mar 2017";
+  LastCompiled = "29 Mar 2017";
 
 VAR
   C,c,K,STRLEN,NON0POSN,NONBLPOSN,RetCode : CARDINAL;
@@ -217,14 +218,13 @@ BEGIN (********************* MAIN ****************************************)
   REPEAT (* Until finished with input *)
     StringListP1 := GETRESULT(INBUF,R);                                              (*    R := GETRESULT(INBUF); *)
     WriteLn;
-    WriteLn;
     IF StringListP1 <> NIL THEN
       CurrentPointerBeginning(StringListP1);
       FOR c := 1 TO StringListP1^.len DO
         StringP1 := GetNextStringFromList(StringListP1);
         WriteString(StringP1^.S.CHARS);
         WriteLn;
-      END; (* FOR strings to list *)
+      END; (* FOR strings to list in StringListP1 *)
     ELSE
       WriteString(' Result = ');
       LongStr.RealToStr(R,Xstr);
