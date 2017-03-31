@@ -32,6 +32,7 @@ Copyright (C) 1987  Robert Solomon MD.  All rights reserved.
   24 Mar 17 -- Started change to a string linked list, to backport what I've done w/ stringslice in Go.
   25 Mar 17 -- Finished the string linked list code.
   26 Mar 17 -- Finally removed GETFNM code that was moved to MyFIO long ago.
+  31 Mar 17 -- Realized that I need DISPOSE, else I have created a memory leak.
 *)
 
   FROM SYSTEM IMPORT ADDRESS;
@@ -856,6 +857,111 @@ BEGIN
 
   RETURN(PrevStringP);
 END GetPrevStringFromList;
+
+(* -------------------------------------------------------------------------- RemoveLastStringFromList -----------------------------------*)
+
+PROCEDURE RemoveLastStringFromList(StringListP : StringDoubleLinkedListPointerType);
+  VAR
+   PrevStringP,StringP : StringItemPointerType;
+
+BEGIN
+  IF StringListP = NIL THEN
+    RETURN;
+  END;
+
+  StringListP^.CurrentPlaceInList := StringListP^.EndOfList;
+  StringP :=  StringListP^.EndOfList;
+  PrevStringP := StringP^.Prev;
+  IF PrevStringP <> NIL THEN
+    PrevStringP^.Next := NIL;
+    PrevStringP := StringListP^.CurrentPlaceInList^.Prev;
+  END; (* if there is no prev string to query *)
+
+  IF StringListP <> NIL THEN
+    StringListP^.PrevPlaceInList := StringListP^.CurrentPlaceInList;
+    StringListP^.CurrentPlaceInList := PrevStringP;
+    StringListP^.EndOfList := PrevStringP;
+  END; (* StringListP is not nil *)
+
+  DISPOSE(StringP);
+  DEC(StringListP^.len);
+  IF StringListP^.len = 0 THEN
+    StringListP^.CurrentPlaceInList := NIL;
+    StringListP^.PrevPlaceInList := NIL;
+    StringListP^.StartOfList := NIL;
+    StringListP^.EndOfList := NIL;
+  END; (* If string is now empty, all pointers must be nil *)
+END RemoveLastStringFromList;
+
+
+(* -------------------------------------------------------------------------- RemoveFirstStringFromList -----------------------------------*)
+
+PROCEDURE RemoveFirstStringFromList(StringListP : StringDoubleLinkedListPointerType);
+  VAR
+   NextStringP,StringP : StringItemPointerType;
+
+BEGIN
+  IF StringListP = NIL THEN
+    RETURN;
+  END;
+
+  StringListP^.CurrentPlaceInList := StringListP^.StartOfList;
+  StringP := StringListP^.StartOfList;
+  NextStringP := StringP^.Next;
+  IF NextStringP <> NIL THEN
+    NextStringP^.Prev := NIL;
+    NextStringFromList(StringListP);
+  END; (* if there is no next string to query *)
+
+  IF StringListP <> NIL THEN
+    StringListP^.PrevPlaceInList := StringListP^.CurrentPlaceInList;
+    StringListP^.CurrentPlaceInList := NextStringP;
+    StringListP^.StartOfList := NextStringP;
+  END; (* StringListP is not nil *)
+
+  DISPOSE(StringP);
+  DEC(StringListP^.len);
+
+  IF StringListP^.len = 0 THEN
+    StringListP^.CurrentPlaceInList := NIL;
+    StringListP^.PrevPlaceInList := NIL;
+    StringListP^.StartOfList := NIL;
+    StringListP^.EndOfList := NIL;
+  END; (* If string is now empty, all pointers must be nil *)
+
+END RemoveFirstStringFromList;
+
+
+(* -------------------------------------------------------------------------- DisposeStringListPointerType -----------------------------------*)
+PROCEDURE DisposeStringListPointerType(VAR INOUT StringListP : StringDoubleLinkedListPointerType);
+(*
+  Purpose of this routine is to Dispose all of the strings in the list, and then dispose of the list itself.
+*)
+
+VAR
+  PrevStringP,StringP : StringItemPointerType;
+  remaining : CARDINAL;
+
+BEGIN
+  IF StringListP = NIL THEN
+    RETURN;
+  END;
+
+  remaining := StringListP^.len;
+
+  WHILE (StringListP <> NIL) AND (remaining > 0) DO
+    RemoveLastStringFromList(StringListP);
+    DEC(remaining);
+  END; (* While StringP is not nil *)
+
+  DISPOSE(StringListP);
+  StringListP := NIL;
+
+  RETURN;
+END DisposeStringListPointerType;
+
+
+
 
 BEGIN (* ----------------------- Module Body ------------------------------------*)
   ROOTNAM.CHARS[1] := NULL;
