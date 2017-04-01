@@ -67,6 +67,7 @@ REVISION HISTORY
  7 Jul 16 -- Added UP command, and added PI to help.
 29 Mar 17 -- Backported HPCALC rtns to match Go.  Pass a linked list of strings, and operators to match Go.
                Removed code that was commented out long ago.
+31 Mar 17 -- Added dispose strings code
 --------------------------------------*)
 
 MODULE HPWinMenu;
@@ -159,7 +160,7 @@ FROM HolidayCalc IMPORT HolType, GetHolidays;
 CONST
   szAppName = "HPWinMenu";
   InputPrompt = "Enter cmd or HELP : ";
-  LastMod = "29 Mar 17";
+  LastMod = "31 Mar 17";
   clipfmt = CLIPBOARD_ASCII;
   HalfCalcIcon = '#100';
   FullGreenIcon = '#200';
