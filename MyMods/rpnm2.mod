@@ -26,6 +26,7 @@ MODULE RPNM2;
   26 Mar 17 -- HPCALC now outputs a string list instead of directly doing I/O.  All I/O now done here.
   27 Mar 17 -- Renamed module to RPNM2.
   29 Mar 17 -- Removed some WriteLn's.
+  31 Mar 17 -- Added Dispose to the returned string list from GETRESULT.
 *)
 
   FROM SYSTEM IMPORT ADR;
@@ -33,6 +34,7 @@ MODULE RPNM2;
   FROM RConversions IMPORT RealToString, RealToStringFixed, StringToReal;
   FROM SLongIO IMPORT ReadReal, WriteFloat, WriteEng, WriteFixed, WriteReal;
   FROM Environment IMPORT GetCommandLine;
+  IMPORT UTILLIB;
   FROM UTILLIB IMPORT BUFSIZ,CTRLCOD,STRTYP,STR10TYP,STR20TYP,BUFTYP,MAXCARDFNT,BLANK,NULL,COPYLEFT,COPYRIGHT,
     FILLCHAR,SCANFWD,SCANBACK, STRLENFNT,STRCMPFNT,LCHINBUFFNT,stricmpfnt,MRGBUFS,TRIMFNT,TRIM,RMVCHR,APPENDA2B,
     CONCATAB2C,INSERTAin2B,ASSIGN2BUF, StringItemPointerType,StringDoubleLinkedListPointerType,
@@ -66,7 +68,7 @@ MODULE RPNM2;
   FROM HolidayCalc IMPORT HolType, GetHolidays;
 
 CONST
-  LastCompiled = "29 Mar 2017";
+  LastCompiled = "31 Mar 2017";
 
 VAR
   C,c,K,STRLEN,NON0POSN,NONBLPOSN,RetCode : CARDINAL;
@@ -225,6 +227,7 @@ BEGIN (********************* MAIN ****************************************)
         WriteString(StringP1^.S.CHARS);
         WriteLn;
       END; (* FOR strings to list in StringListP1 *)
+      UTILLIB.DisposeStringListPointerType(StringListP1); 
     ELSE
       WriteString(' Result = ');
       LongStr.RealToStr(R,Xstr);

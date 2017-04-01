@@ -147,6 +147,7 @@ FROM UTILLIB IMPORT BUFSIZ,CTRLCOD,STRTYP,STR10TYP,STR20TYP,BUFTYP,MAXCARDFNT,BL
   APPENDA2B,CONCATAB2C,INSERTAin2B,ASSIGN2BUF, StringItemPointerType,StringDoubleLinkedListPointerType,
   InitStringListPointerType,AppendStringToList,NextStringFromList,PrevStringFromList,CurrentPointerBeginning,
   CurrentPointerEnding,GetNextStringFromList,GetPrevStringFromList;
+IMPORT UTILLIB;
 FROM SysClock IMPORT DateTime,GetClock,CanGetClock,CanSetClock,IsValidDateTime,SetClock;
 FROM LongMath IMPORT sqrt,exp,ln,sin,cos,tan,arctan,arcsin,arccos,power,round,pi;
 FROM LowLong IMPORT sign,ulp,intpart,fractpart,trunc (*,round*) ;
@@ -463,7 +464,6 @@ END LongInt2HexStr;
 (********************************************************************)
 PROCEDURE GetRegIdx(char : CHAR) : CARDINAL;
                                             (* Return 0..35 w/ A = 10 and Z = 35 *)
-
 VAR
         ch : CHAR;
         idx : CARDINAL;
@@ -590,7 +590,6 @@ BEGIN
        Reg[c] := 0.0;
      END; (* for c *)
    ELSIF STRCMPFNT(inputline,"SHOREG") = 0 THEN
-(*                                                                             EraseScreen(RegWin,a);  *)
      WriteReg(RegWin);
    ELSIF STRCMPFNT(inputline,'HEX') = 0 THEN
      r := READX();
@@ -632,7 +631,7 @@ BEGIN
        WriteString(tw,' Open and Empty Clipboard failed.',a);
        WriteLn(tw);
        CloseClipboard(tw);
-       EXIT;  (* RETURN DEFAULT_HANDLE; This statement needed before this procedure was created *)
+       EXIT;
      END;
      pinstr := AllocClipboardMemory(BUFSIZ);
      IF pinstr = NIL THEN
@@ -640,7 +639,7 @@ BEGIN
        WriteLn(tw);
        UnlockClipboardMemory;
        CloseClipboard(tw);
-       EXIT; (* RETURN DEFAULT_HANDLE; This statement needed before this procedure was created *)
+       EXIT;
      END;
      pinstr^ := str9;
      IF  NOT SetClipboard(clipfmt) THEN
@@ -651,16 +650,16 @@ BEGIN
    ELSIF STRCMPFNT(inputline,'FROMCLIP') = 0 THEN
      IF NOT ClipboardFormatAvailable(clipfmt) THEN
        WriteStringAt(tw,0,0,'text format not available in clipboard.',a);
-       EXIT; (* RETURN DEFAULT_HANDLE; This statement needed before this procedure was created *)
+       EXIT;
      ELSIF NOT OpenClipboard(tw) THEN
        WriteString(tw,' OpenClipboard failed.',a);
        WriteLn(tw);
-       EXIT; (* RETURN DEFAULT_HANDLE; This statement needed before this procedure was created *)
+       EXIT;
      END;
      pinstr := GetClipboard(clipfmt);
      IF pinstr = NIL THEN
        WriteStringAt(tw,0,1,'unable to get clipboard.',a);
-       EXIT; (* RETURN DEFAULT_HANDLE; This statement needed before this procedure was created *)
+       EXIT;
      END;
      str8 := pinstr^;
      UnlockClipboardMemory;
@@ -672,7 +671,7 @@ BEGIN
        WriteLn(tw);
        WriteString(tw,str8,a);
        EraseToEOL(tw,a);
-       EXIT; (* RETURN DEFAULT_HANDLE; This statement needed before this procedure was created *)
+       EXIT;
      END;
      PUSHX(r);
    ELSIF STRCMPFNT(inputline,"HOL") = 0 THEN
@@ -787,6 +786,7 @@ BEGIN
          WriteLn(tw);
          INC(C);
        END; (* While still have lines to be erased *)
+       UTILLIB.DisposeStringListPointerType(StringListP);
      END; (* IF string list pointer is not NIL *)
    END;
    RepaintScreen(tw);
