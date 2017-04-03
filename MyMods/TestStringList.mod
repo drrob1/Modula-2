@@ -7,12 +7,12 @@ REVISION HISTORY
 24 Mar 17 -- Now will use this code to test the new StringList code I've written now named TestStringList.
 25 Mar 17 -- Finished TestStringList, and it works.
 31 Mar 17 -- Now testing DisposeStringListPointerType;
+ 3 Apr 17 -- Testing the remove string stuff.
 *)
 
 
   FROM SYSTEM IMPORT ADR,ADDRESS,CAST;
-  FROM MiscStdInOut IMPORT WriteString,WriteLn,PressAnyKey,WriteCard,WriteInt,ReadString,ReadCard,
-                     WriteLongCard;
+  FROM MiscStdInOut IMPORT WriteString,WriteLn,PressAnyKey,WriteCard,WriteInt,ReadString,ReadCard, WriteLongCard;
   FROM Storage IMPORT ALLOCATE, DEALLOCATE;
   FROM UTILLIB IMPORT BUFSIZ,CTRLCOD,STRTYP,STR10TYP,STR20TYP,BUFTYP,MAXCARDFNT,NULL,COPYLEFT,COPYRIGHT,FILLCHAR,
     SCANFWD,SCANBACK, STRLENFNT,STRCMPFNT,LCHINBUFFNT,MRGBUFS,TRIMFNT,TRIM,RMVCHR,APPENDA2B,CONCATAB2C,INSERTAin2B,
@@ -215,6 +215,7 @@ BEGIN
   WriteLn;
   WriteLn;
 
+  PressAnyKey;
 
   AppendStringToList(StringListP1,"First String");
   AppendStringToList(StringListP1,"Second String");
@@ -243,6 +244,7 @@ BEGIN
   WriteLn;
   WriteLn;
 
+  PressAnyKey;
 
   WriteString(" After removing the 1st string, leaving 3");
   WriteLn;
@@ -324,6 +326,8 @@ BEGIN
   WriteLn;
   WriteLn;
 
+  PressAnyKey;
+
   StringListP1 := InitStringListPointerType();
 
   AppendStringToList(StringListP1," Fifth String in this double linked list.");
@@ -354,7 +358,7 @@ BEGIN
   WriteLn;
 
 
-  WriteString(" The length of the string by the len field is ");
+  WriteString(" The length of the string by the len field should be four, it is ");
   WriteCard(StringListP1^.len);
   WriteLn;
 
@@ -363,6 +367,78 @@ BEGIN
   WriteString(s);
   WriteLn;
   WriteLn;
+
+  WriteString(" After removing the last string, leaving 3");
+  WriteLn;
+  WriteLn;
+
+(* Remove the last string, and then display in forward direction *)
+  UTILLIB.RemoveLastStringFromList(StringListP1);
+  CurrentPointerBeginning(StringListP1);
+  FOR c1 := 1 TO StringListP1^.len DO
+    StringP := GetNextStringFromList(StringListP1);
+    WriteCard(c1);
+    WriteString(": ");
+    WriteStringItem(" String Item: ",StringP);
+  END; (* for range StringList len *)
+  WriteLn;
+
+  WriteString(" After removing the 3rd string, leaving 2.");
+  WriteLn;
+  WriteLn;
+
+(* Remove the last string, and then display in forward direction *)
+  UTILLIB.RemoveLastStringFromList(StringListP1);
+  CurrentPointerBeginning(StringListP1);
+  FOR c1 := 1 TO StringListP1^.len DO
+    StringP := GetNextStringFromList(StringListP1);
+    WriteCard(c1);
+    WriteString(": ");
+    WriteStringItem(" String Item: ",StringP);
+  END; (* for range StringList len *)
+  WriteLn;
+
+  WriteString(" After removing the 2nd string, leaving 1.");
+  WriteLn;
+  WriteLn;
+
+(* Remove the last string, and then display in forward direction *)
+  UTILLIB.RemoveLastStringFromList(StringListP1);
+  CurrentPointerBeginning(StringListP1);
+  FOR c1 := 1 TO StringListP1^.len DO
+    StringP := GetNextStringFromList(StringListP1);
+    WriteCard(c1);
+    WriteString(": ");
+    WriteStringItem(" String Item: ",StringP);
+  END; (* for range StringList len *)
+  WriteLn;
+
+  WriteString(" After removing the last remaining string.");
+  WriteLn;
+  WriteLn;
+
+(* Remove the last string, and then display in forward direction *)
+  UTILLIB.RemoveLastStringFromList(StringListP1);
+  CurrentPointerBeginning(StringListP1);
+  FOR c1 := 1 TO StringListP1^.len DO
+    StringP := GetNextStringFromList(StringListP1);
+    WriteCard(c1);
+    WriteString(": ");
+    WriteStringItem(" String Item: ",StringP);
+  END; (* for range StringList len *)
+  WriteLn;
+
+
+  WriteString(" The length of the string by the len field should be zero, and it is ");
+  WriteCard(StringListP1^.len);
+  WriteLn;
+
+  AdrToHexStr(StringListP1,s);
+  WriteString(" StringListP1 is ");
+  WriteString(s);
+  WriteLn;
+  WriteLn;
+
 
 
   UTILLIB.DisposeStringListPointerType(StringListP1);
