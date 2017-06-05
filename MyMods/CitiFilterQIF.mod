@@ -29,8 +29,9 @@ MODULE CitiFilterQIF;
                 Also used menu pick instead of cmd line params.
   21 Feb 08 -- Had to make output file .txt so that Access on P5 could import the file.  Don't know y.
                 And I copied the .txt file to .out file so I don't have to change anything on P4.
-  17 Jun 08 -- Had to change the way checking, savings, unknown is assigned as Citibank changed
-                its d/l'd filenames.
+  17 Jun 08 -- Had to change the way checking, savings, unknown is assigned as Citibank changed its d/l'd filenames.
+   4 Jun 17 -- Started coding the number fields changes because of Citibank.  And removed the test for "AUTHORIZED TRANSFER".
+                 I don't remember why that's there.
 *)
 
 
@@ -51,24 +52,15 @@ MODULE CitiFilterQIF;
   IMPORT MiscM2;
   IMPORT FileFunc;
 (*
-  FROM FileFunc IMPORT EOL, FileSpecString, NameString, FileAttributes, FileAttributeSet,
-    SearchEntry, FileNameParts /*drive path name extension*/, FileTypes, DeviceTypes,
-    AccessModes, FileUseInfo, FileUseInfoSet, CommonFileErrors, File, InvalidHandle,
-    MustHaveNormalFile, MustHaveDirectory, MustHaveNothing, AllAttributes, StdAttributes,
-    AddArchive, AddReadOnly, AddHidden, AddSystem, AddCompressed, AddTemporary,
-    AddEncrypted, AddOffline, AddAlias, AddNormalFile, AddDirectory, OpenFile,
-    OpenFileEx, CreateFile, CreateFileEx, GetTempFileDirectory, MakeTempFileName,
-    CreateTempFile, CreateTempFileEx, OpenCreateFile, OpenCreateFileEx, FakeFileOpen,
-    CloseFile, FileType, SetFileBuffer, RemoveFileBuffer, FlushBuffers, ReadBlock,
-    WriteBlock, /* ReadChar, WriteChar, */ PeekChar, ReadLine, WriteLine, LockFileRegion,
-    UnlockFileRegion, SetFilePos, GetFilePos, MoveFilePos, TruncateFile, FileLength,
-    GetFileSizes, TranslateFileError, GetFileAttr, SetFileAttr, GetFileDateTime,
-    SetFileDateTime, RenameFile, DeleteFile,
-    FileExists, CopyFile, SetHandleCount, GetNextDir, ParseFileName, ParseFileNameEx,
-    AssembleParts, ConstructFileName, ConstructFileNameEx, FindInPathList,
-    FindInOSPathList, ExpandFileSpec, FindFirst, /* FindNext, */ FindClose,
-    MakeDir, CreateDirTree, DeleteDir, DirExists, RenameDir, GetDefaultPath,
-    SetDefaultPath, GetDeviceFreeSpace, GetDeviceFreeSpaceEx, GetDeviceType;
+  FROM FileFunc IMPORT EOL, FileSpecString, NameString, FileAttributes, FileAttributeSet, SearchEntry, FileNameParts /*drive path name extension*/, FileTypes, DeviceTypes,
+    AccessModes, FileUseInfo, FileUseInfoSet, CommonFileErrors, File, InvalidHandle, MustHaveNormalFile, MustHaveDirectory, MustHaveNothing, AllAttributes, StdAttributes,
+    AddArchive, AddReadOnly, AddHidden, AddSystem, AddCompressed, AddTemporary, AddEncrypted, AddOffline, AddAlias, AddNormalFile, AddDirectory, OpenFile,
+    OpenFileEx, CreateFile, CreateFileEx, GetTempFileDirectory, MakeTempFileName, CreateTempFile, CreateTempFileEx, OpenCreateFile, OpenCreateFileEx, FakeFileOpen,
+    CloseFile, FileType, SetFileBuffer, RemoveFileBuffer, FlushBuffers, ReadBlock, WriteBlock, /* ReadChar, WriteChar, */ PeekChar, ReadLine, WriteLine, LockFileRegion,
+    UnlockFileRegion, SetFilePos, GetFilePos, MoveFilePos, TruncateFile, FileLength, GetFileSizes, TranslateFileError, GetFileAttr, SetFileAttr, GetFileDateTime,
+    SetFileDateTime, RenameFile, DeleteFile, FileExists, CopyFile, SetHandleCount, GetNextDir, ParseFileName, ParseFileNameEx,
+    AssembleParts, ConstructFileName, ConstructFileNameEx, FindInPathList, FindInOSPathList, ExpandFileSpec, FindFirst, /* FindNext, */ FindClose,
+    MakeDir, CreateDirTree, DeleteDir, DirExists, RenameDir, GetDefaultPath, SetDefaultPath, GetDeviceFreeSpace, GetDeviceFreeSpaceEx, GetDeviceType;
 
   FROM RealIO IMPORT ReadReal, WriteFloat, WriteEng, WriteFixed, WriteReal;
   FROM TermFile IMPORT Open, IsTermFile, Close;
@@ -82,58 +74,40 @@ FROM ExStrings IMPORT
 FROM FormatString IMPORT FormatString;
 FROM TextWindows IMPORT
     (* TYPES & CONSTS *)
-    TextWindow, Colors, TextWindowsMsg, TextWindowProcedure,
-    NormalFont, BoldFont, ItalicFont, WinAttr, ClipboardFormat,
-    DisplayModes, ScreenAttribute, CaretTypes,
-    TWMessageRec, ResponseType, CloseModes, CloseWindow, NormalWindow,
+    TextWindow, Colors, TextWindowsMsg, TextWindowProcedure, NormalFont, BoldFont, ItalicFont, WinAttr, ClipboardFormat,
+    DisplayModes, ScreenAttribute, CaretTypes, TWMessageRec, ResponseType, CloseModes, CloseWindow, NormalWindow,
     FontWeights, DefaultFontInfo, COORDINATE, WindowDisplayInfo,
     (* VARS *)
     (* PROCS *)
-    ComposeAttribute, CreateWindow, WindowTypes, SpecialKeys,
-    GetClientSize, SetClientSize, SnapWindowToFont, SetScrollRangeAllowed,
-    MoveCaretTo, GetCaretPos, CaretOn, CaretOff, ShowCaret, HideCaret, SetCaretType,
-    IsCaretVisible, MakeCaretVisible, PutStringAt, PutAttrAt, WriteString,
-    WriteStringAt, WriteCellsAt, WriteCells, WriteLn, EraseToEOL, ChangeAttr,
-    ReadBufferString, RepaintRect, RepaintScreen, PaintOff, PaintOn,
-    SetAutoScroll, WinShellToTextWindowMessage,
-    MakeRowVisible, IsRectVisible, MakeRectVisible, GetVisibleRect,
-    GetBufferRect, EraseScreen, EraseRect, GetWinShellHandle, FindTextWindow,
-    SetDisplayMode,GetDisplayMode,SetWindowEnable,
-    IsMinimized, IsMaximized, SetWindowTitle, SendUserMessage, PostUserMessage,
-    IsUserMessageWaiting,AddVScrollBar, AddHScrollBar, AddScrollBars,
-    SetScrollBarPos, SetWindowData, SetWindowDataNum, GetWindowData, GetWindowDataNum,
-    GetWindowSize, SetWindowSize, GetWindowPos, SetWindowPos, CascadeWindow,
-    SetWindowIsBusy, GetWindowDisplayInfo, SetWindowDisplayInfo,
-    SetScrollDisableWhenNone, SetActiveTabChild, SetTabChildPosition,
-    GetForegroundWindow, SetForegroundWindow,
-    SetTimer, KillTimer, DisplayHelp,
-    OpenClipboard, CloseClipboard, EmptyClipboard, ClipboardFormatAvailable,
-    AllocClipboardMemory, UnlockClipboardMemory, SetClipboard, GetClipboard,
-    Xpos, Ypos, Xorg, Yorg, Xmax, Ymax;
+    ComposeAttribute, CreateWindow, WindowTypes, SpecialKeys, GetClientSize, SetClientSize, SnapWindowToFont, SetScrollRangeAllowed,
+    MoveCaretTo, GetCaretPos, CaretOn, CaretOff, ShowCaret, HideCaret, SetCaretType, IsCaretVisible, MakeCaretVisible, PutStringAt, PutAttrAt, WriteString,
+    WriteStringAt, WriteCellsAt, WriteCells, WriteLn, EraseToEOL, ChangeAttr, ReadBufferString, RepaintRect, RepaintScreen, PaintOff, PaintOn,
+    SetAutoScroll, WinShellToTextWindowMessage, MakeRowVisible, IsRectVisible, MakeRectVisible, GetVisibleRect,
+    GetBufferRect, EraseScreen, EraseRect, GetWinShellHandle, FindTextWindow, SetDisplayMode,GetDisplayMode,SetWindowEnable,
+    IsMinimized, IsMaximized, SetWindowTitle, SendUserMessage, PostUserMessage, IsUserMessageWaiting,AddVScrollBar, AddHScrollBar, AddScrollBars,
+    SetScrollBarPos, SetWindowData, SetWindowDataNum, GetWindowData, GetWindowDataNum, GetWindowSize, SetWindowSize, GetWindowPos, SetWindowPos, CascadeWindow,
+    SetWindowIsBusy, GetWindowDisplayInfo, SetWindowDisplayInfo, SetScrollDisableWhenNone, SetActiveTabChild, SetTabChildPosition,
+    GetForegroundWindow, SetForegroundWindow, SetTimer, KillTimer, DisplayHelp, OpenClipboard, CloseClipboard, EmptyClipboard, ClipboardFormatAvailable,
+    AllocClipboardMemory, UnlockClipboardMemory, SetClipboard, GetClipboard, Xpos, Ypos, Xorg, Yorg, Xmax, Ymax;
 IMPORT Terminal, BasicDialogs, DlgShell, WinShell;
 FROM BasicDialogs IMPORT MessageTypes;
 IMPORT Strings, MemUtils;
 IMPORT WholeStr, LongStr, LongConv;
 IMPORT ASCII;
 
-  FROM UTILLIB IMPORT NULL,CR,BUFSIZ,CTRLCOD,STRTYP,STR10TYP,
-    BUFTYP,MAXCARDFNT,
-    COPYLEFT,COPYRIGHT,FILLCHAR,SCANFWD,SCANBACK,
-    STRLENFNT,STRCMPFNT,LCHINBUFFNT,MRGBUFS,TRIMFNT,TRIM,RMVCHR,
-    APPENDA2B,CONCATAB2C,INSERTAin2B,ASSIGN2BUF;
-  FROM TOKENPTR IMPORT FSATYP,TKNPTRTYP,INI1TKN,GETCHR,GETTKNEOL,
-    UNGETCHR,GETTKN,UNGETTKN,GETTKNREAL,GETTKNSTR,DELIMCH,DELIMSTATE;
-  FROM TIMLIB IMPORT GETMDY, JULIAN;
-  FROM MyFIO IMPORT EOFMARKER,DRIVESEP,SUBDIRSEP,EXTRACTDRVPTH,MYFILTYP,
-    IOSTATE,FOPEN,FRESET,FPURGE,FCLOSE,FREAD,FRDTXLN,FWRTX,FWRTXLN,RETBLKBUF,
-    FWRSTR,FWRLN,FAPPEND,COPYDPIF,GETFNM;
+  FROM UTILLIB IMPORT NULL,CR,BUFSIZ,CTRLCOD,STRTYP,STR10TYP, BUFTYP,MAXCARDFNT, COPYLEFT,COPYRIGHT,FILLCHAR,SCANFWD,SCANBACK,
+    STRLENFNT,STRCMPFNT,LCHINBUFFNT,MRGBUFS,TRIMFNT,TRIM,RMVCHR, APPENDA2B,CONCATAB2C,INSERTAin2B,ASSIGN2BUF;
+  FROM TOKENPTR IMPORT FSATYP,TKNPTRTYP,INI1TKN,GETCHR,GETTKNEOL, UNGETCHR,GETTKN,UNGETTKN,GETTKNREAL,GETTKNSTR,DELIMCH,DELIMSTATE;
+  FROM TIMLIBrevised IMPORT GETMDY, JULIAN;
+  FROM MyFIO IMPORT EOFMARKER,DRIVESEP,SUBDIRSEP,EXTRACTDRVPTH,MYFILTYP, IOSTATE,FOPEN,FRESET,FPURGE,FCLOSE,FREAD,FRDTXLN,FWRTX,
+  	FWRTXLN,RETBLKBUF,FWRSTR,FWRLN,FAPPEND,COPYDPIF,GETFNM;
   FROM Environment IMPORT GetCommandLine;
 
 CONST
   szAppName = "CitiFilterQIF";
-  InputPrompt = 'Enter cmd or HELP : ';
-  LastMod = '17 Jun 08';
-  CitiIcon = '#100';
+  InputPrompt = "Enter cmd or HELP : ";
+  LastMod = "4 Jun 17";
+  CitiIcon = "#100";
   MenuSep = '|';
 
 TYPE
@@ -141,7 +115,7 @@ TYPE
   QIFTYP = RECORD
     datestr, numstr, Pstr, Mstr, amtstr : STRTYP;
     m,d,y,num : CARDINAL;
-    juldate : LONGINT;
+    juldate : CARDINAL;
   END;
 
 
@@ -158,7 +132,7 @@ VAR
   INUNT1,OUTUN1                                : MYFILTYP;
   inputline, buf                               : ARRAY [0..255] OF CHAR;
   InBuf, OutBuf                                : ARRAY [1..8*1024] OF CHAR;
-  juldate1,juldate2,juldate3                   : LONGINT;
+  juldate1,juldate2,juldate3                   : CARDINAL;
   csvqifState : csvORqifType;
   outfilelabel : STRTYP;
   GBLqif  : QIFTYP;
@@ -175,6 +149,8 @@ VAR
   a           : ScreenAttribute;
   Win         : TextWindow;
   patrnFound  : BOOLEAN;
+
+(* ------------------------------------------------------------------------- ProcessCVSFile ------------------------- *)
 
 PROCEDURE ProcessCSVFile(tw : TextWindow);
 (* Sample input file data
@@ -235,7 +211,6 @@ BEGIN
       chknum := 0;
     END(*if*);
 
-
     GETTKN(tpv,TOKEN,TKNSTATE,I,RETCOD);  (* Was a null field that needed to be transnum, *)
                   (* but the field format change corrected this and it is transnum again. *)
 (*    ExtractLastNum(TOKEN,transnum);                                                     *)
@@ -289,6 +264,35 @@ BEGIN
   END;
 END ProcessCSVFile;
 
+(* ------------------------------------------------------------------------- GetTransactionNumber ------------------------- *)
+PROCEDURE GetTransactionNumber(s : STRTYP; VAR numstr : STRTYP) : CARDINAL;
+  VAR
+  	tpv : TKNPTRTYP = NIL;
+  	token : BUFTYP;
+  	tknstate : FSATYP;
+  	transnum : INTEGER;
+  	retcod : CARDINAL;
+BEGIN
+	(* I have to get a token until either EOL or token is a number > 10,000. *)
+	
+	(* tpv := NIL only if I have to. *)
+	INI1TKN(tpv,s);
+  numstr := "";	
+	LOOP
+	  GETTKN(tpv,token,tknstate,transnum,retcod);
+	  IF (retcod > 0) THEN
+	  	EXIT; (* exit this loop that is looking for a number *)
+    ELSIF (tknstate = DGT) AND (transnum > 10000) THEN
+    	numstr := token;
+    	RETURN transnum;
+    END;
+	END; (* loop to fetch tokens for only one line *)	
+	numstr := "";
+	RETURN 0;
+END GetTransactionNumber;
+
+(* ------------------------------------------------------------------------- GetQIFRec ------------------------- *)
+
 PROCEDURE GetQIFRec(VAR OUT qif : QIFTYP);
 VAR I,J : INTEGER;
    tpv : TKNPTRTYP;
@@ -333,25 +337,28 @@ BEGIN
       | 'N' : numstr := INBUF.CHARS;
               ok := StrToCard(numstr,num);
 
-      | 'P' : IF STRCMPFNT(INBUF.CHARS,'AUTHORIZED TRANSFER') <> 0 THEN
-                TRIM(INBUF);
-                Pstr := INBUF.CHARS;
+      | 'P' : TRIM(INBUF);
+              Pstr := INBUF.CHARS;
+
+      | 'M' : TRIM(INBUF);
+              Mstr := INBUF.CHARS;
+              transnum := GetTransactionNumber(Mstr,qif.numstr);
+              IF transnum > 10000 THEN
+              	qif.num := transnum;
               END;
 
-      | 'M' : IF STRCMPFNT(INBUF.CHARS,'AUTHORIZED TRANSFER') <> 0 THEN
-                TRIM(INBUF);
-                Mstr := INBUF.CHARS;
-              END;
 
       | 'T' : amtstr := INBUF.CHARS;
-      | '^' : EXIT
       | '!','C',' ' :  (* ignore the line and do nothing  *)
+      | '^' : EXIT  (* loop that reads and processes lines *)
       ELSE
         (* ignore the line and do nothing *)
       END (* CASE ch *)
     END (* WITH qif *)
   END (* LOOP *)
 END GetQIFRec;
+
+(* ------------------------------------------------------------------------- ProcessQIFFile ------------------------- *)
 
 PROCEDURE ProcessQIFFile(tw : TextWindow);
 (*  Sample QIF input

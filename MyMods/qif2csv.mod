@@ -31,6 +31,8 @@ MODULE qif2csv;
                 And I copied the .txt file to .out file so I don't have to change anything on P4.
   24 Mar 08 -- HSBC uses short date format and squote delim for 2 dgt year.  
                  And I changed output file format to be more straightforward, reordering fields.
+   4 Jun 17 -- Started coding the number fields changes because of Citibank.  And removed the test for "AUTHORIZED TRANSFER".
+                 I don't remember why that's there.  Turns out that this file is not used by CitibankXP.mdb.  See CitiFilterQIF.mod.
 *)
 
 
@@ -41,24 +43,15 @@ MODULE qif2csv;
   IMPORT MiscM2;
   IMPORT FileFunc;
 (*
-  FROM FileFunc IMPORT EOL, FileSpecString, NameString, FileAttributes, FileAttributeSet,
-    SearchEntry, FileNameParts /*drive path name extension*/, FileTypes, DeviceTypes,
-    AccessModes, FileUseInfo, FileUseInfoSet, CommonFileErrors, File, InvalidHandle,
-    MustHaveNormalFile, MustHaveDirectory, MustHaveNothing, AllAttributes, StdAttributes,
-    AddArchive, AddReadOnly, AddHidden, AddSystem, AddCompressed, AddTemporary,
-    AddEncrypted, AddOffline, AddAlias, AddNormalFile, AddDirectory, OpenFile,
-    OpenFileEx, CreateFile, CreateFileEx, GetTempFileDirectory, MakeTempFileName,
-    CreateTempFile, CreateTempFileEx, OpenCreateFile, OpenCreateFileEx, FakeFileOpen,
-    CloseFile, FileType, SetFileBuffer, RemoveFileBuffer, FlushBuffers, ReadBlock,
-    WriteBlock, /* ReadChar, WriteChar, */ PeekChar, ReadLine, WriteLine, LockFileRegion,
-    UnlockFileRegion, SetFilePos, GetFilePos, MoveFilePos, TruncateFile, FileLength,
-    GetFileSizes, TranslateFileError, GetFileAttr, SetFileAttr, GetFileDateTime,
-    SetFileDateTime, RenameFile, DeleteFile,
-    FileExists, CopyFile, SetHandleCount, GetNextDir, ParseFileName, ParseFileNameEx,
-    AssembleParts, ConstructFileName, ConstructFileNameEx, FindInPathList,
-    FindInOSPathList, ExpandFileSpec, FindFirst, /* FindNext, */ FindClose,
-    MakeDir, CreateDirTree, DeleteDir, DirExists, RenameDir, GetDefaultPath,
-    SetDefaultPath, GetDeviceFreeSpace, GetDeviceFreeSpaceEx, GetDeviceType;
+  FROM FileFunc IMPORT EOL, FileSpecString, NameString, FileAttributes, FileAttributeSet,SearchEntry, FileNameParts /*drive path name extension*/, FileTypes, DeviceTypes,
+    AccessModes, FileUseInfo, FileUseInfoSet, CommonFileErrors, File, InvalidHandle,MustHaveNormalFile, MustHaveDirectory, MustHaveNothing, AllAttributes, StdAttributes,
+    AddArchive, AddReadOnly, AddHidden, AddSystem, AddCompressed, AddTemporary,AddEncrypted, AddOffline, AddAlias, AddNormalFile, AddDirectory, OpenFile,
+    OpenFileEx, CreateFile, CreateFileEx, GetTempFileDirectory, MakeTempFileName,CreateTempFile, CreateTempFileEx, OpenCreateFile, OpenCreateFileEx, FakeFileOpen,
+    CloseFile, FileType, SetFileBuffer, RemoveFileBuffer, FlushBuffers, ReadBlock,WriteBlock, /* ReadChar, WriteChar, */ PeekChar, ReadLine, WriteLine, LockFileRegion,
+    UnlockFileRegion, SetFilePos, GetFilePos, MoveFilePos, TruncateFile, FileLength,GetFileSizes, TranslateFileError, GetFileAttr, SetFileAttr, GetFileDateTime,
+    SetFileDateTime, RenameFile, DeleteFile,FileExists, CopyFile, SetHandleCount, GetNextDir, ParseFileName, ParseFileNameEx,
+    AssembleParts, ConstructFileName, ConstructFileNameEx, FindInPathList, FindInOSPathList, ExpandFileSpec, FindFirst, /* FindNext, */ FindClose,
+    MakeDir, CreateDirTree, DeleteDir, DirExists, RenameDir, GetDefaultPath, SetDefaultPath, GetDeviceFreeSpace, GetDeviceFreeSpaceEx, GetDeviceType;
 
   FROM RealIO IMPORT ReadReal, WriteFloat, WriteEng, WriteFixed, WriteReal;
   FROM TermFile IMPORT Open, IsTermFile, Close;
@@ -67,62 +60,43 @@ IMPORT SYSTEM;
 FROM SYSTEM IMPORT ADR, FUNC, UNREFERENCED_PARAMETER, ADDRESS;
 (* IMPORT WINUSER, WIN32, WINGDI, WINX; *)
 FROM Strings IMPORT FindNext, Append, Equal, Delete, Concat, Capitalize;
-FROM ExStrings IMPORT
-    AppendChar, EqualI;
+FROM ExStrings IMPORT  AppendChar, EqualI;
 FROM FormatString IMPORT FormatString;
 FROM TextWindows IMPORT
     (* TYPES & CONSTS *)
-    TextWindow, Colors, TextWindowsMsg, TextWindowProcedure,
-    NormalFont, BoldFont, ItalicFont, WinAttr, ClipboardFormat,
-    DisplayModes, ScreenAttribute, CaretTypes,
-    TWMessageRec, ResponseType, CloseModes, CloseWindow, NormalWindow,
+    TextWindow, Colors, TextWindowsMsg, TextWindowProcedure, NormalFont, BoldFont, ItalicFont, WinAttr, ClipboardFormat,
+    DisplayModes, ScreenAttribute, CaretTypes, TWMessageRec, ResponseType, CloseModes, CloseWindow, NormalWindow,
     FontWeights, DefaultFontInfo, COORDINATE, WindowDisplayInfo,
     (* VARS *)
     (* PROCS *)
-    ComposeAttribute, CreateWindow, WindowTypes, SpecialKeys,
-    GetClientSize, SetClientSize, SnapWindowToFont, SetScrollRangeAllowed,
-    MoveCaretTo, GetCaretPos, CaretOn, CaretOff, ShowCaret, HideCaret, SetCaretType,
-    IsCaretVisible, MakeCaretVisible, PutStringAt, PutAttrAt, WriteString,
-    WriteStringAt, WriteCellsAt, WriteCells, WriteLn, EraseToEOL, ChangeAttr,
-    ReadBufferString, RepaintRect, RepaintScreen, PaintOff, PaintOn,
-    SetAutoScroll, WinShellToTextWindowMessage,
-    MakeRowVisible, IsRectVisible, MakeRectVisible, GetVisibleRect,
-    GetBufferRect, EraseScreen, EraseRect, GetWinShellHandle, FindTextWindow,
-    SetDisplayMode,GetDisplayMode,SetWindowEnable,
-    IsMinimized, IsMaximized, SetWindowTitle, SendUserMessage, PostUserMessage,
-    IsUserMessageWaiting,AddVScrollBar, AddHScrollBar, AddScrollBars,
-    SetScrollBarPos, SetWindowData, SetWindowDataNum, GetWindowData, GetWindowDataNum,
-    GetWindowSize, SetWindowSize, GetWindowPos, SetWindowPos, CascadeWindow,
-    SetWindowIsBusy, GetWindowDisplayInfo, SetWindowDisplayInfo,
-    SetScrollDisableWhenNone, SetActiveTabChild, SetTabChildPosition,
-    GetForegroundWindow, SetForegroundWindow,
-    SetTimer, KillTimer, DisplayHelp,
-    OpenClipboard, CloseClipboard, EmptyClipboard, ClipboardFormatAvailable,
-    AllocClipboardMemory, UnlockClipboardMemory, SetClipboard, GetClipboard,
-    Xpos, Ypos, Xorg, Yorg, Xmax, Ymax;
+    ComposeAttribute, CreateWindow, WindowTypes, SpecialKeys, GetClientSize, SetClientSize, SnapWindowToFont, SetScrollRangeAllowed,
+    MoveCaretTo, GetCaretPos, CaretOn, CaretOff, ShowCaret, HideCaret, SetCaretType, IsCaretVisible, MakeCaretVisible, PutStringAt, PutAttrAt, WriteString,
+    WriteStringAt, WriteCellsAt, WriteCells, WriteLn, EraseToEOL, ChangeAttr, ReadBufferString, RepaintRect, RepaintScreen, PaintOff, PaintOn,
+    SetAutoScroll, WinShellToTextWindowMessage, MakeRowVisible, IsRectVisible, MakeRectVisible, GetVisibleRect,
+    GetBufferRect, EraseScreen, EraseRect, GetWinShellHandle, FindTextWindow, SetDisplayMode,GetDisplayMode,SetWindowEnable,
+    IsMinimized, IsMaximized, SetWindowTitle, SendUserMessage, PostUserMessage, IsUserMessageWaiting,AddVScrollBar, AddHScrollBar, AddScrollBars,
+    SetScrollBarPos, SetWindowData, SetWindowDataNum, GetWindowData, GetWindowDataNum, GetWindowSize, SetWindowSize, GetWindowPos, SetWindowPos, CascadeWindow,
+    SetWindowIsBusy, GetWindowDisplayInfo, SetWindowDisplayInfo, SetScrollDisableWhenNone, SetActiveTabChild, SetTabChildPosition,
+    GetForegroundWindow, SetForegroundWindow, SetTimer, KillTimer, DisplayHelp, OpenClipboard, CloseClipboard, EmptyClipboard, ClipboardFormatAvailable,
+    AllocClipboardMemory, UnlockClipboardMemory, SetClipboard, GetClipboard, Xpos, Ypos, Xorg, Yorg, Xmax, Ymax;
 IMPORT Terminal, BasicDialogs, DlgShell, WinShell;
 FROM BasicDialogs IMPORT MessageTypes;
 IMPORT Strings, MemUtils;
 IMPORT WholeStr, LongStr, LongConv;
 IMPORT ASCII;
 
-  FROM UTILLIB IMPORT NULL,CR,BUFSIZ,CTRLCOD,STRTYP,STR10TYP,
-    BUFTYP,MAXCARDFNT,
-    COPYLEFT,COPYRIGHT,FILLCHAR,SCANFWD,SCANBACK,
-    STRLENFNT,STRCMPFNT,LCHINBUFFNT,MRGBUFS,TRIMFNT,TRIM,RMVCHR,
-    APPENDA2B,CONCATAB2C,INSERTAin2B,ASSIGN2BUF;
-  FROM TOKENPTR IMPORT FSATYP,TKNPTRTYP,INI1TKN,GETCHR,GETTKNEOL,
-    UNGETCHR,GETTKN,UNGETTKN,GETTKNREAL,GETTKNSTR,DELIMCH,DELIMSTATE;
-  FROM TIMLIB IMPORT GETMDY, JULIAN;
-  FROM MyFIO IMPORT EOFMARKER,DRIVESEP,SUBDIRSEP,EXTRACTDRVPTH,MYFILTYP,
-    IOSTATE,FOPEN,FRESET,FPURGE,FCLOSE,FREAD,FRDTXLN,FWRTX,FWRTXLN,RETBLKBUF,
-    FWRSTR,FWRLN,FAPPEND,COPYDPIF,GETFNM;
+  FROM UTILLIB IMPORT NULL,CR,BUFSIZ,CTRLCOD,STRTYP,STR10TYP, BUFTYP,MAXCARDFNT, COPYLEFT,COPYRIGHT,FILLCHAR,SCANFWD,SCANBACK,
+    STRLENFNT,STRCMPFNT,LCHINBUFFNT,MRGBUFS,TRIMFNT,TRIM,RMVCHR, APPENDA2B,CONCATAB2C,INSERTAin2B,ASSIGN2BUF;
+  FROM TOKENPTR IMPORT FSATYP,TKNPTRTYP,INI1TKN,GETCHR,GETTKNEOL, UNGETCHR,GETTKN,UNGETTKN,GETTKNREAL,GETTKNSTR,DELIMCH,DELIMSTATE;
+  FROM TIMLIBrevised IMPORT GETMDY, JULIAN;
+  FROM MyFIO IMPORT EOFMARKER,DRIVESEP,SUBDIRSEP,EXTRACTDRVPTH,MYFILTYP,IOSTATE,FOPEN,FRESET,FPURGE,FCLOSE,FREAD,FRDTXLN,FWRTX,
+  	FWRTXLN,RETBLKBUF, FWRSTR,FWRLN,FAPPEND,COPYDPIF,GETFNM;
   FROM Environment IMPORT GetCommandLine;
 
 CONST
   szAppName = "CitiFilterQIF";
   InputPrompt = 'Enter cmd or HELP : ';
-  LastMod = '24 Mar 08';
+  LastMod = "5 Jun 17";
   CitiIcon = '#100';
   MenuSep = '|';
 
@@ -131,7 +105,7 @@ TYPE
   QIFTYP = RECORD
     datestr, numstr, Pstr, Mstr, amtstr : STRTYP;
     m,d,y,num : CARDINAL;
-    juldate : LONGINT;
+    juldate : CARDINAL;
   END;
 
 
@@ -278,6 +252,36 @@ BEGIN
   END;
 END ProcessCSVFile;
 
+PROCEDURE GetTransactionNumber(s : STRTYP; VAR numstr : STRTYP) : CARDINAL;
+  VAR
+  	tpv : TKNPTRTYP = NIL;
+  	token : BUFTYP;
+  	tknstate : FSATYP;
+  	transnum : INTEGER;
+  	retcod : CARDINAL;
+BEGIN
+	(* I have to get a token until either EOL or token is a number > 10,000. *)
+	
+	(* tpv := NIL only if I have to. *)
+	INI1TKN(tpv,s);
+  numstr := "";	
+	LOOP
+	  GETTKN(tpv,token,tknstate,transnum,retcod);
+	  IF (retcod > 0) THEN
+	  	EXIT; (* exit this loop that is looking for a number *)
+    ELSIF (tknstate = DGT) AND (transnum > 10000) THEN
+    	numstr := token;
+    	RETURN transnum;
+    END;
+	END; (* loop to fetch tokens for only one line *)	
+	numstr := "";
+	RETURN 0;
+END GetTransactionNumber;
+
+(*
+  PROCEDURE GETTKN(VAR tpv : TKNPTRTYP; VAR TOKEN:BUFTYP; VAR TKNSTATE:FSATYP; VAR SUM:INTEGER; VAR RETCOD2:CARDINAL);
+*)
+
 PROCEDURE GetQIFRec(VAR OUT qif : QIFTYP);
 VAR I,J : INTEGER;
    tpv : TKNPTRTYP;
@@ -291,7 +295,7 @@ BEGIN
   QIFTYP = RECORD
     datestr, numstr, Pstr, Mstr, amtstr : STRTYP;
     m,d,y,num : CARDINAL;
-    juldate : LONGINT;  end;
+    juldate : CARDINAL;  END;
 *)
   WITH qif DO
     datestr := '';
@@ -324,19 +328,21 @@ BEGIN
       | 'N' : numstr := INBUF.CHARS;
               ok := StrToCard(numstr,num);
 
-      | 'P' : IF STRCMPFNT(INBUF.CHARS,'AUTHORIZED TRANSFER') <> 0 THEN
-                TRIM(INBUF);
-                Pstr := INBUF.CHARS;
-              END;
+      | 'P' : TRIM(INBUF);
+              Pstr := INBUF.CHARS;
+              
 
-      | 'M' : IF STRCMPFNT(INBUF.CHARS,'AUTHORIZED TRANSFER') <> 0 THEN
-                TRIM(INBUF);
-                Mstr := INBUF.CHARS;
+      | 'M' : TRIM(INBUF);
+              Mstr := INBUF.CHARS;
+              
+              transnum := GetTransactionNumber(Mstr,qif.numstr);
+              IF transnum > 10000 THEN
+              	qif.num := transnum;
               END;
-
+              
       | 'T' : amtstr := INBUF.CHARS;
-      | '^' : EXIT
       | '!','C',' ' :  (* ignore the line and do nothing  *)
+      | '^' : EXIT (* loop that reads the lines for one qif RECORD *)
       ELSE
         (* ignore the line and do nothing *)
       END (* CASE ch *)
@@ -470,21 +476,16 @@ BEGIN
                                             defExt : ARRAY OF CHAR;
                                             title : ARRAY OF CHAR;
                                             createable : BOOLEAN) : BOOLEAN;
- Opens an operating system common dialog for opening  a file
-   filters specifies a list of file extension filters that are
-   separated by semicolons.
+ Opens an operating system common dialog for opening  a file 
+   filters specifies a list of file extension filters that are separated by semicolons.
    The format for filters is as follows.
-   defDir = the default directory to start the dialog in
-   an empty string "" means use the current directory.
-   defExt = the default file extension to use if the user does not
-   provide an extension. "" means no default extension.
-   the extension should *not* have a leading '.' character.
-   title = the caption text of the dialog. title can be empty "".
-   in this case the default operating system title is used.
-   If createable = TRUE then the file need not already exist, otherwise
-   the file must exist for the dialog to return successful.
-   RETURNs TRUE is successful and name will contain the file specification
-   for the file the user has given.
+   defDir = the default directory to start the dialog in an empty string "" means use the current directory.
+   defExt = the default file extension to use if the user does not provide an extension. "" means no default extension.
+            the extension should *not* have a leading '.' character.
+   title = the caption text of the dialog. title can be empty "".  in this case the default operating system title is used.
+           If createable = TRUE then the file need not already exist, otherwise
+           the file must exist for the dialog to return successful.
+   RETURNs TRUE if successful and name will contain the file specification for the file the user has given.
 *)
         c5 := 1;
         DlgShell.ConvertToNulls(MenuSep,filter);
