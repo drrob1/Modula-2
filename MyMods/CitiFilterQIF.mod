@@ -103,7 +103,7 @@ IMPORT ASCII;
 CONST
   szAppName = "CitiFilterQIF";
   InputPrompt = "Enter cmd or HELP : ";
-  LastMod = "4 Jun 17";
+  LastMod = "5 Jun 17";
   CitiIcon = "#100";
   MenuSep = '|';
 
@@ -279,7 +279,8 @@ BEGIN
       GETTKN(tpv,token,tknstate,transnum,retcod);
       IF (retcod > 0) THEN
         EXIT; (* exit this loop that is looking for a number *)
-    ELSIF (tknstate = DGT) AND (transnum > 10000) THEN
+    ELSIF (tknstate = DGT) AND (transnum > 12500) AND (transnum < 15000) THEN
+    	  (* upper bound needed so that acnt numbers are not interpretted as a transaction number *)
         numstr := token.CHARS;
         RETURN transnum;
     END;
@@ -339,12 +340,12 @@ BEGIN
 
       | 'M' : TRIM(INBUF);
               Mstr := INBUF.CHARS;
-              transnum := GetTransactionNumber(INBUF,qif.numstr);
-              IF transnum > 10000 THEN
-                qif.num := transnum;
+              IF num = 0 THEN
+                transnum := GetTransactionNumber(INBUF,qif.numstr);
+                IF transnum > 10000 THEN
+                  qif.num := transnum;
+                END;
               END;
-
-
       | 'T' : amtstr := INBUF.CHARS;
       | '!','C',' ' :  (* ignore the line and do nothing  *)
       | '^' : EXIT  (* loop that reads and processes lines *)
