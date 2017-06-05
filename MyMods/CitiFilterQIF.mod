@@ -1,8 +1,5 @@
 <*/NOWARN:F*>
-%IF WIN32 %THEN
-    <*/Resource:Citi.RES*>
-%ELSE
-%END
+<*/Resource:Citi.RES*>
 MODULE CitiFilterQIF;
 (*
   REVISION HISTORY
@@ -100,7 +97,7 @@ IMPORT ASCII;
   FROM TOKENPTR IMPORT FSATYP,TKNPTRTYP,INI1TKN,GETCHR,GETTKNEOL, UNGETCHR,GETTKN,UNGETTKN,GETTKNREAL,GETTKNSTR,DELIMCH,DELIMSTATE;
   FROM TIMLIBrevised IMPORT GETMDY, JULIAN;
   FROM MyFIO IMPORT EOFMARKER,DRIVESEP,SUBDIRSEP,EXTRACTDRVPTH,MYFILTYP, IOSTATE,FOPEN,FRESET,FPURGE,FCLOSE,FREAD,FRDTXLN,FWRTX,
-  	FWRTXLN,RETBLKBUF,FWRSTR,FWRLN,FAPPEND,COPYDPIF,GETFNM;
+    FWRTXLN,RETBLKBUF,FWRSTR,FWRLN,FAPPEND,COPYDPIF,GETFNM;
   FROM Environment IMPORT GetCommandLine;
 
 CONST
@@ -265,30 +262,30 @@ BEGIN
 END ProcessCSVFile;
 
 (* ------------------------------------------------------------------------- GetTransactionNumber ------------------------- *)
-PROCEDURE GetTransactionNumber(s : STRTYP; VAR numstr : STRTYP) : CARDINAL;
+PROCEDURE GetTransactionNumber(buf : BUFTYP; VAR numstr : STRTYP) : CARDINAL;
   VAR
-  	tpv : TKNPTRTYP = NIL;
-  	token : BUFTYP;
-  	tknstate : FSATYP;
-  	transnum : INTEGER;
-  	retcod : CARDINAL;
+    tpv : TKNPTRTYP = NIL;
+    token : BUFTYP;
+    tknstate : FSATYP;
+    transnum : INTEGER;
+    retcod : CARDINAL;
 BEGIN
-	(* I have to get a token until either EOL or token is a number > 10,000. *)
-	
-	(* tpv := NIL only if I have to. *)
-	INI1TKN(tpv,s);
-  numstr := "";	
-	LOOP
-	  GETTKN(tpv,token,tknstate,transnum,retcod);
-	  IF (retcod > 0) THEN
-	  	EXIT; (* exit this loop that is looking for a number *)
+    (* I have to get a token until either EOL or token is a number > 10,000. *)
+
+    (* tpv := NIL only if I have to. *)
+    INI1TKN(tpv,buf);
+  numstr := "";
+    LOOP
+      GETTKN(tpv,token,tknstate,transnum,retcod);
+      IF (retcod > 0) THEN
+        EXIT; (* exit this loop that is looking for a number *)
     ELSIF (tknstate = DGT) AND (transnum > 10000) THEN
-    	numstr := token;
-    	RETURN transnum;
+        numstr := token.CHARS;
+        RETURN transnum;
     END;
-	END; (* loop to fetch tokens for only one line *)	
-	numstr := "";
-	RETURN 0;
+    END; (* loop to fetch tokens for only one line *)
+    numstr := "";
+    RETURN 0;
 END GetTransactionNumber;
 
 (* ------------------------------------------------------------------------- GetQIFRec ------------------------- *)
@@ -342,9 +339,9 @@ BEGIN
 
       | 'M' : TRIM(INBUF);
               Mstr := INBUF.CHARS;
-              transnum := GetTransactionNumber(Mstr,qif.numstr);
+              transnum := GetTransactionNumber(INBUF,qif.numstr);
               IF transnum > 10000 THEN
-              	qif.num := transnum;
+                qif.num := transnum;
               END;
 
 
@@ -567,7 +564,7 @@ BEGIN
         IF patfnd THEN outfilelabel := 'Esavings'; END;
         FindNext('483',INFNAM.CHARS,idx,patfnd,ignore);
         IF patfnd THEN outfilelabel := 'old PMMA'; END;
-(*        
+(*
         buf[0] := CAP(INFNAM.CHARS[INFNAM.COUNT-10]);
         buf[1] := CAP(INFNAM.CHARS[INFNAM.COUNT-9]);
         buf[2] := CAP(INFNAM.CHARS[INFNAM.COUNT-8]);
