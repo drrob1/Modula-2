@@ -1,8 +1,5 @@
 <*/NOWARN:F*>
-%IF WIN32 %THEN
-    <*/Resource:SS5.RES*>
-%ELSE
-%END
+<*/Resource:SS5.RES*>
 
 (*--------------------------------------
 REVISION HISTORY
@@ -12,6 +9,9 @@ REVISION HISTORY
               will wiggle mouse and return mouse cursor to starting point.  And write LastMod.
               Even though this wiggle mouse part may not be necessary, it's fun to write.
 27 Apr 05 -- Changed name to SS5 and made mouse move just before screen saver setting.
+ 9 Aug 17 -- I searched and learned that I cannot stop a screen saver by a simulated mouse event.
+               But a simulated keybd event can stop it.  So I coded that, also based on a search.
+               And this code works in ShowTimeer.mod.  I decided to copy it here, also.
 --------------------------------------*)
 
 MODULE SS5;
@@ -109,9 +109,9 @@ FROM LongMath IMPORT sqrt,exp,ln,sin,cos,tan,arctan,arcsin,arccos,power,round,pi
 FROM LowLong IMPORT sign,ulp,intpart,fractpart,trunc (*,round*) ;
 
 CONST
-  szAppName = "SS4";  (* Screen Saving Dancing Mouse 4, now using text windows *)
+  szAppName = "SS5";  (* Screen Saving Dancing Mouse 5.  Text windows started in version 4 *)
   InputPrompt = 'Enter cmd or HELP : ';
-  LastMod = '27 Apr 05';
+  LastMod = '9 Aug 17';
   clipfmt = CLIPBOARD_ASCII;
   SS5Icon32 = '#100';
   SS5Icon16 = '#200';
@@ -270,14 +270,12 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
 
         IF boolp^ THEN
           INC(ScreenSaving);
-          WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, mousemoveamt),
-                              CAST(DWORD, mousemoveamt), 0, 0);
+          (*  WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, mousemoveamt), CAST(DWORD, mousemoveamt), 0, 0); *)
+          WINUSER.keybd_event(WINUSER.VK_SPACE,0B9h,0,0);
         ELSIF WiggleMouse <= 0 THEN
           WiggleMouse := SSTimeOut;
-          WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, mousemoveamt),
-                              CAST(DWORD, mousemoveamt), 0, 0);
-          WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, -mousemoveamt),
-                              CAST(DWORD, -mousemoveamt), 0, 0);
+          WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, mousemoveamt), CAST(DWORD, mousemoveamt), 0, 0);
+          WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, -mousemoveamt), CAST(DWORD, -mousemoveamt), 0, 0);
         END (*if boolp*);
 
       ELSIF msg.timerId = ClockTimer THEN
