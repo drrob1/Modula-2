@@ -7,6 +7,7 @@ MODULE SolveM2;
    4 Mar 05 -- Don't need N as 1st line now.
   26 Feb 06 -- Will reject non-numeric entries and allows <tab> as delim.
   27 Dec 16 -- Started update to ADW Modula-2 and use updated MAT module.
+   7 Sep 17 -- Forgot a WriteLn in the checking code.  And added LastAltered stuff.
 *)
 
 FROM SYSTEM IMPORT FUNC;
@@ -39,7 +40,9 @@ IMPORT ASCII;
   FROM LongStr IMPORT StrToReal, RealToFloat, RealToEng, RealToFixed, RealToStr;
   FROM SysClock IMPORT DateTime,GetClock,CanGetClock,CanSetClock,IsValidDateTime,SetClock;
 
-CONST MaxN = 9;
+CONST
+  MaxN = 9;
+  LastAltered = "9 Sep 2017";
 
 (* MaxRealArray is not square because the B column vector is in last column of IM *)
 TYPE
@@ -97,6 +100,12 @@ BEGIN
    RETURNs TRUE is successful and name will contain the file specification
    for the file the user has given.
 *)
+
+  WriteString(" Linear Equation Solver written in Modula-2.  Last altered source code date is ");
+  WriteString(LastAltered);
+  WriteString(".");
+  WriteLn;
+  WriteLn;
 
   OpenFileName := '';
   FOR row := 1 TO MaxN DO
@@ -223,6 +232,7 @@ BEGIN
       WriteLn;
       BelowSmallMakeZero(subtrahend^);
       WriteString(" Made Zero AX-B is ");
+      WriteLn;                                (* this line is what I forgot to do before *)
       Write(subtrahend^,2);
       WriteLn;
     ELSE
