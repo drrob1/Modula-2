@@ -1,8 +1,5 @@
 <*/NOWARN:F*>
-%IF WIN32 %THEN
-    <*/Resource:Citi.RES*>
-%ELSE
-%END
+<*/Resource:Citi.RES*>
 MODULE qfx2xls;
 (*
   REVISION HISTORY
@@ -35,6 +32,10 @@ MODULE qfx2xls;
                 And since it really is meant for Excel to import the text file, module name change to xls.
    3 Mar 11 -- Noticed bug in GetQfxToken in that read calls should all be to the param f, not the
                 global infile.  I will fix this next time I have to recompile.
+
+  25 Dec 17 -- Fixed the mostly cosmetic bug in GetQfxToken.  And changed date format to match ISO8601 YYYY-MM-DD required for sqlite.
+                 And I tested that both Access and Excel handle this format as good as what I originally did.
+
 *)
 
 
@@ -123,10 +124,10 @@ IMPORT WholeStr, LongStr, LongConv;
   FROM Environment IMPORT GetCommandLine;
 
 CONST
-  szAppName = "qfx2xls";
-  InputPrompt = 'Enter cmd or HELP : ';
-  LastMod = '15 Feb 09';
-  CitiIcon = '#100';
+(*  szAppName = "qfx2xls"; unused *)
+(*  InputPrompt = "Enter cmd or HELP : "; unused *)
+  LastMod = "25 Dec 17";
+  CitiIcon = "#100";
   MenuSep = '|';
 
 TYPE
@@ -134,38 +135,38 @@ TYPE
   qfxtkntyp = (empty,string,openinghtml,closinghtml,othererror);
   qfxchrtyp = (eol,openangle,closeangle,slash,plain);
   QFXTYP = RECORD
-    Orgstr,AcctIDstr,datePostedstr,dateUserstr,FITIDstr,amtstr,namestr,memostr : STRTYP;
-    m,d,y : CARDINAL;
     juldate : LONGINT;
+    m,d,y : CARDINAL;
+    Orgstr,AcctIDstr,datePostedstr,dateUserstr,FITIDstr,amtstr,namestr,memostr : STRTYP;
   END;
 
 
 VAR
-  C,K,c,RETCOD,m,d,y,chknum                    : CARDINAL;
-  c32,d32,e32,f32,g32                          : CARDINAL32;
-  CH                                           : CHAR;
-  FLAG,FLAG2,FLAG3,FLAG4,bool,EOFFLG,OK,ok,ZeroFlag,BankTranListEnd : BOOLEAN;
-  PROMPT,NAMDFT,TYPDFT,INFNAM,OUTFNAM,
-  TMPBUF,NUMBUF,DRVPATH,INBUF,TOKEN            : BUFTYP;
-  TKNSTATE                                     : FSATYP;
-  tpv1,tpv2,tpv3                               : TKNPTRTYP;
+  C,(* K,c,RETCOD,m,d,y, *)chknum                    : CARDINAL;
+  c32 (*,d32,e32,f32,g32 *)                    : CARDINAL32;
+(*  CH  : CHAR; unused  *)
+  (*FLAG,FLAG2,FLAG3,FLAG4,*)bool,EOFFLG,(*OK,*)ok,(*ZeroFlag,*)BankTranListEnd : BOOLEAN;
+  (*PROMPT,NAMDFT,TYPDFT, *)INFNAM,OUTFNAM : BUFTYP;
+(*  TMPBUF,NUMBUF,DRVPATH,INBUF,TOKEN : BUFTYP; unused *)
+(*  TKNSTATE : FSATYP; unused *)
+(*  tpv1,tpv2,tpv3 : TKNPTRTYP; unused *)
   qfxtoken,GblOrg,GblAcctID,ledgerBalAmt,availBalAmt,BalAmtDateAsOf,outfilename,comment,acntid : STRTYP;
   qfxtokenstate     : qfxtkntyp;
-  I,J                                          : INTEGER;
-  INUNT1,OUTUN1                                : MYFILTYP;
+(*  I,J : INTEGER; unused *)
+  (*INUNT1,*) OUTUN1                           : MYFILTYP;
   infile          : File;
   inputline,buf,infilename         : ARRAY [0..255] OF CHAR;
-  InBuf, OutBuf                                : ARRAY [1..8*1024] OF CHAR;
+  InBuf (*, OutBuf unused *)       : ARRAY [1..8*1024] OF CHAR;
   juldate1,juldate2,juldate3                   : LONGINT;
   csvqifqfxState : csvORqifORqfxType;
-  outfilelabel : STRTYP;
+(*  outfilelabel : STRTYP; unused *)
   GBLqfxRec : QFXTYP;
-  cxChar  : INTEGER;
-  cyChar  : INTEGER;
+(*  cxChar  : INTEGER; unused *)
+(*  cyChar  : INTEGER; unused *)
   cxClient: INTEGER;
   cyClient: INTEGER;
-  cxBuffer: INTEGER;
-  cyBuffer: INTEGER;
+(*  cxBuffer: INTEGER; unused *)
+(*  cyBuffer: INTEGER; unused *)
   cxScreen,cyScreen : COORDINATE;
   xCaret  : INTEGER;
   yCaret  : INTEGER;
@@ -177,21 +178,37 @@ VAR
 (************************************************************************************************************************)
 PROCEDURE DateFieldReformat(VAR datein,dateout : ARRAY OF CHAR);
 (************************************************************************************************************************)
-(*                                                                  01234567    0123456789
-  This procedure changes the date as it is input in a qfx file from yyyymmdd -> mm/dd/yy.
+(*                                                                      01234567    0123456789
+  This procedure now changes the date as it is input in a qfx file from yyyymmdd -> YYYY-MM-DD
+
+  This procedure used to change the date as it is input in a qfx file from yyyymmdd -> mm/dd/yy.
 *)
 
-BEGIN
-	dateout[0] := datein[4];
-	dateout[1] := datein[5];
-	dateout[2] := '/';
-	dateout[3] := datein[6];
-	dateout[4] := datein[7];
-	dateout[5] := '/';
-	dateout[6] := datein[2];
-	dateout[7] := datein[3];
-	dateout[8] := NULL;
 
+BEGIN
+    dateout[0] := datein[0];
+    dateout[1] := datein[1];
+    dateout[2] := datein[2];
+    dateout[3] := datein[3];
+    dateout[4] := '-';
+    dateout[5] := datein[4];
+    dateout[6] := datein[5];
+    dateout[7] := '-';
+    dateout[8] := datein[6];
+    dateout[9] := datein[7];
+    dateout[10] := NULL;
+
+(*  Original formating, not compatible w/ sqlite.
+    dateout[0] := datein[4];
+    dateout[1] := datein[5];
+    dateout[2] := '/';
+    dateout[3] := datein[6];
+    dateout[4] := datein[7];
+    dateout[5] := '/';
+    dateout[6] := datein[2];
+    dateout[7] := datein[3];
+    dateout[8] := NULL;
+*)
 END DateFieldReformat;
 
 
@@ -208,6 +225,9 @@ as a character stream.  Delimiters are fixed at angle brackets and EOL.
 All references in this rtn to ReadChar(infile) is a bug.  It should be ReadChar(f) to reference
 the param, not using the global infile.  Since all calls to GetQfxToken use infile as f, I
 did not find this bug before.
+
+12/25/2017 12:41:44 PM
+Made the change ReadChar(infile) -> ReadChar(f)
 *********************************************************************************************)
 VAR
         qfxtkn : STRTYP;
@@ -245,13 +265,13 @@ BEGIN
               CASE chstate OF
                 plain,slash :
                   qfxtknstate := string;
-                        ch := ReadChar(infile);
+                        ch := ReadChar(f);
                         Strings.Append(ch,qfxtkn);
               | openangle :
-                        ch := ReadChar(infile);  (* Swallow ch *)
+                        ch := ReadChar(f);  (* Swallow ch *)
                         qfxtknstate := openinghtml;
               | eol :
-                  ch := ReadChar(infile); (* Swallow eol *)
+                  ch := ReadChar(f); (* Swallow eol *)
               | closeangle :
                         MiscM2.Error(' In GetQfxToken.  Empty token got closeangle ch');
 
@@ -259,10 +279,10 @@ BEGIN
     | string :
         CASE chstate OF
           plain,slash :
-                        ch := ReadChar(infile);
+                        ch := ReadChar(f);
                   Strings.Append(ch,qfxtkn);
         | eol :
-                        ch := ReadChar(infile); (* Swallow EOL ch *)
+                        ch := ReadChar(f); (* Swallow EOL ch *)
                   EXIT;
         | openangle : (* openangle char is still avail for next loop iteration *)
                   EXIT;
@@ -272,26 +292,26 @@ BEGIN
     | openinghtml :
         CASE chstate OF
           plain,openangle :
-                  ch := ReadChar(infile);
+                  ch := ReadChar(f);
                   Strings.Append(ch,qfxtkn);
         | slash :
-                  ch := ReadChar(infile);
+                  ch := ReadChar(f);
                   IF LENGTH(qfxtkn) = 0 THEN
                     qfxtknstate := closinghtml
                   ELSE
                         Strings.Append(ch,qfxtkn);
                   END;
         | closeangle,eol :
-                  ch := ReadChar(infile); (* swallow ch *)
+                  ch := ReadChar(f); (* swallow ch *)
                   EXIT;
         END; (* case chstate in openinghtml *)
     | closinghtml :
               CASE chstate OF
                 plain,slash,openangle :
-                        ch := ReadChar(infile);
+                        ch := ReadChar(f);
                         Strings.Append(ch,qfxtkn);
               | closeangle,eol :
-                        ch := ReadChar(infile); (* swallow ch *)
+                        ch := ReadChar(f); (* swallow ch *)
                         EXIT;
               END; (* case chstate in closinghtml *)
     ELSE
@@ -313,11 +333,11 @@ PROCEDURE GetQFXRec(VAR OUT qfxrec : QFXTYP);
   EOFFLG, BankTranListEnd
 *)
 
-VAR I,J : INTEGER;
+VAR  (* I,J : INTEGER; unused *)
     found : BOOLEAN;
-    ch : CHAR;
-    transnum,discardthis,squoteLocn,c1,c2,patternposn : CARDINAL;
-    str,s0,s1,s2 : STRTYP;
+(*    ch : CHAR; unused *)
+    (*transnum,discardthis,squoteLocn,*)c1,(*c2,*)patternposn : CARDINAL;
+(*    str,s0,s1,s2 : STRTYP; unused *)
 
 BEGIN
 (* Must init record fields *)
@@ -404,7 +424,7 @@ BEGIN
       END;
       qfxrec.memostr := qfxtoken;
     ELSIF (qfxtokenstate = closinghtml) AND (STRCMPFNT(qfxtoken,'STMTTRN') = 0) THEN
-    	RETURN;
+        RETURN;
 
     ELSIF (qfxtokenstate = closinghtml) AND (STRCMPFNT(qfxtoken,'BANKTRANLIST') = 0) THEN
       BankTranListEnd := TRUE;
@@ -418,11 +438,11 @@ END GetQFXRec;
 PROCEDURE ProcessQFXFile(tw : TextWindow);
 (********************************************************************************************)
 
-VAR I,J : INTEGER;
-   tpv : TKNPTRTYP;
-   buf : BUFTYP;
-   transnum,strlen,k,c1,patternposn : CARDINAL;
-   qfxrec : QFXTYP;
+VAR (* I,J : INTEGER; unused *)
+(*   tpv : TKNPTRTYP; unused *)
+(*   buf : BUFTYP; unused *)
+(*   transnum unused *)strlen,k,c1,patternposn : CARDINAL;
+(*   qfxrec : QFXTYP; unused *)
    found : BOOLEAN;
 
 BEGIN
@@ -671,13 +691,13 @@ END ProcessQFXFile;
 PROCEDURE WndProcTW(tw : TextWindow; msg : TWMessageRec) : ResponseType;
 (**********************************************************************)
 VAR
-    clr         : Colors;
-    x,y         : COORDINATE;
-    i,int       : INTEGER;
-    cmdline     : ARRAY [0..255] OF CHAR;
-    cmdbuf,tkn  : BUFTYP;
-    tknstate    : FSATYP;
-    retcod,c5   : CARDINAL;
+(*    clr         : Colors;  unused *)
+(*    x,y         : COORDINATE; unused *)
+    i : INTEGER;
+(*    cmdline     : ARRAY [0..255] OF CHAR; unused *)
+(*    cmdbuf,tkn  : BUFTYP; unused *)
+(*    tknstate    : FSATYP;  unused *)
+    c5 : CARDINAL;
     filter,s    : STRTYP;
 
 BEGIN
