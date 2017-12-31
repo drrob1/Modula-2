@@ -68,6 +68,7 @@ REVISION HISTORY
 29 Mar 17 -- Backported HPCALC rtns to match Go.  Pass a linked list of strings, and operators to match Go.
                Removed code that was commented out long ago.
 31 Mar 17 -- Added dispose strings code
+30 Dec 17 -- Added WriteLn(tw) to writehelp.  And increased size of help window slightly.
 --------------------------------------*)
 
 MODULE HPWinMenu;
@@ -283,7 +284,7 @@ END writestack;
 PROCEDURE writehelp(tw : TextWindow);
 BEGIN
      longstr := " This is an RPN style calculator written in Modula-2.";
-     WriteStringAt(tw,0,0,longstr,a);
+     WriteStringAt(tw,0,0,longstr,a); WriteLn(tw);
      longstr := " fix, float, gen -- output string format options.";
      WriteString(tw,longstr,a); WriteLn(tw);
      longstr := " SQRT,SQR -- X = sqrt(X) or sqr(X) register.";
@@ -755,8 +756,8 @@ BEGIN
                         "",                   (* menu : ARRAY OF CHAR *)
                         FullGreenIcon,            (* icon : ARRAY OF CHAR *)
                          1, 1,
-                        (* -1,-1,  x,y= the initial screen coordinates for the window to be displayed *)
-                        99,35, (* xSize, ySize : COORDINATE *)
+                                                                          (* -1,-1,  x,y= the initial screen coordinates for the window to be displayed *)
+                        99,37, (* xSize, ySize : COORDINATE *)
                         500,200, (* xBuffer, yBuffer : COORDINATE *)
                         FALSE,  (* gutter : BOOLEAN *)
                         biggerFont, (* DefaultFontInfo, /* font : FontInfo */ *)
