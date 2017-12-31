@@ -68,7 +68,7 @@ REVISION HISTORY
 29 Mar 17 -- Backported HPCALC rtns to match Go.  Pass a linked list of strings, and operators to match Go.
                Removed code that was commented out long ago.
 31 Mar 17 -- Added dispose strings code
-30 Dec 17 -- Added WriteLn(tw) to writehelp.  And increased size of help window slightly.
+30 Dec 17 -- Added WriteLn(tw) to writehelp, increased size of help window slightly, and removed unused var's.
 --------------------------------------*)
 
 MODULE HPWinMenu;
@@ -155,17 +155,17 @@ FROM LongMath IMPORT sqrt,exp,ln,sin,cos,tan,arctan,arcsin,arccos,power,round,pi
 FROM LowLong IMPORT sign,ulp,intpart,fractpart,trunc (*,round*) ;
 FROM HPCALC IMPORT STACKSIZE,PUSHX,READX,GETSTACK,DUMPSTACK,GETRESULT,RealStack,Holidays,PushStacks,
   RollDownStacks,RollUpStacks;
-FROM HolidayCalc IMPORT HolType, GetHolidays;
+(* FROM HolidayCalc IMPORT HolType, GetHolidays; *)
 
 
 CONST
-  szAppName = "HPWinMenu";
+  (* szAppName = "HPWinMenu"; *)
   InputPrompt = "Enter cmd or HELP : ";
-  LastMod = "31 Mar 17";
+  LastMod = "30 Dec 17";
   clipfmt = CLIPBOARD_ASCII;
-  HalfCalcIcon = '#100';
-  FullGreenIcon = '#200';
-  HalfGreenIcon = '#300';
+  HalfCalcIcon = "#100";
+  FullGreenIcon = "#200";
+  (* HalfGreenIcon = '#300'; *)
   RegFileName = "HPReg.sav";
   StackFileName = "HPStack.sav";
   MainWindowHeight = 20;
@@ -177,22 +177,22 @@ TYPE
   charsetyp   = SET OF CHAR;
 
 VAR
-  hwnd        :  WIN32.HWND;
-  msg         :  WINUSER.MSG;
-  wc          :  WINUSER.WNDCLASSEX;
-  cxChar  : INTEGER;
-  cyChar  : INTEGER;
+  (* hwnd        :  WIN32.HWND; *)
+  (* msg         :  WINUSER.MSG; *)
+  (* wc          :  WINUSER.WNDCLASSEX; *)
+  (* cxChar  : INTEGER; *)
+  (* cyChar  : INTEGER; *)
   cxClient: INTEGER;
   cyClient: INTEGER;
-  cxBuffer: INTEGER;
-  cyBuffer: INTEGER;
+  (* cxBuffer: INTEGER; *)
+  (* cyBuffer: INTEGER; *)
   cxScreen,cyScreen,wxClient,wyClient : COORDINATE;
   xCaret  : INTEGER;
   yCaret  : INTEGER;
   ch1,ch2,ch3 :  CHAR;
   bool,inputprocessed,hpFileExists,RegAltered,StackFileExists,UserprofileExists : BOOLEAN;
-  sigfig,c,c1,c2,c3    :  CARDINAL;
-  inputline,HPFileName,Xstr,str1,str2,str3,str4,str5,str6,str7,str8,str9,str0 : STRTYP;
+  sigfig,c,(*c1,*) c2 (*,c3 *)   :  CARDINAL;
+  inputline,HPFileName,Xstr,str1,str2,str3,str4,str5,(*str6,*)str7,str8,str9(* ,str0 *) : STRTYP;
   Path : FileSpecString;
   longstr     : ARRAY [0..5120] OF CHAR;
   OutState : OutStateTyp = fix;
@@ -221,7 +221,7 @@ PROCEDURE writestack(tw : TextWindow);
          (* gbl Out: Xstr                                                          *)
 
 VAR strarray : ARRAY [1..8] OF STRTYP;
-    c,ignoreretcod,pos : CARDINAL;
+    c,ignoreretcod(* ,pos*) : CARDINAL;
 
 BEGIN
   GETSTACK(stk,ignoreretcod);
@@ -358,7 +358,7 @@ END writehelp;
 PROCEDURE WriteReg(tw : TextWindow);
 VAR
   i : CARDINAL;
-  FirstNonZeroFlag,ok : BOOLEAN;
+  FirstNonZeroFlag (*,ok *) : BOOLEAN;
   str : STRTYP;
   ch : CHAR;
 
@@ -442,7 +442,7 @@ BEGIN
   OutStr[j] := 0C;
 END LongCard2HexStr;
 
-(*++++*****************************************************************)
+(*++++*****************************************************************  Not used anymore, it seems.
 PROCEDURE LongInt2HexStr(L : LONGINT; VAR OutStr : ARRAY OF CHAR);
 
 VAR
@@ -463,7 +463,7 @@ BEGIN
     END;
 END LongInt2HexStr;
 
-(********************************************************************)
+********************************************************************)
 PROCEDURE GetRegIdx(char : CHAR) : CARDINAL;
                                             (* Return 0..35 w/ A = 10 and Z = 35 *)
 VAR
@@ -486,7 +486,7 @@ PROCEDURE GetRegChar(idx : CARDINAL) : CHAR;
 
 VAR
   ch : CHAR;
-  i : CARDINAL;
+  (* i : CARDINAL; *)
 
 BEGIN
   IF (idx >= 0) AND (idx <= 9) THEN
@@ -800,11 +800,11 @@ END ProcessInput;
 PROCEDURE RegWndProcTW(tw:TextWindow; msg:TWMessageRec) : ResponseType;
 
 VAR
-    clr   : Colors;
-    x,y   : COORDINATE;
-    i,int : INTEGER;
-    idx,c : CARDINAL;
-    ans   : CHAR;
+    (* clr   : Colors;
+       x,y   : COORDINATE;
+       i,int : INTEGER;
+       idx,c : CARDINAL;
+       ans   : CHAR;      *)
 BEGIN
     CASE msg.msg OF
     TWM_CLOSE:
@@ -850,11 +850,11 @@ END RegWndProcTW;
 PROCEDURE HelpWndProcTW(tw:TextWindow; msg:TWMessageRec) : ResponseType;
 
 VAR
-    clr   : Colors;
-    x,y   : COORDINATE;
-    i,int : INTEGER;
-    idx,c : CARDINAL;
-    ans   : CHAR;
+    (* clr   : Colors;
+       x,y   : COORDINATE;
+       i,int : INTEGER;
+       idx,c : CARDINAL;
+       ans   : CHAR;      *)
 BEGIN
     CASE msg.msg OF
     TWM_CLOSE:
@@ -905,11 +905,11 @@ END HelpWndProcTW;
 PROCEDURE ChildWndProcTW(tw:TextWindow; msg:TWMessageRec) : ResponseType;
 
 VAR
-    clr   : Colors;
-    x,y   : COORDINATE;
-    i,int : INTEGER;
-    idx,c : CARDINAL;
-    ans   : CHAR;
+    (* clr   : Colors; *)
+    (* x,y   : COORDINATE; *)
+    (* i,int : INTEGER; *)
+    (* idx,c : CARDINAL; *)
+    (* ans   : CHAR; *)
 BEGIN
     CASE msg.msg OF
     TWM_CLOSE:
@@ -960,10 +960,10 @@ END ChildWndProcTW;
 PROCEDURE WndProcTW(tw:TextWindow; msg:TWMessageRec) : ResponseType;
 
 VAR
-    clr   : Colors;
-    x,y   : COORDINATE;
+    (* clr   : Colors; *)
+    x (*,y*) : COORDINATE;
     i,int : INTEGER;
-    idx,c,len : CARDINAL;
+    (*idx,*)c,len : CARDINAL;
     ans   : CHAR;
 BEGIN
     CASE msg.msg OF
