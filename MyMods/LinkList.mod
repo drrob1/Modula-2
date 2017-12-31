@@ -12,7 +12,7 @@ MODULE LinkList;
 (* FROM Terminal2   IMPORT WriteString, WriteChar, WriteLn; *)
 FROM MiscStdInOut IMPORT WriteString, WriteChar, WriteLn, WriteCard;
 FROM Storage IMPORT ALLOCATE, DEALLOCATE;
-FROM SYSTEM  IMPORT TSIZE,ADDRESS;
+FROM SYSTEM  IMPORT (* TSIZE, *) ADDRESS;
 
 TYPE  FullNamePointerType = POINTER TO FullName;
       FullName    = RECORD
@@ -179,6 +179,7 @@ BEGIN   (* Main Program *)
 
                              (* Deallocate is a good habit *)
    AnEntryPointer := StartOfList;
+   (* Compile error, invalid factor for INC(), or operands of this operator are incorrect for "+" AnEntryPointer := AnEntryPointer + 4 *)
    WHILE AnEntryPointer # NIL DO
      CurrentPlaceInList := AnEntryPointer^.Next;
      DISPOSE(AnEntryPointer);
