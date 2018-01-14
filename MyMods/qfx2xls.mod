@@ -38,7 +38,9 @@ MODULE qfx2xls;
                  Tabs are fine for Excel and Access (I think), but the Go CSV library chokes on them, as does IMPORT for sqlite.
                  I had it write tabs as Excel defaults to a tab delimiter.  Now I'll have to always select comma as a delimiter.
   14 Jan 18 -- I missed a few tab delimiters that I had to make commas.  And I think I figured out why it writes .xls.xls.
-                 I'm moving the .xls creation to be inside a conditional on the closemode.
+                 I'm moving the .xls creation to be inside a conditional on the closemode.  And I'm renaming the 
+                 .txt to .csv for sqlite.  So my new workflow would be the .xls for Choice.xlsm and then Access, and the
+                 .csv for sqlite.  And I removed the unused variables code.
 *)
 
 
@@ -129,7 +131,7 @@ IMPORT WholeStr, LongStr, LongConv;
 CONST
 (*  szAppName = "qfx2xls"; unused *)
 (*  InputPrompt = "Enter cmd or HELP : "; unused *)
-  LastMod = "5 Jan 2018";
+  LastMod = "14 Jan 2018";
   CitiIcon = "#100";
   MenuSep = '|';
 
@@ -145,31 +147,21 @@ TYPE
 
 
 VAR
-  C,(* K,c,RETCOD,m,d,y, *)chknum                    : CARDINAL;
-  c32 (*,d32,e32,f32,g32 *)                    : CARDINAL32;
-(*  CH  : CHAR; unused  *)
-  (*FLAG,FLAG2,FLAG3,FLAG4,*)bool,EOFFLG,(*OK,*)ok,(*ZeroFlag,*)BankTranListEnd : BOOLEAN;
-  (*PROMPT,NAMDFT,TYPDFT, *)INFNAM,OUTFNAM : BUFTYP;
-(*  TMPBUF,NUMBUF,DRVPATH,INBUF,TOKEN : BUFTYP; unused *)
-(*  TKNSTATE : FSATYP; unused *)
-(*  tpv1,tpv2,tpv3 : TKNPTRTYP; unused *)
+  C, chknum                      : CARDINAL;
+  c32                            : CARDINAL32;
+  bool,EOFFLG,ok,BankTranListEnd : BOOLEAN;
+  INFNAM,OUTFNAM                 : BUFTYP;
   qfxtoken,GblOrg,GblAcctID,ledgerBalAmt,availBalAmt,BalAmtDateAsOf,outfilename,comment,acntid : STRTYP;
   qfxtokenstate     : qfxtkntyp;
-(*  I,J : INTEGER; unused *)
   (*INUNT1,*) OUTUN1                           : MYFILTYP;
   infile          : File;
   inputline,buf,infilename         : ARRAY [0..255] OF CHAR;
   InBuf (*, OutBuf unused *)       : ARRAY [1..8*1024] OF CHAR;
   juldate1,juldate2,juldate3                   : LONGINT;
   csvqifqfxState : csvORqifORqfxType;
-(*  outfilelabel : STRTYP; unused *)
   GBLqfxRec : QFXTYP;
-(*  cxChar  : INTEGER; unused *)
-(*  cyChar  : INTEGER; unused *)
   cxClient: INTEGER;
   cyClient: INTEGER;
-(*  cxBuffer: INTEGER; unused *)
-(*  cyBuffer: INTEGER; unused *)
   cxScreen,cyScreen : COORDINATE;
   xCaret  : INTEGER;
   yCaret  : INTEGER;
@@ -336,11 +328,9 @@ PROCEDURE GetQFXRec(VAR OUT qfxrec : QFXTYP);
   EOFFLG, BankTranListEnd
 *)
 
-VAR  (* I,J : INTEGER; unused *)
+VAR 
     found : BOOLEAN;
-(*    ch : CHAR; unused *)
-    (*transnum,discardthis,squoteLocn,*)c1,(*c2,*)patternposn : CARDINAL;
-(*    str,s0,s1,s2 : STRTYP; unused *)
+    c1, patternposn : CARDINAL;
 
 BEGIN
 (* Must init record fields *)
@@ -372,7 +362,6 @@ BEGIN
         MiscM2.Error(' Trying to get qfx record and got unexpedted EOF condition or token is not a string.');
         RETURN;
       END;
-(*      Strings.Extract(qfxtoken,0,8,qfxrec.datePostedstr); *)
       DateFieldReformat(qfxtoken,qfxrec.datePostedstr);
       ok := StrToCard(qfxtoken[5..6],qfxrec.m);
       ok := StrToCard(qfxtoken[7..8],qfxrec.d);
@@ -384,7 +373,6 @@ BEGIN
         MiscM2.Error(' Trying to get qfx record and got unexpected EOF condition or token is not a string.');
         RETURN;
       END;
-(*      Strings.Extract(qfxtoken,0,8,qfxrec.dateUserstr); *)
       DateFieldReformat(qfxtoken,qfxrec.dateUserstr);
     ELSIF (qfxtokenstate = openinghtml) AND (STRCMPFNT(qfxtoken,'TRNAMT') = 0) THEN
       GetQfxToken(infile,qfxtoken,qfxtokenstate,EOFFLG);
@@ -408,9 +396,9 @@ BEGIN
       END;
       qfxrec.namestr := qfxtoken;
 (*
-  PROCEDURE FindNext(pattern, stringToSearch : ARRAY OF CHAR; startIndex : CARDINAL; VAR OUT patternFound : BOOLEAN;
-                   VAR OUT posOfPattern : CARDINAL);
-  PROCEDURE Delete(VAR INOUT stringVar : ARRAY OF CHAR; startIndex, numberToDelete: CARDINAL);
+                           PROCEDURE FindNext(pattern, stringToSearch : ARRAY OF CHAR; startIndex : CARDINAL; VAR OUT patternFound : BOOLEAN;
+                                              VAR OUT posOfPattern : CARDINAL);
+                           PROCEDURE Delete(VAR INOUT stringVar : ARRAY OF CHAR; startIndex, numberToDelete: CARDINAL);
 *)
       REPEAT
         c1 := 0;
@@ -442,11 +430,8 @@ PROCEDURE ProcessQFXFile(tw : TextWindow);
 (********************************************************************************************)
 
 CONST comma = ",";
-VAR (* I,J : INTEGER; unused *)
-(*   tpv : TKNPTRTYP; unused *)
-(*   buf : BUFTYP; unused *)
-(*   transnum unused *)strlen,k,c1,patternposn : CARDINAL;
-(*   qfxrec : QFXTYP; unused *)
+VAR
+   strlen,k,c1,patternposn : CARDINAL;
    found : BOOLEAN;
 
 BEGIN
@@ -454,15 +439,6 @@ BEGIN
   BankTranListEnd := FALSE;
   LOOP
     GetQfxToken(infile,qfxtoken,qfxtokenstate,EOFFLG);
-(*
-        MiscM2.WriteString(' in ProcessQFXFile and trying to get header.  qfxtoken = ');
-        MiscM2.WriteString(qfxtoken);
-        MiscM2.WriteLn;
-        MiscM2.WriteString(' and qfxtokenstate is ');
-        MiscM2.WriteCard(ORD(qfxtokenstate));
-        MiscM2.WriteLn;
-        MiscM2.PressAnyKey;
-*)
     IF EOFFLG THEN
       MiscM2.Error(' Trying to get header info and got EOF condition.');
       RETURN;
@@ -474,7 +450,6 @@ BEGIN
         RETURN;
       END;
       GblOrg := qfxtoken;
-(*      BasicDialogs.MessageBox(GblOrg,MsgInfo); *)
     ELSIF (qfxtokenstate = openinghtml) AND (STRCMPFNT(qfxtoken,'ACCTID') = 0) THEN
       GetQfxToken(infile,qfxtoken,qfxtokenstate,EOFFLG);
         IF EOFFLG OR (qfxtokenstate # string)  THEN
@@ -482,7 +457,6 @@ BEGIN
           RETURN;
         END;
         GblAcctID := qfxtoken;
-(*        BasicDialogs.MessageBox(GblAcctID,MsgInfo); *)
         EXIT;
     END; (* if qfxtknstate = *)
   END; (* loop for header info *)
@@ -490,25 +464,13 @@ BEGIN
 (*   Build outfnam *)
   outfilename := '';
   strlen := LENGTH(GblOrg);
-(*
-  MiscM2.WriteString(' gblorg strlen =');
-  MiscM2.WriteCard(strlen);
-  MiscM2.WriteLn;
-  MiscM2.PressAnyKey;
-*)
   k := 1;
   REPEAT  (* assume 1st char is not a space or dot *)
     outfilename[k] := GblOrg[k];
     INC(k);
   UNTIL (k > strlen) OR (GblOrg[k] = ' ') OR (GblOrg[k] = '.');
   outfilename[k] := NULL;
-(*
-  MiscM2.WriteString(' outfilename=');
-  MiscM2.WriteString(outfilename);
-  MiscM2.WriteLn;
-  MiscM2.PressAnyKey;
-*)
-  Strings.Concat(outfilename,'.txt',OUTFNAM.CHARS);
+  Strings.Concat(outfilename,".csv",OUTFNAM.CHARS);  (* Used to write a .txt file, but writing a .csv is now more useful to me. *)
   FUNC FileFunc.DeleteFile(OUTFNAM.CHARS);
   TRIM(OUTFNAM);
   FOPEN(OUTUN1,OUTFNAM,WR);
@@ -695,12 +657,7 @@ END ProcessQFXFile;
 PROCEDURE WndProcTW(tw : TextWindow; msg : TWMessageRec) : ResponseType;
 (**********************************************************************)
 VAR
-(*    clr         : Colors;  unused *)
-(*    x,y         : COORDINATE; unused *)
     i : INTEGER;
-(*    cmdline     : ARRAY [0..255] OF CHAR; unused *)
-(*    cmdbuf,tkn  : BUFTYP; unused *)
-(*    tknstate    : FSATYP;  unused *)
     c5 : CARDINAL;
     filter,s    : STRTYP;
 
@@ -710,7 +667,7 @@ BEGIN
 (*
  Turns out that this winmsg is being executed twice before the pgm closes.  First msg.closeMode is CM_REQUEST,
  then will get CM_DICTATE.  See documentation in Module WinShell.  Moving the .xls extension stuff to
- be inside the conditional should stop the creation of the .xls.xls file.
+ be inside the conditional stopped the creation of the .xls.xls file.
 *)
         IF msg.closeMode = CM_DICTATE THEN
             Strings.Append('.xls',outfilename);
@@ -777,8 +734,7 @@ BEGIN
 *)
         c5 := 1;
         DlgShell.ConvertToNulls(MenuSep,filter);
-        bool := BasicDialogs.PromptOpenFile(infilename,filter,c5,'','','Open transaction text file',FALSE);
-(*        BasicDialogs.MessageBox(infilename,MsgInfo); *)
+        bool := BasicDialogs.PromptOpenFile(infilename,filter,c5,"","","Open transaction text file",FALSE);
         IF NOT bool THEN
           WriteString(tw,'Could not find file.  Does it exist?',a);
           HALT;
