@@ -32,10 +32,13 @@ MODULE qfx2xls;
                 And since it really is meant for Excel to import the text file, module name change to xls.
    3 Mar 11 -- Noticed bug in GetQfxToken in that read calls should all be to the param f, not the
                 global infile.  I will fix this next time I have to recompile.
-
   25 Dec 17 -- Fixed the mostly cosmetic bug in GetQfxToken.  And changed date format to match ISO8601 YYYY-MM-DD required for sqlite.
-                 And I tested that both Access and Excel handle this format as good as what I originally did.
-
+                 And I tested that Excel handles this format.  Turns out that Access does not handle this.
+   5 Jan 18 -- Had to change the output from this routine to write commas instead of tabs.
+                 Tabs are fine for Excel and Access (I think), but the Go CSV library chokes on them, as does IMPORT for sqlite.
+                 I had it write tabs as Excel defaults to a tab delimiter.  Now I'll have to always select comma as a delimiter.
+  14 Jan 18 -- I missed a few tab delimiters that I had to make commas.  And I think I figured out why it writes .xls.xls.
+                 I'm moving the .xls creation to be inside a conditional on the closemode.
 *)
 
 
@@ -126,7 +129,7 @@ IMPORT WholeStr, LongStr, LongConv;
 CONST
 (*  szAppName = "qfx2xls"; unused *)
 (*  InputPrompt = "Enter cmd or HELP : "; unused *)
-  LastMod = "25 Dec 17";
+  LastMod = "5 Jan 2018";
   CitiIcon = "#100";
   MenuSep = '|';
 
@@ -438,6 +441,7 @@ END GetQFXRec;
 PROCEDURE ProcessQFXFile(tw : TextWindow);
 (********************************************************************************************)
 
+CONST comma = ",";
 VAR (* I,J : INTEGER; unused *)
 (*   tpv : TKNPTRTYP; unused *)
 (*   buf : BUFTYP; unused *)
@@ -533,19 +537,19 @@ BEGIN
     FWRSTR(OUTUN1,'"');
     FWRSTR(OUTUN1,GBLqfxRec.datePostedstr);
     FWRSTR(OUTUN1,'"');
-    FWRSTR(OUTUN1,ASCII.ht);
+    FWRSTR(OUTUN1,comma);                       (* FWRSTR(OUTUN1,ASCII.ht); *)
 
 (* dollar amt *)
     FWRSTR(OUTUN1,'"');
     FWRSTR(OUTUN1,GBLqfxRec.amtstr);
     FWRSTR(OUTUN1,'"');
-    FWRSTR(OUTUN1,ASCII.ht);
+    FWRSTR(OUTUN1,comma);                       (* FWRSTR(OUTUN1,ASCII.ht); *)
 
 (* Trans name/description field *)
     FWRSTR(OUTUN1,'"');
     FWRSTR(OUTUN1,GBLqfxRec.namestr); (* output description field *)
     FWRSTR(OUTUN1,'"');
-    FWRSTR(OUTUN1,ASCII.ht);
+    FWRSTR(OUTUN1,comma);                       (* FWRSTR(OUTUN1,ASCII.ht); *)
 
 (* Trans Memo field.  Not used by Citibank, but HSBC does.  It will be written as a comment field *)
 
@@ -618,17 +622,17 @@ BEGIN
     FWRSTR(OUTUN1,'"');
     FWRSTR(OUTUN1,BalAmtDateAsOf);
     FWRSTR(OUTUN1,'"');
-    FWRSTR(OUTUN1,ASCII.ht);
+    FWRSTR(OUTUN1,comma);                   (*  FWRSTR(OUTUN1,ASCII.ht); *)
 
     FWRSTR(OUTUN1,'"');
     FWRSTR(OUTUN1,ledgerBalAmt);
     FWRSTR(OUTUN1,'"');
-    FWRSTR(OUTUN1,ASCII.ht);
+    FWRSTR(OUTUN1,comma);                   (*  FWRSTR(OUTUN1,ASCII.ht); *)
 
     FWRSTR(OUTUN1,'"');
     FWRSTR(OUTUN1,'Ledger Balance Amount'); (* output description field *)
     FWRSTR(OUTUN1,'"');
-    FWRSTR(OUTUN1,ASCII.ht);
+    FWRSTR(OUTUN1,comma);                   (*  FWRSTR(OUTUN1,ASCII.ht); *)
 
     FWRSTR(OUTUN1,'"');
     FWRSTR(OUTUN1,comment); (* output comment field *)
@@ -649,20 +653,20 @@ BEGIN
     WriteLn(tw);
 
     IF LENGTH(availBalAmt) > 0 THEN
-        FWRSTR(OUTUN1,'"');
-        FWRSTR(OUTUN1,BalAmtDateAsOf);
-        FWRSTR(OUTUN1,'"');
-      FWRSTR(OUTUN1,ASCII.ht);
+      FWRSTR(OUTUN1,'"');
+      FWRSTR(OUTUN1,BalAmtDateAsOf);
+      FWRSTR(OUTUN1,'"');
+      FWRSTR(OUTUN1,comma);                   (*  FWRSTR(OUTUN1,ASCII.ht); *)
 
       FWRSTR(OUTUN1,'"');
       FWRSTR(OUTUN1,availBalAmt);
       FWRSTR(OUTUN1,'"');
-      FWRSTR(OUTUN1,ASCII.ht);
+      FWRSTR(OUTUN1,comma);                   (*  FWRSTR(OUTUN1,ASCII.ht); *)
 
       FWRSTR(OUTUN1,'"');
       FWRSTR(OUTUN1,'Credit Amount Available'); (* output description field *)
       FWRSTR(OUTUN1,'"');
-      FWRSTR(OUTUN1,ASCII.ht);
+      FWRSTR(OUTUN1,comma);                   (*  FWRSTR(OUTUN1,ASCII.ht); *)
 
       FWRSTR(OUTUN1,'"');
       FWRSTR(OUTUN1,comment);
@@ -702,17 +706,19 @@ VAR
 
 BEGIN
     CASE msg.msg OF
-    TWM_CLOSE:  (* Turns out that this winmsg is being executed twice before the pgm closes.  I have no idea why *)
-(*        BasicDialogs.MessageBox(outfilename,MsgInfo); *)
-        Strings.Append('.xls',outfilename);
+    TWM_CLOSE:
 (*
-        BasicDialogs.MessageBox(outfilename,MsgInfo);
-        BasicDialogs.MessageBox(OUTFNAM.CHARS,MsgInfo);
+ Turns out that this winmsg is being executed twice before the pgm closes.  First msg.closeMode is CM_REQUEST,
+ then will get CM_DICTATE.  See documentation in Module WinShell.  Moving the .xls extension stuff to
+ be inside the conditional should stop the creation of the .xls.xls file.
 *)
-        FileFunc.CopyFile(OUTFNAM.CHARS,outfilename);
         IF msg.closeMode = CM_DICTATE THEN
+            Strings.Append('.xls',outfilename);
+            FileFunc.CopyFile(OUTFNAM.CHARS,outfilename);
+
             WinShell.TerminateDispatchMessages(0);
         END;
+
         RETURN OkayToClose;
     | TWM_CREATE:
         FUNC SetWindowIcon(tw, CitiIcon);
