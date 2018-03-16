@@ -38,9 +38,10 @@ MODULE qfx2xls;
                  Tabs are fine for Excel and Access (I think), but the Go CSV library chokes on them, as does IMPORT for sqlite.
                  I had it write tabs as Excel defaults to a tab delimiter.  Now I'll have to always select comma as a delimiter.
   14 Jan 18 -- I missed a few tab delimiters that I had to make commas.  And I think I figured out why it writes .xls.xls.
-                 I'm moving the .xls creation to be inside a conditional on the closemode.  And I'm renaming the 
+                 I'm moving the .xls creation to be inside a conditional on the closemode.  And I'm renaming the
                  .txt to .csv for sqlite.  So my new workflow would be the .xls for Choice.xlsm and then Access, and the
                  .csv for sqlite.  And I removed the unused variables code.
+  16 Mar 18 -- Will directly create .xls file w/ tab delims.
 *)
 
 
@@ -131,7 +132,7 @@ IMPORT WholeStr, LongStr, LongConv;
 CONST
 (*  szAppName = "qfx2xls"; unused *)
 (*  InputPrompt = "Enter cmd or HELP : "; unused *)
-  LastMod = "14 Jan 2018";
+  LastMod = "16 Mar 2018";
   CitiIcon = "#100";
   MenuSep = '|';
 
@@ -150,10 +151,10 @@ VAR
   C, chknum                      : CARDINAL;
   c32                            : CARDINAL32;
   bool,EOFFLG,ok,BankTranListEnd : BOOLEAN;
-  INFNAM,OUTFNAM                 : BUFTYP;
-  qfxtoken,GblOrg,GblAcctID,ledgerBalAmt,availBalAmt,BalAmtDateAsOf,outfilename,comment,acntid : STRTYP;
+  INFNAM,OUTFNAM,XLFileName      : BUFTYP;
+  qfxtoken,GblOrg,GblAcctID,ledgerBalAmt,availBalAmt,BalAmtDateAsOf,outfilename,comment,acntid,xlfilename : STRTYP;
   qfxtokenstate     : qfxtkntyp;
-  (*INUNT1,*) OUTUN1                           : MYFILTYP;
+  OUTUN1,XLOutFile  : MYFILTYP;
   infile          : File;
   inputline,buf,infilename         : ARRAY [0..255] OF CHAR;
   InBuf (*, OutBuf unused *)       : ARRAY [1..8*1024] OF CHAR;
@@ -328,7 +329,7 @@ PROCEDURE GetQFXRec(VAR OUT qfxrec : QFXTYP);
   EOFFLG, BankTranListEnd
 *)
 
-VAR 
+VAR
     found : BOOLEAN;
     c1, patternposn : CARDINAL;
 
@@ -463,6 +464,7 @@ BEGIN
 
 (*   Build outfnam *)
   outfilename := '';
+  xlfilename  := "";
   strlen := LENGTH(GblOrg);
   k := 1;
   REPEAT  (* assume 1st char is not a space or dot *)
@@ -470,10 +472,16 @@ BEGIN
     INC(k);
   UNTIL (k > strlen) OR (GblOrg[k] = ' ') OR (GblOrg[k] = '.');
   outfilename[k] := NULL;
+  xlfilename := outfilename;
   Strings.Concat(outfilename,".csv",OUTFNAM.CHARS);  (* Used to write a .txt file, but writing a .csv is now more useful to me. *)
   FUNC FileFunc.DeleteFile(OUTFNAM.CHARS);
   TRIM(OUTFNAM);
   FOPEN(OUTUN1,OUTFNAM,WR);
+
+  Strings.Concat(xlfilename,".xls",XLFileName.CHARS);
+  FUNC FileFunc.DeleteFile(XLFileName.CHARS);
+  TRIM(XLFileName);
+  FOPEN(XLOutFile,XLFileName,WR);
 
 (* Build a comment to include ORG name and acnt ID *)
   acntid := GblAcctID;
@@ -499,7 +507,12 @@ BEGIN
     FWRSTR(OUTUN1,'"');
     FWRSTR(OUTUN1,GBLqfxRec.datePostedstr);
     FWRSTR(OUTUN1,'"');
-    FWRSTR(OUTUN1,comma);                       (* FWRSTR(OUTUN1,ASCII.ht); *)
+    FWRSTR(OUTUN1,comma);
+
+    FWRSTR(XLOutFile,'"');
+    FWRSTR(XLOutFile,GBLqfxRec.datePostedstr);
+    FWRSTR(XLOutFile,'"');
+    FWRSTR(XLOutFile,ASCII.ht);
 
 (* dollar amt *)
     FWRSTR(OUTUN1,'"');
@@ -507,11 +520,21 @@ BEGIN
     FWRSTR(OUTUN1,'"');
     FWRSTR(OUTUN1,comma);                       (* FWRSTR(OUTUN1,ASCII.ht); *)
 
+    FWRSTR(XLOutFile,'"');
+    FWRSTR(XLOutFile,GBLqfxRec.amtstr);
+    FWRSTR(XLOutFile,'"');
+    FWRSTR(XLOutFile,ASCII.ht);
+
 (* Trans name/description field *)
     FWRSTR(OUTUN1,'"');
     FWRSTR(OUTUN1,GBLqfxRec.namestr); (* output description field *)
     FWRSTR(OUTUN1,'"');
     FWRSTR(OUTUN1,comma);                       (* FWRSTR(OUTUN1,ASCII.ht); *)
+
+    FWRSTR(XLOutFile,'"');
+    FWRSTR(XLOutFile,GBLqfxRec.namestr); (* output description field *)
+    FWRSTR(XLOutFile,'"');
+    FWRSTR(XLOutFile,ASCII.ht);
 
 (* Trans Memo field.  Not used by Citibank, but HSBC does.  It will be written as a comment field *)
 
@@ -530,6 +553,11 @@ BEGIN
     FWRSTR(OUTUN1,'"');
     FWRLN(OUTUN1);
 
+    FWRSTR(XLOutFile,'"');
+    FWRSTR(XLOutFile,GBLqfxRec.memostr); (* output comment field *)
+    FWRSTR(XLOutFile,'"');
+    FWRLN(XLOutFile);
+
     WriteString(tw,'"',a);
     WriteString(tw,GBLqfxRec.datePostedstr,a);
     WriteString(tw,'","',a);
@@ -541,7 +569,7 @@ BEGIN
     WriteString(tw,'"',a);
     WriteLn(tw);
 
-  END(*LOOP for multiple records*);
+  END (*LOOP for multiple records*);
 
   (* Get Footer containing ledgerbal, balamt, dtasof.  Stop when come TO </OFX> *)
 
@@ -551,7 +579,7 @@ BEGIN
   LOOP (* The only exit out of this loop is the EOFFLG condition because some qfx files, Citibank, have AVAILBAL and some not, HSBC. *)
         GetQfxToken(infile,qfxtoken,qfxtokenstate,EOFFLG);
         IF EOFFLG THEN
-          (* MiscM2.Error(' Trying to get footer info and got EOF condition.'); *)
+          (* MiscM2.Error(" Trying to get footer info and got EOF condition."); *)
           EXIT;
         END;
         IF (qfxtokenstate = openinghtml) AND (STRCMPFNT(qfxtoken,'BALAMT') = 0) THEN
@@ -586,21 +614,41 @@ BEGIN
     FWRSTR(OUTUN1,'"');
     FWRSTR(OUTUN1,comma);                   (*  FWRSTR(OUTUN1,ASCII.ht); *)
 
+    FWRSTR(XLOutFile,'"');
+    FWRSTR(XLOutFile,BalAmtDateAsOf);
+    FWRSTR(XLOutFile,'"');
+    FWRSTR(XLOutFile,ASCII.ht);
+
     FWRSTR(OUTUN1,'"');
     FWRSTR(OUTUN1,ledgerBalAmt);
     FWRSTR(OUTUN1,'"');
     FWRSTR(OUTUN1,comma);                   (*  FWRSTR(OUTUN1,ASCII.ht); *)
+
+    FWRSTR(XLOutFile,'"');
+    FWRSTR(XLOutFile,ledgerBalAmt);
+    FWRSTR(XLOutFile,'"');
+    FWRSTR(XLOutFile,ASCII.ht);
 
     FWRSTR(OUTUN1,'"');
     FWRSTR(OUTUN1,'Ledger Balance Amount'); (* output description field *)
     FWRSTR(OUTUN1,'"');
     FWRSTR(OUTUN1,comma);                   (*  FWRSTR(OUTUN1,ASCII.ht); *)
 
+    FWRSTR(XLOutFile,'"');
+    FWRSTR(XLOutFile,'Ledger Balance Amount'); (* output description field *)
+    FWRSTR(XLOutFile,'"');
+    FWRSTR(XLOutFile,ASCII.ht);
+
     FWRSTR(OUTUN1,'"');
     FWRSTR(OUTUN1,comment); (* output comment field *)
     FWRSTR(OUTUN1,'"');
 
+    FWRSTR(XLOutFile,'"');
+    FWRSTR(XLOutFile,comment); (* output comment field *)
+    FWRSTR(XLOutFile,'"');
+
     FWRLN(OUTUN1);
+    FWRLN(XLOutFile);
 
     WriteString(tw,'"',a);
     WriteString(tw,BalAmtDateAsOf,a);
@@ -618,23 +666,44 @@ BEGIN
       FWRSTR(OUTUN1,'"');
       FWRSTR(OUTUN1,BalAmtDateAsOf);
       FWRSTR(OUTUN1,'"');
-      FWRSTR(OUTUN1,comma);                   (*  FWRSTR(OUTUN1,ASCII.ht); *)
+      FWRSTR(OUTUN1,comma);
+
+      FWRSTR(XLOutFile,'"');
+      FWRSTR(XLOutFile,BalAmtDateAsOf);
+      FWRSTR(XLOutFile,'"');
+      FWRSTR(XLOutFile,ASCII.ht);
 
       FWRSTR(OUTUN1,'"');
       FWRSTR(OUTUN1,availBalAmt);
       FWRSTR(OUTUN1,'"');
-      FWRSTR(OUTUN1,comma);                   (*  FWRSTR(OUTUN1,ASCII.ht); *)
+      FWRSTR(OUTUN1,comma);
+
+      FWRSTR(XLOutFile,'"');
+      FWRSTR(XLOutFile,availBalAmt);
+      FWRSTR(XLOutFile,'"');
+      FWRSTR(XLOutFile,ASCII.ht);
 
       FWRSTR(OUTUN1,'"');
       FWRSTR(OUTUN1,'Credit Amount Available'); (* output description field *)
       FWRSTR(OUTUN1,'"');
-      FWRSTR(OUTUN1,comma);                   (*  FWRSTR(OUTUN1,ASCII.ht); *)
+      FWRSTR(OUTUN1,comma);
 
       FWRSTR(OUTUN1,'"');
       FWRSTR(OUTUN1,comment);
       FWRSTR(OUTUN1,'"');
 
       FWRLN(OUTUN1);
+
+      FWRSTR(XLOutFile,'"');
+      FWRSTR(XLOutFile,'Credit Amount Available'); (* output description field *)
+      FWRSTR(XLOutFile,'"');
+      FWRSTR(XLOutFile,ASCII.ht);
+
+      FWRSTR(XLOutFile,'"');
+      FWRSTR(XLOutFile,comment);
+      FWRSTR(XLOutFile,'"');
+
+      FWRLN(XLOutFile);
 
       WriteString(tw,'"',a);
       WriteString(tw,BalAmtDateAsOf,a);
@@ -667,12 +736,13 @@ BEGIN
 (*
  Turns out that this winmsg is being executed twice before the pgm closes.  First msg.closeMode is CM_REQUEST,
  then will get CM_DICTATE.  See documentation in Module WinShell.  Moving the .xls extension stuff to
- be inside the conditional stopped the creation of the .xls.xls file.
-*)
-        IF msg.closeMode = CM_DICTATE THEN
+ be inside the conditional stopped the creation of the .xls.xls file.  But as of Mar 2018 I directly build the .xls
+ file just like the .csv file.
             Strings.Append('.xls',outfilename);
             FileFunc.CopyFile(OUTFNAM.CHARS,outfilename);
 
+*)
+        IF msg.closeMode = CM_DICTATE THEN
             WinShell.TerminateDispatchMessages(0);
         END;
 
@@ -807,15 +877,18 @@ BEGIN
         RemoveFileBuffer(infile);
         CloseFile(infile);
         FCLOSE(OUTUN1);
+        FCLOSE(XLOutFile);
         WriteLn(tw);
         WriteString(tw,OUTFNAM.CHARS,a);
-        WriteString(tw,' file now closed.',a);
+        WriteString(tw," and ",a);
+        WriteString(tw,XLFileName.CHARS,a);
+        WriteString(tw," files are now closed.",a);
         WriteLn(tw);
         EraseToEOL(tw,a);
         WriteLn(tw);
         WriteLn(tw);
         INC(c32);
-        FUNC FormatString(' Number of Paint msgs is: %c.',buf,c32);
+        FUNC FormatString(" Number of Paint msgs is: %c.",buf,c32);
         WriteString(tw,buf,a);
         WriteLn(tw);
         WriteStringAt(tw,0,cyClient-1,LastMod,a);
@@ -855,7 +928,7 @@ BEGIN
           FUNC CloseWindow(tw, CM_REQUEST);
         | 'A','a': (* About *)
              BasicDialogs.MessageTitle := 'About';
-             Strings.Assign('Last Modified and Compiled ',s);
+             Strings.Assign("Last Modified and Compiled ",s);
              Strings.Append(LastMod,s);
              BasicDialogs.MessageBox(s, BasicDialogs.MsgInfo);
         ELSE (* CASE ch *)
