@@ -42,6 +42,8 @@ MODULE qfx2xls;
                  .txt to .csv for sqlite.  So my new workflow would be the .xls for Choice.xlsm and then Access, and the
                  .csv for sqlite.  And I removed the unused variables code.
   16 Mar 18 -- Will directly create .xls file w/ tab delims.
+  17 Mar 18 -- Moved the close files code to the close message.  I don't know why I had it in the paint message.
+                 Now I know.  So I could see the message.  I moved it back to the paint message.
 *)
 
 
@@ -132,7 +134,7 @@ IMPORT WholeStr, LongStr, LongConv;
 CONST
 (*  szAppName = "qfx2xls"; unused *)
 (*  InputPrompt = "Enter cmd or HELP : "; unused *)
-  LastMod = "16 Mar 2018";
+  LastMod = "17 Mar 2018";
   CitiIcon = "#100";
   MenuSep = '|';
 
@@ -473,7 +475,7 @@ BEGIN
   UNTIL (k > strlen) OR (GblOrg[k] = ' ') OR (GblOrg[k] = '.');
   outfilename[k] := NULL;
   xlfilename := outfilename;
-  Strings.Concat(outfilename,".csv",OUTFNAM.CHARS);  (* Used to write a .txt file, but writing a .csv is now more useful to me. *)
+  Strings.Concat(outfilename,".csv",OUTFNAM.CHARS);  (* Used to write a .txt file. *)
   FUNC FileFunc.DeleteFile(OUTFNAM.CHARS);
   TRIM(OUTFNAM);
   FOPEN(OUTUN1,OUTFNAM,WR);
@@ -736,8 +738,8 @@ BEGIN
 (*
  Turns out that this winmsg is being executed twice before the pgm closes.  First msg.closeMode is CM_REQUEST,
  then will get CM_DICTATE.  See documentation in Module WinShell.  Moving the .xls extension stuff to
- be inside the conditional stopped the creation of the .xls.xls file.  But as of Mar 2018 I directly build the .xls
- file just like the .csv file.
+ be inside the conditional stopped the creation of the .xls.xls file.
+ As of Mar 2018 I directly build the .xls file just like the .csv file to output tabs instead of commas.
             Strings.Append('.xls',outfilename);
             FileFunc.CopyFile(OUTFNAM.CHARS,outfilename);
 
@@ -874,6 +876,9 @@ BEGIN
         | csv: MiscM2.Error(' This pgm will only process qfx files.');
         END (*case*);
 
+        WriteLn(tw);
+        INC(c32);
+
         RemoveFileBuffer(infile);
         CloseFile(infile);
         FCLOSE(OUTUN1);
@@ -886,12 +891,13 @@ BEGIN
         WriteLn(tw);
         EraseToEOL(tw,a);
         WriteLn(tw);
-        WriteLn(tw);
-        INC(c32);
+
         FUNC FormatString(" Number of Paint msgs is: %c.",buf,c32);
         WriteString(tw,buf,a);
         WriteLn(tw);
-        WriteStringAt(tw,0,cyClient-1,LastMod,a);
+        (* WriteStringAt(tw,0,cyClient-1,LastMod,a); *)
+        WriteString(tw,"                                        ",a);
+        WriteString(tw,LastMod,a);
 
     | TWM_MENU:
 (*
@@ -963,7 +969,7 @@ BEGIN
                         "#100",        (* menu : ARRAY OF CHAR *)
                         "CitiIcon",        (* icon : ARRAY OF CHAR *)
                         -1,-1, (* x,y= the initial screen coordinates for the window to be displayed *)
-                        110,20, (* xSize, ySize : COORDINATE *)
+                        110,30, (* xSize, ySize : COORDINATE *)
                         250,100, (* xBuffer, yBuffer : COORDINATE *)
                         FALSE,  (* gutter : BOOLEAN *)
                         DefaultFontInfo, (* font : FontInfo *)
