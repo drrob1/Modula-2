@@ -8,6 +8,7 @@ REVISION HISTORY
 25 Mar 17 -- Finished TestStringList, and it works.
 31 Mar 17 -- Now testing DisposeStringListPointerType;
  3 Apr 17 -- Testing the remove string stuff.
+ 9 Apr 18 -- Added NewStringList, in the Go idiom format.  And then opaque types w/ the needed getter routines.
 *)
 
 
@@ -16,10 +17,10 @@ REVISION HISTORY
   FROM Storage IMPORT ALLOCATE, DEALLOCATE;
   FROM UTILLIB IMPORT BUFSIZ,CTRLCOD,STRTYP,STR10TYP,STR20TYP,BUFTYP,MAXCARDFNT,NULL,COPYLEFT,COPYRIGHT,FILLCHAR,
     SCANFWD,SCANBACK, STRLENFNT,STRCMPFNT,LCHINBUFFNT,MRGBUFS,TRIMFNT,TRIM,RMVCHR,APPENDA2B,CONCATAB2C,INSERTAin2B,
-    ASSIGN2BUF, StringItemPointerType,StringDoubleLinkedListPointerType,InitStringListPointerType,
+    ASSIGN2BUF, StringItemPointerType,StringDoubleLinkedListPointerType,InitStringListPointerType,NewStringList,
     AppendStringToList,NextStringFromList,PrevStringFromList,CurrentPointerBeginning,CurrentPointerEnding,
     GetNextStringFromList,GetPrevStringFromList;
-  IMPORT UTILLIB;
+  IMPORT MiscStdInOut,UTILLIB;
 (*                 New String List Types from UTILLIB.def
   StringItemPointerType = POINTER TO StringItemType;
   StringItemType    = RECORD
@@ -37,22 +38,29 @@ REVISION HISTORY
   StringDoubleLinkedListPointerType = POINTER TO StringDoubleLinkedListType;
 *)
 
+(*    removed 4/9/2018 5:42:08 PM as it's not used.
   FROM Environment IMPORT GetCommandLine;
   IMPORT TIMLIBrevised;
   FROM TIMLIBrevised IMPORT TIME2MDY, JULIAN, GREGORIAN, DateTimeType, GetDateTime;
   FROM SysClock IMPORT GetClock,DateTime;
+*)
+
+  CONST
+    LastAltered = "9 Apr 2018";
 
   VAR
-    INBUF,TOKEN : BUFTYP;
-    RETCOD,C,posn,c1,c2,
-    M,D,Y                  : CARDINAL;
-    I                      : INTEGER;
-    L                      : LONGINT;
-    R,r1,r2,r3,r4,r5,r6    : LONGREAL;
-    CH                     : CHAR;
-    LC                     : LONGCARD;
-    dt                     : DateTime;
-    dt1,dt2                : DateTimeType;
+(*     removed 4/9/2018 5:44:35 PM
+    INBUF,TOKEN               : BUFTYP;
+    RETCOD,C,posn,c1,c2,M,D,Y : CARDINAL;
+    I                         : INTEGER;
+    L                         : LONGINT;
+    R,r1,r2,r3,r4,r5,r6       : LONGREAL;
+    CH                        : CHAR;
+    LC                        : LONGCARD;
+    dt                        : DateTime;
+    dt1,dt2                   : DateTimeType;
+*)
+    c1 : CARDINAL;
     StringListP1 : StringDoubleLinkedListPointerType;
     s : STRTYP;
     b : BUFTYP;
@@ -89,32 +97,57 @@ BEGIN
   OutStr[j] := 0C;
 END AdrToHexStr;
 
+(*
+  PROCEDURE PreviousNextFromStringItem(StringListP: StringDoubleLinkedListPointerType; VAR OUT previous, next : ADDRESS);
+  PROCEDURE CurrentString(StringListP : StringDoubleLinkedListPointerType) : STRTYP;
+  PROCEDURE CurrentStringBuffer(StringListP: StringDoubleLinkedListPointerType) : BUFTYP;
+  PROCEDURE StringListLen(StringListP : StringDoubleLinkedListPointerType) : CARDINAL;
+*)
+
 (******************************************************************************************************)
 
 PROCEDURE WriteStringItem(Prompt : ARRAY OF CHAR; StringP : StringItemPointerType);
   VAR
     s : STR20TYP;
+    str : STRTYP;
+    b   : BUFTYP;
+    prev,next : ADDRESS;
 BEGIN
 
+  UTILLIB.PreviousNextFromStringItem(StringP, prev,next);
+  str := UTILLIB.GetStringFromItem(StringP);
+  b := UTILLIB.GetBuftypFromItem(StringP);
+
   WriteString(Prompt);
-  WITH StringP^ DO
-    AdrToHexStr(Prev,s);
+
+    AdrToHexStr(prev,s);
     WriteString(s);
     WriteString("; ");
-    WriteString(S.CHARS);
+(*    WriteString(S.CHARS); *)
+    WriteString(str);
     WriteString("; ");
-    AdrToHexStr(Next,s);
+    AdrToHexStr(next,s);
     WriteString(s);
+    WriteString("     Buftyp: ");
+    WriteString(b.CHARS);
+    WriteString("   count= ");
+    MiscStdInOut.WriteCard(b.COUNT);
     WriteLn;
-  END; (* with StringP deref *)
+
 END WriteStringItem;
 
 
-(**************************************************************************************************)
+(********************************************** MAIN ****************************************************)
 
 BEGIN
 
-  StringListP1 := InitStringListPointerType();
+  WriteString(" TestStringList.  Last Altered ");
+  WriteString(LastAltered);
+  WriteString(".");
+  WriteLn;
+
+  (* StringListP1 := InitStringListPointerType();  *)
+  StringListP1 := NewStringList();
 
   AppendStringToList(StringListP1," First String in this double linked list.");
   AppendStringToList(StringListP1," Second String in this double linked list.");
@@ -124,7 +157,7 @@ BEGIN
 (* Display the list in forward direction *)
   CurrentPointerBeginning(StringListP1);
 
-  FOR c1 := 1 TO StringListP1^.len DO
+  FOR c1 := 1 TO UTILLIB.StringListLen(StringListP1) DO
     StringP := GetNextStringFromList(StringListP1);
     WriteCard(c1);
     WriteString(": ");
@@ -134,7 +167,7 @@ BEGIN
 
 (* Display the list in reverse direction *)
   CurrentPointerEnding(StringListP1);
-  FOR c1 := 1 TO StringListP1^.len DO
+  FOR c1 := 1 TO UTILLIB.StringListLen(StringListP1) DO
     StringP := GetPrevStringFromList(StringListP1);
     WriteCard(c1);
     WriteString(": ");
@@ -151,7 +184,7 @@ BEGIN
 (* Remove the last string, and then display in forward direction *)
   UTILLIB.RemoveLastStringFromList(StringListP1);
   CurrentPointerBeginning(StringListP1);
-  FOR c1 := 1 TO StringListP1^.len DO
+  FOR c1 := 1 TO UTILLIB.StringListLen(StringListP1) DO
     StringP := GetNextStringFromList(StringListP1);
     WriteCard(c1);
     WriteString(": ");
@@ -166,7 +199,7 @@ BEGIN
 (* Remove the last string, and then display in forward direction *)
   UTILLIB.RemoveLastStringFromList(StringListP1);
   CurrentPointerBeginning(StringListP1);
-  FOR c1 := 1 TO StringListP1^.len DO
+  FOR c1 := 1 TO UTILLIB.StringListLen(StringListP1) DO
     StringP := GetNextStringFromList(StringListP1);
     WriteCard(c1);
     WriteString(": ");
@@ -182,7 +215,7 @@ BEGIN
 
   UTILLIB.RemoveLastStringFromList(StringListP1);
   CurrentPointerBeginning(StringListP1);
-  FOR c1 := 1 TO StringListP1^.len DO
+  FOR c1 := 1 TO UTILLIB.StringListLen(StringListP1) DO
     StringP := GetNextStringFromList(StringListP1);
     WriteCard(c1);
     WriteString(": ");
@@ -197,7 +230,7 @@ BEGIN
 (* Remove the last string, and then display in forward direction *)
   UTILLIB.RemoveLastStringFromList(StringListP1);
   CurrentPointerBeginning(StringListP1);
-  FOR c1 := 1 TO StringListP1^.len DO
+  FOR c1 := 1 TO UTILLIB.StringListLen(StringListP1) DO
     StringP := GetNextStringFromList(StringListP1);
     WriteCard(c1);
     WriteString(": ");
@@ -206,7 +239,7 @@ BEGIN
   WriteLn;
 
   WriteString(" The length of the string by the len field is ");
-  WriteCard(StringListP1^.len);
+  WriteCard(UTILLIB.StringListLen(StringListP1));
   WriteLn;
 
   AdrToHexStr(StringListP1,s);
@@ -225,7 +258,7 @@ BEGIN
 (* Display the list in forward direction *)
   CurrentPointerBeginning(StringListP1);
 
-  FOR c1 := 1 TO StringListP1^.len DO
+  FOR c1 := 1 TO UTILLIB.StringListLen(StringListP1) DO
     StringP := GetNextStringFromList(StringListP1);
     WriteCard(c1);
     WriteString(": ");
@@ -235,7 +268,7 @@ BEGIN
 
 (* Display the list in reverse direction *)
   CurrentPointerEnding(StringListP1);
-  FOR c1 := 1 TO StringListP1^.len DO
+  FOR c1 := 1 TO UTILLIB.StringListLen(StringListP1) DO
     StringP := GetPrevStringFromList(StringListP1);
     WriteCard(c1);
     WriteString(": ");
@@ -253,7 +286,7 @@ BEGIN
 (* Remove the first string, and then display in forward direction *)
   UTILLIB.RemoveFirstStringFromList(StringListP1);
   CurrentPointerBeginning(StringListP1);
-  FOR c1 := 1 TO StringListP1^.len DO
+  FOR c1 := 1 TO UTILLIB.StringListLen(StringListP1) DO
     StringP := GetNextStringFromList(StringListP1);
     WriteCard(c1);
     WriteString(": ");
@@ -268,7 +301,7 @@ BEGIN
 (* Remove the first string, and then display in forward direction *)
   UTILLIB.RemoveFirstStringFromList(StringListP1);
   CurrentPointerBeginning(StringListP1);
-  FOR c1 := 1 TO StringListP1^.len DO
+  FOR c1 := 1 TO UTILLIB.StringListLen(StringListP1) DO
     StringP := GetNextStringFromList(StringListP1);
     WriteCard(c1);
     WriteString(": ");
@@ -283,7 +316,7 @@ BEGIN
 (* Remove the first string, and then display in forward direction *)
   UTILLIB.RemoveFirstStringFromList(StringListP1);
   CurrentPointerBeginning(StringListP1);
-  FOR c1 := 1 TO StringListP1^.len DO
+  FOR c1 := 1 TO UTILLIB.StringListLen(StringListP1) DO
     StringP := GetNextStringFromList(StringListP1);
     WriteCard(c1);
     WriteString(": ");
@@ -298,7 +331,7 @@ BEGIN
 (* Remove the first string, and then display in forward direction *)
   UTILLIB.RemoveFirstStringFromList(StringListP1);
   CurrentPointerBeginning(StringListP1);
-  FOR c1 := 1 TO StringListP1^.len DO
+  FOR c1 := 1 TO UTILLIB.StringListLen(StringListP1) DO
     StringP := GetNextStringFromList(StringListP1);
     WriteCard(c1);
     WriteString(": ");
@@ -308,7 +341,7 @@ BEGIN
 
 
   WriteString(" The length of the string by the len field is ");
-  WriteCard(StringListP1^.len);
+  WriteCard(UTILLIB.StringListLen(StringListP1));
   WriteLn;
 
   AdrToHexStr(StringListP1,s);
@@ -328,7 +361,8 @@ BEGIN
 
   PressAnyKey;
 
-  StringListP1 := InitStringListPointerType();
+(*  StringListP1 := InitStringListPointerType(); *)
+  StringListP1 := NewStringList();
 
   AppendStringToList(StringListP1," Fifth String in this double linked list.");
   AppendStringToList(StringListP1," Sixth String in this double linked list.");
@@ -338,7 +372,7 @@ BEGIN
 (* Display the list in forward direction *)
   CurrentPointerBeginning(StringListP1);
 
-  FOR c1 := 1 TO StringListP1^.len DO
+  FOR c1 := 1 TO UTILLIB.StringListLen(StringListP1) DO
     StringP := GetNextStringFromList(StringListP1);
     WriteCard(c1);
     WriteString(": ");
@@ -348,7 +382,7 @@ BEGIN
 
 (* Display the list in reverse direction *)
   CurrentPointerEnding(StringListP1);
-  FOR c1 := 1 TO StringListP1^.len DO
+  FOR c1 := 1 TO UTILLIB.StringListLen(StringListP1) DO
     StringP := GetPrevStringFromList(StringListP1);
     WriteCard(c1);
     WriteString(": ");
@@ -359,7 +393,7 @@ BEGIN
 
 
   WriteString(" The length of the string by the len field should be four, it is ");
-  WriteCard(StringListP1^.len);
+  WriteCard(UTILLIB.StringListLen(StringListP1));
   WriteLn;
 
   AdrToHexStr(StringListP1,s);
@@ -375,7 +409,7 @@ BEGIN
 (* Remove the last string, and then display in forward direction *)
   UTILLIB.RemoveLastStringFromList(StringListP1);
   CurrentPointerBeginning(StringListP1);
-  FOR c1 := 1 TO StringListP1^.len DO
+  FOR c1 := 1 TO UTILLIB.StringListLen(StringListP1) DO
     StringP := GetNextStringFromList(StringListP1);
     WriteCard(c1);
     WriteString(": ");
@@ -390,7 +424,7 @@ BEGIN
 (* Remove the last string, and then display in forward direction *)
   UTILLIB.RemoveLastStringFromList(StringListP1);
   CurrentPointerBeginning(StringListP1);
-  FOR c1 := 1 TO StringListP1^.len DO
+  FOR c1 := 1 TO UTILLIB.StringListLen(StringListP1) DO
     StringP := GetNextStringFromList(StringListP1);
     WriteCard(c1);
     WriteString(": ");
@@ -405,7 +439,7 @@ BEGIN
 (* Remove the last string, and then display in forward direction *)
   UTILLIB.RemoveLastStringFromList(StringListP1);
   CurrentPointerBeginning(StringListP1);
-  FOR c1 := 1 TO StringListP1^.len DO
+  FOR c1 := 1 TO UTILLIB.StringListLen(StringListP1) DO
     StringP := GetNextStringFromList(StringListP1);
     WriteCard(c1);
     WriteString(": ");
@@ -420,7 +454,7 @@ BEGIN
 (* Remove the last string, and then display in forward direction *)
   UTILLIB.RemoveLastStringFromList(StringListP1);
   CurrentPointerBeginning(StringListP1);
-  FOR c1 := 1 TO StringListP1^.len DO
+  FOR c1 := 1 TO UTILLIB.StringListLen(StringListP1) DO
     StringP := GetNextStringFromList(StringListP1);
     WriteCard(c1);
     WriteString(": ");
@@ -430,7 +464,7 @@ BEGIN
 
 
   WriteString(" The length of the string by the len field should be zero, and it is ");
-  WriteCard(StringListP1^.len);
+  WriteCard(UTILLIB.StringListLen(StringListP1));
   WriteLn;
 
   AdrToHexStr(StringListP1,s);

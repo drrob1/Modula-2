@@ -29,23 +29,26 @@ TYPE
   STR10TYP   = ARRAY [0..10] OF CHAR;
   STR20TYP = ARRAY [0..20] OF CHAR;
   LONGBITSET = SET OF [0..31];
-
+(*
   StringItemPointerType = POINTER TO StringItemType;
   StringItemType    = RECORD
                             Prev : StringItemPointerType;
                             S    : BUFTYP;
                             Next : StringItemPointerType;
-                      END; (* StringItemType Record *)
+                      END; /* StringItemType Record */
 
 
   StringDoubleLinkedListType = RECORD
                   StartOfList, EndOfList, CurrentPlaceInList, PrevPlaceInList : StringItemPointerType;
-                  len,NextPosition : CARDINAL;    (* NextPosition is to be used by NextStringFromList *)
-  END; (* StringDoubleLinkedListType Recored *)
+                  len,NextPosition : CARDINAL;    /* NextPosition is to be used by NextStringFromList */
+  END; /* StringDoubleLinkedListType Recored */
 
   StringDoubleLinkedListPointerType = POINTER TO StringDoubleLinkedListType;
+*)
 
-
+(* Opaque types for the string double linked list type.  These are pointers, of course. *)
+  StringItemPointerType;
+  StringDoubleLinkedListPointerType;
 
 
 
@@ -267,6 +270,8 @@ PROCEDURE InitStringListPointerType(VAR sp : StringDoubleLinkedListPointerType) 
   Purpose of this routine is to init all the fields to either NIL or zero.
 *)
 
+PROCEDURE NewStringList() : StringDoubleLinkedListPointerType;
+  (* Init using Go idiom*)
 
 PROCEDURE AppendStringToList(StringListP : StringDoubleLinkedListPointerType; strng : ARRAY OF CHAR);
 
@@ -283,8 +288,19 @@ PROCEDURE PrevStringFromList(StringListP : StringDoubleLinkedListPointerType);
 PROCEDURE GetPrevStringFromList(StringListP : StringDoubleLinkedListPointerType) : StringItemPointerType;
 
 PROCEDURE DisposeStringListPointerType(VAR INOUT StringListP : StringDoubleLinkedListPointerType);
-  
+
 PROCEDURE RemoveFirstStringFromList(StringListP : StringDoubleLinkedListPointerType);
 PROCEDURE RemoveLastStringFromList(StringListP : StringDoubleLinkedListPointerType);
+
+
+PROCEDURE StringListLen(StringListP : StringDoubleLinkedListPointerType) : CARDINAL;
+PROCEDURE CurrentString(StringListP : StringDoubleLinkedListPointerType) : STRTYP;
+PROCEDURE CurrentStringBuffer(StringListP: StringDoubleLinkedListPointerType) : BUFTYP;
+PROCEDURE PreviousNextFromStringItem(StringListP: StringItemPointerType; VAR OUT previous, next : ADDRESS);
+PROCEDURE GetStringFromItem(StringP : StringItemPointerType) : STRTYP;
+PROCEDURE GetBuftypFromItem(StringP : StringItemPointerType) : BUFTYP;
+
+
+
 
 END UTILLIB.

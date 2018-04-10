@@ -33,6 +33,14 @@ Copyright (C) 1987  Robert Solomon MD.  All rights reserved.
   25 Mar 17 -- Finished the string linked list code.
   26 Mar 17 -- Finally removed GETFNM code that was moved to MyFIO long ago.
   31 Mar 17 -- Realized that I need DISPOSE, else I have created a memory leak.
+   9 Apr 18 -- Made StringItemPointerType an opaque type, added NewStringList for Go idiom, and
+                 added more getters for list length, current string contents, current string
+                 elements, perhaps length of current string contents, and a debugging getter that
+                 will return the contents of the prev and next fields of a StringItemPointerType.
+                 And MOREFNM variable was removed, which I forgot to do when I removed the GETFNM func.
+                 TOKENIZE was removed from import list as it is not used since removal of GETFNM.
+                 GetCommandLine also removed.  I don't remember why it was here in the first place.
+                 Probably for GETFNM.
 *)
 
   FROM SYSTEM IMPORT ADDRESS;
@@ -40,8 +48,6 @@ Copyright (C) 1987  Robert Solomon MD.  All rights reserved.
   FROM SWholeIO IMPORT ReadInt, WriteInt, ReadCard, WriteCard;
   FROM STextIO IMPORT ReadString, WriteString, WriteLn, ReadChar, WriteChar, SkipLine;
 
-  FROM TOKENIZE IMPORT FSATYP,DELIMCH,INI1TKN,GETTKN,GETTKNSTR;
-  FROM Environment IMPORT GetCommandLine;
 
 (*
     THE FOLLOWING ARE DECLARED IN THE DEFINITION MODULE.
@@ -70,32 +76,35 @@ TYPE
              END /*RECORD*/;
   STR10TYP = ARRAY [0..10] OF CHAR;
   STR20TYP = ARRAY [0..20] OF CHAR;
-
-  StringItemPointerType = POINTER TO StringItemType;
+*)
+TYPE
   StringItemType    = RECORD
                             Prev : StringItemPointerType;
                             S    : BUFTYP;
                             Next : StringItemPointerType;
-                      END;  // StringItemType record
-
+                      END;
+  StringItemPointerType = POINTER TO StringItemType;
 
   StringDoubleLinkedListType = RECORD
-                  StartOfList, EndOfList, CurrentPlaceInList, PrevPlaceInList : StringPointerType;
+                  StartOfList, EndOfList, CurrentPlaceInList, PrevPlaceInList : StringItemPointerType;
                   len,NextPosition : CARDINAL;
-  END;  // StringDoubleLinkedListtype record
+  END;
 
   StringDoubleLinkedListPointerType = POINTER TO StringDoubleLinkedListType;
-
-*)
 
 TYPE
   CHRBUF   = ARRAY [0..32737] OF CHAR;
   CHRPTR   = POINTER TO CHRBUF;  (* Essentially a pointer to CHAR *)
 
-VAR ROOTNAM,TOKEN,inputline : BUFTYP;
+VAR
+(*
+  ROOTNAM,TOKEN,inputline : BUFTYP;
     TKNSTATE                : FSATYP;
-    MOREFNM                 : BOOLEAN;  (* USED FOR GETFNM *)
+    MOREFNM                 : BOOLEAN;  /* USED FOR GETFNM */
+*)
     UPLOW                   : CARDINAL; (* Used by UPRCAS *)
+
+
 
 
 PROCEDURE STRLENFNT(CHARRAY : ARRAY OF CHAR) : CARDINAL;
@@ -727,6 +736,22 @@ BEGIN
   RETURN(StringListP);
 END InitStringListPointerType;
 
+(* -------------------------------------------------------------------------- NewStringList ----------------------------------------*)
+PROCEDURE NewStringList() : StringDoubleLinkedListPointerType;
+(*
+PROCEDURE InitStringListPointerType(VAR sp : StringDoubleLinkedListPointerType) : StringDoubleLinkedListPointerType;
+  Purpose of this routine is to init all the fields to either NIL or zero.
+  And is now in the Go idiom.
+*)
+
+VAR
+  StringListP : StringDoubleLinkedListPointerType;
+
+BEGIN
+  StringListP := InitStringListPointerType();
+  RETURN(StringListP);
+END NewStringList;
+
 
 (* -------------------------------------------------------------------------- AppendStringToList -----------------------------------*)
 
@@ -961,10 +986,47 @@ BEGIN
 END DisposeStringListPointerType;
 
 
+(* ----------------------------------------------- StringListLen -------------------------------------------------------- *)
+
+PROCEDURE StringListLen(StringListP : StringDoubleLinkedListPointerType) : CARDINAL;
+BEGIN
+  RETURN(StringListP^.len);
+END StringListLen;
+
+(* ----------------------------------------------- CurrentString -------------------------------------------------------- *)
+PROCEDURE CurrentString(StringListP : StringDoubleLinkedListPointerType) : STRTYP;
+BEGIN
+  RETURN(StringListP^.CurrentPlaceInList^.S.CHARS);
+END CurrentString;
+
+(* ----------------------------------------------- CurrentStringBuffer -------------------------------------------------- *)
+PROCEDURE CurrentStringBuffer(StringListP: StringDoubleLinkedListPointerType) : BUFTYP;
+BEGIN
+  RETURN(StringListP^.CurrentPlaceInList^.S);
+END CurrentStringBuffer;
+
+(* ----------------------------------------------- PreviousNextFromStringItem ------------------------------------------- *)
+PROCEDURE PreviousNextFromStringItem(StringListP: StringItemPointerType; VAR OUT previous, next : ADDRESS);
+BEGIN
+  previous := StringListP^.Prev;
+  next := StringListP^.Next;
+END PreviousNextFromStringItem;
+
+
+(* ----------------------------------------------- GetStringFromItem ---------------------------------------------------- *)
+PROCEDURE GetStringFromItem(StringP : StringItemPointerType) : STRTYP;
+BEGIN
+  RETURN(StringP^.S.CHARS);
+END GetStringFromItem;
+
+(* ----------------------------------------------- GetBuftypFromItem ---------------------------------------------------- *)
+PROCEDURE GetBuftypFromItem(StringP : StringItemPointerType) : BUFTYP;
+BEGIN
+  RETURN(StringP^.S);
+END GetBuftypFromItem;
 
 
 BEGIN (* ----------------------- Module Body ------------------------------------*)
-  ROOTNAM.CHARS[1] := NULL;
-  MOREFNM := FALSE;
+(*  ROOTNAM.CHARS[1] := NULL;    For GETFNM, IIRC *)
   UPLOW := ORD('a') - ORD('A');
 END UTILLIB.
