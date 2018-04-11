@@ -1,0 +1,83 @@
+DEFINITION MODULE Vec;
+
+        (********************************************************)
+        (*                                                      *)
+        (*                 Vector arithmetic                    *)
+        (*                                                      *)
+        (*  Programmer:         P. Moylan                       *)
+        (*  Last edited:        15 August 1995                  *)
+        (*  Status:             OK                              *)
+        (*                                                      *)
+        (*      Portability problem: I've had to use an XDS     *)
+        (*      language extension (open arrays) here; I        *)
+        (*      haven't yet figured out how to do the job       *)
+        (*      in ISO standard Modula-2.                       *)
+        (*                                                      *)
+        (********************************************************)
+
+TYPE
+(*
+                                                                                  EltType = LONGREAL;
+                                                                                  VectorPtr = POINTER TO ARRAY OF EltType;
+*)
+    VectorPtr = POINTER TO ARRAY OF LONGREAL;
+
+
+(************************************************************************)
+(*                   CREATING AND DESTROYING VECTORS                    *)
+(************************************************************************)
+
+PROCEDURE NewVector (N: CARDINAL): VectorPtr;
+
+    (* Creates a vector of N elements. *)
+
+                                                                     (* PROCEDURE DisposeVector (VAR (*INOUT*) V: VectorPtr;  N: CARDINAL); *)
+PROCEDURE DisposeVector (VAR (*INOUT*) V: VectorPtr;  N: CARDINAL);
+
+    (* Deallocates a vector of N elements. *)
+
+(************************************************************************)
+(*                          ASSIGNMENTS                                 *)
+(************************************************************************)
+
+                                                                (* PROCEDURE Copy (A: ARRAY OF EltType;  N: CARDINAL; VAR (*OUT*) B: ARRAY OF EltType); *)
+PROCEDURE Copy (A: ARRAY OF LONGREAL;  VAR (*OUT*) B: ARRAY OF LONGREAL);
+
+    (* Copies an N-element vector A to B. *)
+
+(************************************************************************)
+(*                          VECTOR ARITHMETIC                           *)
+(************************************************************************)
+
+                                                           (* PROCEDURE Add (A, B: ARRAY OF EltType;  elts: CARDINAL; VAR (*OUT*) C: ARRAY OF EltType); *)
+PROCEDURE Add (A, B: ARRAY OF LONGREAL; VAR (*OUT*) C: ARRAY OF LONGREAL);
+
+    (* Computes C := A + B.  All vectors have elts elements. *)
+
+                                                           (* PROCEDURE Sub (A, B: ARRAY OF EltType;  elts: CARDINAL; VAR (*OUT*) C: ARRAY OF EltType); *)
+PROCEDURE Sub (A, B: ARRAY OF LONGREAL;  VAR (*OUT*) C: ARRAY OF LONGREAL);
+
+    (* Computes C := A - B.  All vectors have elts elements.  *)
+
+                              (* PROCEDURE Mul (A: ARRAY OF ARRAY OF EltType;  B: ARRAY OF EltType; N1, N2: CARDINAL; VAR (*OUT*) C: ARRAY OF EltType); *)
+PROCEDURE Mul (A: ARRAY OF ARRAY OF LONGREAL;  B: ARRAY OF LONGREAL; VAR (*OUT*) C: ARRAY OF LONGREAL);
+
+    (* Computes C := A*B, where A is N1xN2 and B is N2x1. *)
+
+                                           (* PROCEDURE ScalarMul (A: EltType;  B: ARRAY OF EltType;  elts: CARDINAL; VAR (*OUT*) C: ARRAY OF EltType); *)
+PROCEDURE ScalarMul (A: LONGREAL;  B: ARRAY OF LONGREAL; VAR (*OUT*) C: ARRAY OF LONGREAL);
+
+    (* Computes C := A*B, where A is scalar and B has elts elements. *)
+
+(************************************************************************)
+(*                          SCREEN OUTPUT                               *)
+(************************************************************************)
+
+                                                                         (* PROCEDURE Write (V: ARRAY OF EltType;  N: CARDINAL;  places: CARDINAL); *)
+PROCEDURE Write (V: ARRAY OF LONGREAL; places: CARDINAL);
+
+    (* Writes the N-element vector V to the screen, where each  *)
+    (* column occupies a field "places" characters wide.        *)
+
+END Vec.
+
