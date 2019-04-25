@@ -12,6 +12,7 @@ REVISION HISTORY
  9 Aug 17 -- I searched and learned that I cannot stop a screen saver by a simulated mouse event.
                But a simulated keybd event can stop it.  So I coded that, also based on a search.
                And this code works in ShowTimeer.mod.  I decided to copy it here, also.
+25 Apr 19 -- Adding time to the window title
 --------------------------------------*)
 
 MODULE SS5;
@@ -54,36 +55,22 @@ FROM TextWindows IMPORT
     AllocClipboardMemory, UnlockClipboardMemory, SetClipboard, GetClipboard,
     Xpos, Ypos, Xorg, Yorg, Xmax, Ymax;
 (*
-FROM WinShell IMPORT
-    Window, StartupDisplayMode, WinShellMsg, MessageRec, SetResourceFile,
-    DispatchMessages, TerminateDispatchMessages,
-    LoadString, CloseAllChildren, /*NormalWindow,*/ AddStatusLine,
-    SetStatusFormat, WriteStatusField, /*CreateWindow, WindowTypes,*/ ClientTypes,
+{{{
+FROM WinShell IMPORT Window, StartupDisplayMode, WinShellMsg, MessageRec, SetResourceFile, DispatchMessages, TerminateDispatchMessages,
+    LoadString, CloseAllChildren, /*NormalWindow,*/ AddStatusLine, SetStatusFormat, WriteStatusField, /*CreateWindow, WindowTypes,*/ ClientTypes,
     ClientCreateData, TabPosition;
-FROM FileFunc IMPORT EOL, FileSpecString, NameString, FileAttributes, FileAttributeSet,
-    SearchEntry, FileNameParts /*drive path name extension*/, FileTypes, DeviceTypes,
-    AccessModes, FileUseInfo, FileUseInfoSet, CommonFileErrors, File, InvalidHandle,
-    MustHaveNormalFile, MustHaveDirectory, MustHaveNothing, AllAttributes, StdAttributes,
-    AddArchive, AddReadOnly, AddHidden, AddSystem, AddCompressed, AddTemporary,
-    AddEncrypted, AddOffline, AddAlias, AddNormalFile, AddDirectory, OpenFile,
-    OpenFileEx, CreateFile, CreateFileEx, GetTempFileDirectory, MakeTempFileName,
-    CreateTempFile, CreateTempFileEx, OpenCreateFile, OpenCreateFileEx, FakeFileOpen,
-    CloseFile, FileType, SetFileBuffer, RemoveFileBuffer, FlushBuffers, ReadBlock,
-    WriteBlock, ReadChar, WriteChar, PeekChar, ReadLine, WriteLine, LockFileRegion,
-    UnlockFileRegion, SetFilePos, GetFilePos, MoveFilePos, TruncateFile, FileLength,
-    GetFileSizes, TranslateFileError, GetFileAttr, SetFileAttr, GetFileDateTime,
-    SetFileDateTime, RenameFile, DeleteFile,
-    FileExists, CopyFile, SetHandleCount, GetNextDir, ParseFileName, ParseFileNameEx,
-    AssembleParts, ConstructFileName, ConstructFileNameEx, FindInPathList,
-    FindInOSPathList, ExpandFileSpec, FindFirst, FindNext, FindClose,
-    MakeDir, CreateDirTree, DeleteDir, DirExists, RenameDir, GetDefaultPath,
-    SetDefaultPath, GetDeviceFreeSpace, GetDeviceFreeSpaceEx, GetDeviceType;
-FROM TKNRTNS IMPORT FSATYP,CHARSETTYP,DELIMCH,INI1TKN,INI3TKN,GETCHR,
-    UNGETCHR,GETTKN,NEWDELIMSET,NEWOPSET,NEWDGTSET,GETTKNSTR,GETTKNEOL,
-    UNGETTKN,GETTKNREAL;
+FROM FileFunc IMPORT EOL, FileSpecString, NameString, FileAttributes, FileAttributeSet, SearchEntry, FileNameParts /*drive path name extension*/, FileTypes, DeviceTypes,
+    AccessModes, FileUseInfo, FileUseInfoSet, CommonFileErrors, File, InvalidHandle, MustHaveNormalFile, MustHaveDirectory, MustHaveNothing, AllAttributes, StdAttributes,
+    AddArchive, AddReadOnly, AddHidden, AddSystem, AddCompressed, AddTemporary, AddEncrypted, AddOffline, AddAlias, AddNormalFile, AddDirectory, OpenFile,
+    OpenFileEx, CreateFile, CreateFileEx, GetTempFileDirectory, MakeTempFileName, CreateTempFile, CreateTempFileEx, OpenCreateFile, OpenCreateFileEx, FakeFileOpen,
+    CloseFile, FileType, SetFileBuffer, RemoveFileBuffer, FlushBuffers, ReadBlock, WriteBlock, ReadChar, WriteChar, PeekChar, ReadLine, WriteLine, LockFileRegion,
+    UnlockFileRegion, SetFilePos, GetFilePos, MoveFilePos, TruncateFile, FileLength, GetFileSizes, TranslateFileError, GetFileAttr, SetFileAttr, GetFileDateTime,
+    SetFileDateTime, RenameFile, DeleteFile, FileExists, CopyFile, SetHandleCount, GetNextDir, ParseFileName, ParseFileNameEx,
+    AssembleParts, ConstructFileName, ConstructFileNameEx, FindInPathList, FindInOSPathList, ExpandFileSpec, FindFirst, FindNext, FindClose,
+    MakeDir, CreateDirTree, DeleteDir, DirExists, RenameDir, GetDefaultPath, SetDefaultPath, GetDeviceFreeSpace, GetDeviceFreeSpaceEx, GetDeviceType;
+FROM TKNRTNS IMPORT FSATYP,CHARSETTYP,DELIMCH,INI1TKN,INI3TKN,GETCHR, UNGETCHR,GETTKN,NEWDELIMSET,NEWOPSET,NEWDGTSET,GETTKNSTR,GETTKNEOL, UNGETTKN,GETTKNREAL;
+}}}
 *)
-(* IMPORT Lib; Part of TSLib *)
-(* IMPORT MATHLIB; Part of TSlib that uses longreals. *)
 IMPORT WinShell;
 FROM DlgShell IMPORT
     NotifyType, NotifyResult, CONTROL, ControlType, DialogPositions,
@@ -99,7 +86,8 @@ IMPORT RConversions, LongStr, LongConv,FormatString;
 FROM RConversions IMPORT RealToString, RealToStringFixed, StringToReal;
 FROM Conversions IMPORT StringToInt, StrToInt, IntToString, IntToStr, StringToCard,
     StrToCard, CardToString, CardToStr, StringToLong, StrToLong, LongToString, LongToStr;
-FROM TIMLIB IMPORT JULIAN,GREGORIAN,TIME2MDY;
+FROM TIMLIBrevised IMPORT JULIAN,GREGORIAN,TIME2MDY;
+IMPORT TIMLIBrevised;
 FROM LongStr IMPORT StrToReal,RealToFloat,RealToEng,RealToFixed,RealToStr,ConvResults;
 
 FROM UTILLIB IMPORT BLANK,NULL,STRTYP,BUFSIZ,BUFTYP,STR10TYP,TRIM,STRLENFNT,STRCMPFNT,
@@ -111,7 +99,7 @@ FROM LowLong IMPORT sign,ulp,intpart,fractpart,trunc (*,round*) ;
 CONST
   szAppName = "SS5";  (* Screen Saving Dancing Mouse 5.  Text windows started in version 4 *)
   InputPrompt = 'Enter cmd or HELP : ';
-  LastMod = '9 Aug 17';
+  LastMod = "Apr 25, 2019";
   clipfmt = CLIPBOARD_ASCII;
   SS5Icon32 = '#100';
   SS5Icon16 = '#200';
@@ -162,35 +150,25 @@ VAR
   boolp           : POINTER TO BOOLEAN;
   WiggleMouse     : INTEGER;
 (*
-    FontWeights         = (FwLight, FwNormal, FwDemiBold, FwBold, FwHeavy);
+{{{
+    FontWeights = (FwLight, FwNormal, FwDemiBold, FwBold, FwHeavy);
 
-    CharacterSets       = (
-                           LATIN1_CHARSET,/*ansi, iso*/
-                           LATIN2_CHARSET,/*latin + eastern europe*/
-                           SYMBOL_CHARSET,
-                           ASCII_CHARSET,
-                           DEFAULT_CHARSET
-                          );
-    FontInfo            =
-        RECORD
-        height          : INTEGER;/* positive = tenths of a point.
-                                                100 = 10.0 points
-                                                105 = 10.5 points.
-                                     negative = device pixels
-                                  */
-        italic          : BOOLEAN;
-        fixedPitch      : BOOLEAN;/* if TRUE then only fixed pitch */
-                                  /* if FALSE then any pitch, including fixed */
-        weight          : FontWeights;
-        charSet         : CharacterSets;
-        name            : ARRAY [0..63] OF CHAR;/* font family name.
-                                                   GTK
-                                                     may also optionally include
-                                                     the font foundary in the name.
-                                                     the foundary and font family name
-                                                     are separated by the '-' character.
-                                                */
+    CharacterSets = (
+                     LATIN1_CHARSET,/*ansi, iso*/
+                     LATIN2_CHARSET,/*latin + eastern europe*/
+                     SYMBOL_CHARSET,
+                     ASCII_CHARSET,
+                     DEFAULT_CHARSET
+                    );
+    FontInfo = RECORD
+        height      : INTEGER;  positive = tenths of a point.  100 = 10.0 points 105 = 10.5 points.  negative = device pixels
+        italic      : BOOLEAN;
+        fixedPitch  : BOOLEAN; if TRUE then only fixed pitch.  if FALSE then any pitch, including fixed.
+        weight      : FontWeights;
+        charSet     : CharacterSets;
+        name        : ARRAY [0..63] OF CHAR;  font family name.  GTK may also optionally include the font foundary in the name.  the foundary and font family name are separated by the '-' character.
         END;
+}}}
 *)
 
 
@@ -204,6 +182,8 @@ VAR
     idx, c : CARDINAL;
     ans    : CHAR;
     bool   : BOOLEAN;
+    str    : STRTYP;
+    dt1,dt2: TIMLIBrevised.DateTimeType;
 
 BEGIN
     c := 0;
@@ -284,12 +264,14 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
         HoursLeft := CountUpTimer/3600;
         MinutesLeft := (CountUpTimer MOD 3600) / 60;
         SecondsLeft := (CountUpTimer MOD 60);
-        FormatString.FormatString("%2c:%c:%c",SecondsLeftStr,HoursLeft,MinutesLeft,SecondsLeft);
+        dt2 := TIMLIBrevised.GetDateTime(dt1);
+        FormatString.FormatString("%2c:%c:%c    %s",SecondsLeftStr,HoursLeft,MinutesLeft,SecondsLeft,dt1.TimeWithSecondsStr);
         WindowText  :=  SecondsLeftStr;
         SetWindowTitle(tw, WindowText);
 (*
+{{{
         RepaintScreen(tw);
-        or maybe just
+}}}
 *)
         WriteStringAt(tw,0,0,SecondsLeftStr,a);
         EraseToEOL(tw,a);

@@ -580,7 +580,7 @@ BEGIN
          ch1 := inputline[4];
          ch2 := inputline[5];
        RMVCHR(inputbuf,1,3);
-         IF ch1 IN opset THEN
+       IF ch1 IN opset THEN
          GETRESULT(inputbuf,R);
        ELSIF ch2 IN opset THEN
          RMVCHR(inputbuf,1,1);

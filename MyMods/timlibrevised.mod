@@ -15,7 +15,7 @@ IMPLEMENTATION MODULE TIMLIBrevised;
                 client is ShowTimer.mod.
   30 Dec 16 -- Added Milisecs to DatetimeType, and now assumes that CARDINAL is 32 bits wide.  Removed the long deprecated JUL2GREG and GREG2JUL.
                  Renamed to TIMLIBrevised.
-
+  24 Apr 19 -- Started adding date and time strings to the DateTimeType.
 *)
 
   FROM Strings IMPORT Assign;
@@ -23,7 +23,6 @@ IMPLEMENTATION MODULE TIMLIBrevised;
   FROM SWholeIO IMPORT ReadInt, WriteInt, ReadCard, WriteCard;
   FROM STextIO IMPORT ReadString, WriteString, WriteLn, ReadChar, WriteChar, SkipLine;
   FROM RealStr IMPORT StrToReal, RealToFloat, RealToEng, RealToFixed, RealToStr;
-  IMPORT IOChan, ChanConsts;
   FROM SLongIO IMPORT ReadReal, WriteFloat, WriteEng, WriteFixed, WriteReal;
   FROM Environment IMPORT GetCommandLine;
   FROM UTILLIB IMPORT BLANK,NULL,STRTYP,BUFSIZ,BUFTYP,STR10TYP,TRIM;
@@ -31,11 +30,12 @@ IMPLEMENTATION MODULE TIMLIBrevised;
   FROM SysClock IMPORT DateTime,GetClock,CanGetClock,CanSetClock,IsValidDateTime,SetClock;
   FROM LongMath IMPORT sqrt,exp,ln,sin,cos,tan,arctan,arcsin,arccos,power,round;
   FROM LowLong IMPORT sign,ulp,intpart,fractpart,trunc (*,round*) ;
-  IMPORT RConversions, LongStr, LongConv, LowLong;
   FROM RConversions IMPORT RealToString, RealToStringFixed, StringToReal;
   FROM Conversions IMPORT StringToInt, StrToInt, IntToString, IntToStr, StringToCard,
     StrToCard, CardToString, CardToStr, StringToLong, StrToLong, LongToString, LongToStr;
-
+  IMPORT IOChan, ChanConsts;
+  IMPORT RConversions, LongStr, LongConv, LowLong;
+  IMPORT SysClock,FormatDT,FormatString;
 
 
 (*
@@ -71,6 +71,7 @@ TYPE
   DateTimeType = RECORD
     M,D,Yr,Hr,Minutes,Seconds,millisecs : CARDINAL;
     MonthStr,DayOfWeekStr : STR10TYP;
+    DateStr,TimeStr,TimeWithSecondsStr : STRTYP;
     Julian : CARDINAL;
   END;
 
@@ -119,6 +120,11 @@ CONST
 VAR
     DAYNAMES : ARRAY[1..7] OF STR10TYP;
 *)
+
+
+
+
+
 
 PROCEDURE TIME2MDY(VAR M,D,Y : CARDINAL);
 (*
@@ -218,11 +224,23 @@ BEGIN
   MDYSTR[STRPTR] := NULL;    (* NULL TERMINATE STRING *)
 END MDY2STR;
 
+(*
+{{{
+new fields in the TimeDateType record/struct -- DateStr,TimeStr,TimeWithSecondsStr : STRTYP;
+PROCEDURE DateTimeToString(dt : DateTime; VAR OUT date : ARRAY OF CHAR; VAR OUT time : ARRAY OF CHAR);
+PROCEDURE FormatString(formatStr : ARRAY OF CHAR; VAR OUT destStr : ARRAY OF CHAR) : BOOLEAN;
+destStr can be the same string as formatStr.
+this procedure takes a variable number of parameters
+to accomodate the contents of the format string
+}}}
+*)
+
 PROCEDURE GetDateTime(VAR dt : DateTimeType) : DateTimeType;  (* C-ish does this a lot, not sure why *)
 VAR
   DT : DateTimeType;
   SysTime : DateTime;
   DOW : CARDINAL;
+  AMpm : STRTYP;
 
 BEGIN
   IF NOT CanGetClock() THEN
@@ -252,14 +270,18 @@ BEGIN
     DOW := Julian MOD 7 + 1;
     Assign(MONTHNAMES[M],MonthStr);
     Assign(DAYNAMES[DOW],DayOfWeekStr);
+    FormatDT.DateTimeToString(SysTime,DateStr,TimeStr);
+    IF Hr > 12 THEN
+      Hr := Hr - 12;
+      AMpm := "PM";
+    ELSE
+      AMpm := "AM";
+    END;
+    FormatString.FormatString("%c:%c:%c %s",TimeWithSecondsStr,Hr,Minutes,Seconds,AMpm);
   END (* With DT *);
   dt := DT;
   RETURN dt;
 END GetDateTime;
-
-
-
-
 
 PROCEDURE GETMDY(INBUF : BUFTYP; VAR M,D,Y : CARDINAL);
 (*

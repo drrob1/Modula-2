@@ -6,7 +6,7 @@ DEFINITION MODULE TIMLIBrevised;
   11 Oct 16 -- Added DateTimeType and GetDateTime;
   30 Dec 16 -- Added Milisecs to DatetimeType, and now assumes that CARDINAL is 32 bits wide.  Removed the long deprecated JUL2GREG and GREG2JUL.
                  Renamed to TIMLIBrevised.
-
+  24 Apr 19 -- 
 *)
   FROM UTILLIB IMPORT STRTYP,STR10TYP,BUFTYP;
 
@@ -20,6 +20,7 @@ DEFINITION MODULE TIMLIBrevised;
     DateTimeType = RECORD
       M,D,Yr,Hr,Minutes,Seconds,Millisecs : CARDINAL;
       MonthStr,DayOfWeekStr : STR10TYP;
+      DateStr,TimeStr,TimeWithSecondsStr : STRTYP;
       Julian : CARDINAL;
     END;
 

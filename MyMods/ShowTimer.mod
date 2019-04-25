@@ -82,8 +82,9 @@ Most of the work of this pgm is done in the PAINT section.  The menu and key sec
 30 Jan 17 -- Took out the menu option to hide ShowTimer.  Killing a hidden task requires the TaskManager.
                I searched and learned that I cannot stop a screen saver by a simulated mouse event.
                But a simulated keybd event can stop it.  So I coded that, also based on a search.
- 1 Feb 17 -- Interrupting the screen saver sometimes works.  But it does come on.  I'll try to account for the time it takes for 
+ 1 Feb 17 -- Interrupting the screen saver sometimes works.  But it does come on.  I'll try to account for the time it takes for
                the clickloop.btm process.  I'll assume that takes up to 15 sec.
+24 Apr 19 -- Will add a clock function to the title display, to help when I'm charging my watch.
 --------------------------------------*)
 
 MODULE ShowTimer;
@@ -125,24 +126,15 @@ FROM TextWindows IMPORT
     Xpos, Ypos, Xorg, Yorg, Xmax, Ymax;
 IMPORT FileFunc;
 (*
-  FROM FileFunc IMPORT EOL, FileSpecString, NameString, FileAttributes, FileAttributeSet,
-    SearchEntry, FileNameParts /*drive path name extension*/, FileTypes, DeviceTypes,
-    AccessModes, FileUseInfo, FileUseInfoSet, CommonFileErrors, File, InvalidHandle,
-    MustHaveNormalFile, MustHaveDirectory, MustHaveNothing, AllAttributes, StdAttributes,
-    AddArchive, AddReadOnly, AddHidden, AddSystem, AddCompressed, AddTemporary,
-    AddEncrypted, AddOffline, AddAlias, AddNormalFile, AddDirectory, OpenFile,
-    OpenFileEx, CreateFile, CreateFileEx, GetTempFileDirectory, MakeTempFileName,
-    CreateTempFile, CreateTempFileEx, OpenCreateFile, OpenCreateFileEx, FakeFileOpen,
-    CloseFile, FileType, SetFileBuffer, RemoveFileBuffer, FlushBuffers, ReadBlock,
-    WriteBlock, ReadChar, WriteChar, PeekChar, ReadLine, WriteLine, LockFileRegion,
-    UnlockFileRegion, SetFilePos, GetFilePos, MoveFilePos, TruncateFile, FileLength,
-    GetFileSizes, TranslateFileError, GetFileAttr, SetFileAttr, GetFileDateTime,
-    SetFileDateTime, RenameFile, DeleteFile,
-    FileExists, CopyFile, SetHandleCount, GetNextDir, ParseFileName, ParseFileNameEx,
-    AssembleParts, ConstructFileName, ConstructFileNameEx, FindInPathList,
-    FindInOSPathList, ExpandFileSpec, FindFirst, FindNext, FindClose,
-    MakeDir, CreateDirTree, DeleteDir, DirExists, RenameDir, GetDefaultPath,
-    SetDefaultPath, GetDeviceFreeSpace, GetDeviceFreeSpaceEx, GetDeviceType;
+  FROM FileFunc IMPORT EOL, FileSpecString, NameString, FileAttributes, FileAttributeSet,SearchEntry, FileNameParts /*drive path name extension*/, FileTypes, DeviceTypes,
+    AccessModes, FileUseInfo, FileUseInfoSet, CommonFileErrors, File, InvalidHandle,MustHaveNormalFile, MustHaveDirectory, MustHaveNothing, AllAttributes, StdAttributes,
+    AddArchive, AddReadOnly, AddHidden, AddSystem, AddCompressed, AddTemporary,AddEncrypted, AddOffline, AddAlias, AddNormalFile, AddDirectory, OpenFile,
+    OpenFileEx, CreateFile, CreateFileEx, GetTempFileDirectory, MakeTempFileName,CreateTempFile, CreateTempFileEx, OpenCreateFile, OpenCreateFileEx, FakeFileOpen,
+    CloseFile, FileType, SetFileBuffer, RemoveFileBuffer, FlushBuffers, ReadBlock,WriteBlock, ReadChar, WriteChar, PeekChar, ReadLine, WriteLine, LockFileRegio,
+    UnlockFileRegion, SetFilePos, GetFilePos, MoveFilePos, TruncateFile, FileLength,GetFileSizes, TranslateFileError, GetFileAttr, SetFileAttr, GetFileDateTime,
+    SetFileDateTime, RenameFile, DeleteFile, FileExists, CopyFile, SetHandleCount, GetNextDir, ParseFileName, ParseFileNameEx,
+    AssembleParts, ConstructFileName, ConstructFileNameEx, FindInPathList, FindInOSPathList, ExpandFileSpec, FindFirst, FindNext, FindClose,
+    MakeDir, CreateDirTree, DeleteDir, DirExists, RenameDir, GetDefaultPath, SetDefaultPath, GetDeviceFreeSpace, GetDeviceFreeSpaceEx, GetDeviceType;
 *)
 IMPORT WinShell;
 FROM DlgShell IMPORT
@@ -155,12 +147,13 @@ IMPORT LongMath;
 IMPORT ASCII;
 FROM Environment IMPORT GetCommandLine;
 FROM REALLIB IMPORT AINT,AMOD,ROUND,PWRI;
-IMPORT RConversions, LongStr, LongConv,FormatString;
+IMPORT RConversions, LongStr, LongConv;
 FROM RConversions IMPORT RealToString, RealToStringFixed, StringToReal;
 FROM Conversions IMPORT StringToInt, StrToInt, IntToString, IntToStr, StringToCard,
     StrToCard, CardToString, CardToStr, StringToLong, StrToLong, LongToString, LongToStr;
-FROM TIMLIB IMPORT JULIAN,GREGORIAN,TIME2MDY, DateTimeType, GetDateTime;
+FROM TIMLIBrevised IMPORT JULIAN,GREGORIAN,TIME2MDY, DateTimeType, GetDateTime;
 FROM LongStr IMPORT StrToReal,RealToFloat,RealToEng,RealToFixed,RealToStr,ConvResults;
+IMPORT SysClock,FormatDT, FormatString;
 
 FROM UTILLIB IMPORT BLANK,NULL,STRTYP,BUFSIZ,BUFTYP,STR10TYP,TRIM,STRLENFNT,STRCMPFNT,
     SubStrCMPFNT,SCANBACK,SCANFWD,COPYLEFT,ASSIGN2BUF;
@@ -168,7 +161,7 @@ FROM SysClock IMPORT DateTime,GetClock,CanGetClock,CanSetClock,IsValidDateTime,S
 FROM LongMath IMPORT sqrt,exp,ln,sin,cos,tan,arctan,arcsin,arccos,power,round,pi;
 FROM LowLong IMPORT sign,ulp,intpart,fractpart,trunc (*,round*) ;
 IMPORT MiscM2;
-(* FROM MiscM2 IMPORT WriteString,WriteLn,PressAnyKey,WriteCard,WriteLongCard,WriteInt,ReadString,ReadCard,Error; *)
+                                      (* FROM MiscM2 IMPORT WriteString,WriteLn,PressAnyKey,WriteCard,WriteLongCard,WriteInt,ReadString,ReadCard,Error; *)
 FROM FilePicker IMPORT FileNamePicker;
 FROM MyFIO2 IMPORT EOFMARKER,DRIVESEP,SUBDIRSEP,EXTRACTDRVPTH,MYFILTYP,
   IOSTATE,FRESET,FPURGE,FOPEN,FCLOSE,FREAD,FRDTXLN,FWRTX,FWRTXLN,RETBLKBUF,
@@ -184,7 +177,7 @@ CONST
   InputPromptLn4 = " <home> or <PgUp> resume exit at the set time";
   InputPromptLn5 = " <end> or <PgDn> stop exit at the set time. ";
 
-  LastMod = "1 Feb 17";
+  LastMod = "Apr 24, 2019";
   clipfmt = CLIPBOARD_ASCII;
   ShowTimerIcon32 = '#100';
   ShowTimerIcon16 = '#200';
@@ -284,6 +277,8 @@ VAR
     ans    : CHAR;
     bool   : BOOLEAN;
     dt     : DateTimeType;  (* Also have DatTim declared globally *)
+    SYSTIME                : DateTime;
+    DateString, TimeString : STRTYP;
 
 BEGIN
     c := 0;
@@ -410,8 +405,27 @@ BEGIN
         WriteString(tw,str6,a);
         WriteString(tw," seconds.",a);
         EraseToEOL(tw,a);
-        WindowText  :=  str6;
+
+        FormatDT.GetSystemFormatInfo;
+        SysClock.GetClock(SYSTIME);
+        FormatDT.DateTimeToString(SYSTIME,DateString,TimeString);
+(*        WindowText  :=  str6; *)
+        WindowText := "%s    %s";
+        FormatString.FormatString(WindowText,WindowText,str6,TimeString);
         SetWindowTitle(tw, WindowText);
+
+(*
+{{{
+PROCEDURE DateTimeToString(dt : DateTime; VAR OUT date : ARRAY OF CHAR; VAR OUT time : ARRAY OF CHAR);
+PROCEDURE FormatString(formatStr : ARRAY OF CHAR;
+                       VAR OUT destStr : ARRAY OF CHAR) : BOOLEAN
+                         [RightToLeft, LEAVES, VARIABLE];
+
+destStr can be the same string as formatStr.
+this procedure takes a variable number of parameters
+to accomodate the contents of the format string
+}}}
+*)
         WriteLn(tw);
         WriteLn(tw);
         CardToStr(ScreenSaving, ScreenSavingStr);
@@ -477,17 +491,19 @@ BEGIN
 
       IF boolp^ THEN     (* if screensaver running, stop it *)
         INC(ScreenSaving);
-        (* WINUSER.keybd_event(bVK : BYTE; bScan : BYTE; dwflags : DWORD; dwExtraInfo : DWORD); *)
+(*
+ {{{
+                                                                              WINUSER.keybd_event(bVK : BYTE; bScan : BYTE; dwflags : DWORD; dwExtraInfo : DWORD);
+}}}
+*)
         WINUSER.keybd_event(WINUSER.VK_SPACE,0B9h,0,0);
       END; (* if screensaver running *)
 
 (* Don't need IF timerid here since I now only use 1 timer *)
 
       IF WiggleMouse <= 0 THEN  (* This counter is usually ~5 min, or ~300 sec, at the hospital. *)
-        WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, mousemoveamt),
-                                                     CAST(DWORD, mousemoveamt), 0, 0);
-        WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, -mousemoveamt),
-                                                     CAST(DWORD, -mousemoveamt), 0, 0);
+        WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, mousemoveamt), CAST(DWORD, mousemoveamt), 0, 0);
+        WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, -mousemoveamt), CAST(DWORD, -mousemoveamt), 0, 0);
         WiggleMouse := SSTimeOut;
 
       ELSE
@@ -502,8 +518,8 @@ BEGIN
 
       INC(CountUpTimer);
 
-
       dt := GetDateTime(DatTim); (* Both of these are out params, just like in C-ish.  Don't know why that's done, but it works. *)
+
       (* More elaborate than needed, to see if this works *)
       IF ProcessExitTime AND (dt.Hr >= HourOfDayExit) AND (DatTim.Minutes >= 0) AND (CountUpTimer > 10) THEN
           ASSIGN2BUF(FlagFileName,OUTFNAM);                      (* I copied the code from the <ESC> section below   *)
@@ -698,9 +714,11 @@ BEGIN
   FUNC WinShell.DispatchMessages(Start, NIL);
 END ShowTimer.
 
-(* PROCEDURE SetWindowTitle(tw : TextWindow; title : ARRAY OF CHAR);              *)
-(* PROCEDURE SetTimer(tw : TextWindow; timerId : CARDINAL; interval : CARDINAL);  *)
 (*
+{{{
+PROCEDURE SetWindowTitle(tw : TextWindow; title : ARRAY OF CHAR);
+PROCEDURE SetTimer(tw : TextWindow; timerId : CARDINAL; interval : CARDINAL);
+
    create/reset a timer associated with the specified window
    timerId = a unique number to identify the timer.
    interval = the amount of time in milliseconds between WSM_TIMER messages
@@ -708,39 +726,39 @@ END ShowTimer.
    calling SetTimer with the same timerId as a previous call but with
    a different interval has the effect of resetting the interval from
    the previous value to the new value
-*)
-(* PROCEDURE KillTimer(tw : TextWindow; timerId : CARDINAL);  InputPromptLen := LENGTH(InputPrompt); *)
 
-(*
+PROCEDURE KillTimer(tw : TextWindow; timerId : CARDINAL);  InputPromptLen := LENGTH(InputPrompt);
+
+
 Conversions PROCEDURE StringToInt(str : ARRAY OF CHAR;
                       VAR INOUT pos : CARDINAL;
                       VAR OUT num : INTEGER;
                       VAR OUT done : BOOLEAN);
-*)
-(* Get an integer number from a string starting at position pos. *)
-(* pos is left pointing at the first character that is not part of the *)
-(* number. done signifies the success of the conversion *)
-(* Skips any leading spaces. *)
 
-(*  Conversions PROCEDURE StrToInt(buf : ARRAY OF CHAR; VAR OUT num : INTEGER) : BOOLEAN; *)
-(* Convert an integer number from a string  *)
-(* Skips any leading spaces. *)
-(*
+Get an integer number from a string starting at position pos.
+pos is left pointing at the first character that is not part of the
+number. done signifies the success of the conversion
+Skips any leading spaces.
+
+Conversions PROCEDURE StrToInt(buf : ARRAY OF CHAR; VAR OUT num : INTEGER) : BOOLEAN;
+Convert an integer number from a string
+Skips any leading spaces.
+
 PROCEDURE StringToCard(str : ARRAY OF CHAR;
                        VAR INOUT pos : CARDINAL;
                        VAR OUT num : CARDINAL;
                        VAR OUT done : BOOLEAN);
-*)
-(* Get a cardinal number from a string starting at position pos. *)
-(* pos is left pointing at the first character that is not part of the *)
-(* number *)
-(* done signifies the success of the conversion *)
-(* Skips any leading spaces. *)
 
-(*  PROCEDURE StrToCard(buf : ARRAY OF CHAR; VAR OUT num : CARDINAL) : BOOLEAN; *)
-(* Convert a string in buf to a cardinal *)
-(* Skips any leading spaces. *)
-(*
+Get a cardinal number from a string starting at position pos.
+pos is left pointing at the first character that is not part of the
+number
+done signifies the success of the conversion
+Skips any leading spaces.
+
+PROCEDURE StrToCard(buf : ARRAY OF CHAR; VAR OUT num : CARDINAL) : BOOLEAN;
+Convert a string in buf to a cardinal
+Skips any leading spaces.
+
   PROCEDURE CreateWindow(parent : WinShell.Window;
                        name : ARRAY OF CHAR;
                        menu : ARRAY OF CHAR;
@@ -755,44 +773,43 @@ PROCEDURE StringToCard(str : ARRAY OF CHAR;
                        wndProc : TextWindowProcedure;
                        attribs : WinAttrSet;
                        createParam : ADDRESS) : TextWindow;
-(* create a new window *)
-(* parent = as WinShell  *)
-(* name = as WinShell  *)
-(* menu = the menu for the window. Can be "". *)
-(* icon =  as WinShell *)
-(* attribs = as WinShell *)
-(* wndProc = the window procedure *)
-(* createParam = an arbitrary value you can use to pass information
+create a new window
+parent = as WinShell
+name = as WinShell
+menu = the menu for the window. Can be "".
+icon =  as WinShell
+attribs = as WinShell
+wndProc = the window procedure
+createParam = an arbitrary value you can use to pass information
                  to the window procedure of the window. this value is
-                 passed in the WSM_CREATE message. *)
-(* font = the font to use for this window *)
-(* background = the background color for this window *)
-(* gutter = TRUE then the text window will always have a blank "gutter"
+                 passed in the WSM_CREATE message.
+font = the font to use for this window
+background = the background color for this window
+gutter = TRUE then the text window will always have a blank "gutter"
             on the left edge of the text window.
             FALSE the text will start at the left edge of the client area.
-            *)
-(* x, y = the initial screen coordinates for the window to be displayed
+
+x, y = the initial screen coordinates for the window to be displayed
           if a parameter is -1 then the operating system will choose
           a default location for that coordinate.
           these positions are in pixels and are relative to the
           parent window client area origin for child windows
-          or relative to the screen origin for all other windows. *)
-(* xSize, ySize = the initial width and height in character cells
-                  if -1 then a system default size will be used *)
-(* xBuffer, yBuffer = the size of the screen buffer. the window can never
+          or relative to the screen origin for all other windows.
+xSize, ySize = the initial width and height in character cells
+                  if -1 then a system default size will be used
+xBuffer, yBuffer = the size of the screen buffer. the window can never
                       be larger than the screen buffer. if either xBuffer
                       or yBuffer is -1 the screen buffer is a variable size
                       and is sized to the number of cells the window client
-                      area currently is capable displaying. *)
-(* returns the window handle if successfull, otherwise NIL *)
-*)
+                      area currently is capable displaying.
+returns the window handle if successfull, otherwise NIL
 
-(*
+
   https://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
   https://www.codeproject.com/articles/7305/keyboard-events-simulation-using-keybd-event-funct
   VK_SHIFT 0x10    left shift scan code AA, right shift scan code is B6
-  VK_CONTROL 0x11  left control scan code 9D, right control scan code is 
+  VK_CONTROL 0x11  left control scan code 9D, right control scan code is
   VK_MENU 0x12 but I don't have the scan code
 
-
+}}}
 *)
