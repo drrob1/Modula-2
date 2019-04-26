@@ -27,7 +27,6 @@ MODULE RPNM2;
   27 Mar 17 -- Renamed module to RPNM2.
   29 Mar 17 -- Removed some WriteLn's.
   31 Mar 17 -- Added Dispose to the returned string list from GETRESULT.
-  12 Apr 18 -- Updated string list use to match the now opaque type.
 *)
 
   FROM SYSTEM IMPORT ADR;
@@ -69,7 +68,7 @@ MODULE RPNM2;
   FROM HolidayCalc IMPORT HolType, GetHolidays;
 
 CONST
-  LastCompiled = "12 Apr 2018";
+  LastCompiled = "31 Mar 2017";
 
 VAR
   C,c,K,STRLEN,NON0POSN,NONBLPOSN,RetCode : CARDINAL;
@@ -141,10 +140,9 @@ BEGIN
   CurrentPointerBeginning(StringListP);
   StringP := GetNextStringFromList(StringListP);
   CurrentPointerBeginning(StringListP);
-  FOR c := 1 TO UTILLIB.StringListLen(StringListP) DO
+  FOR c := 1 TO StringListP^.len DO
     StringP := GetNextStringFromList(StringListP);
-    buf := UTILLIB.GetBuftypFromItem(StringP);
-    WriteString(buf.CHARS);
+    WriteString(StringP^.S.CHARS);
     WriteLn;
   END; (* FOR strings to list *)
   WriteLn;
@@ -224,13 +222,12 @@ BEGIN (********************* MAIN ****************************************)
     WriteLn;
     IF StringListP1 <> NIL THEN
       CurrentPointerBeginning(StringListP1);
-      FOR c := 1 TO UTILLIB.StringListLen(StringListP1) DO
+      FOR c := 1 TO StringListP1^.len DO
         StringP1 := GetNextStringFromList(StringListP1);
-        STR1 := UTILLIB.GetStringFromItem(StringP1);
-        WriteString(STR1);
+        WriteString(StringP1^.S.CHARS);
         WriteLn;
       END; (* FOR strings to list in StringListP1 *)
-      UTILLIB.DisposeStringListPointerType(StringListP1);
+      UTILLIB.DisposeStringListPointerType(StringListP1); 
     ELSE
       WriteString(' Result = ');
       LongStr.RealToStr(R,Xstr);

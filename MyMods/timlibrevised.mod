@@ -271,11 +271,14 @@ BEGIN
     Assign(MONTHNAMES[M],MonthStr);
     Assign(DAYNAMES[DOW],DayOfWeekStr);
     FormatDT.DateTimeToString(SysTime,DateStr,TimeStr);
-    IF Hr > 12 THEN
+    IF Hr >= 12 THEN
       Hr := Hr - 12;
       AMpm := "PM";
     ELSE
       AMpm := "AM";
+    END;
+    IF Hr < 1 THEN  (* So 0: Hours reads as 12 o'clock.  Must do this after assigning AM or PM, so 12 AM is not shown as 12 PM. *)
+      Hr := 12;
     END;
     FormatString.FormatString("%c:%c:%c %s",TimeWithSecondsStr,Hr,Minutes,Seconds,AMpm);
   END (* With DT *);

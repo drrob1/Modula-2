@@ -99,7 +99,7 @@ FROM LowLong IMPORT sign,ulp,intpart,fractpart,trunc (*,round*) ;
 CONST
   szAppName = "SS5";  (* Screen Saving Dancing Mouse 5.  Text windows started in version 4 *)
   InputPrompt = 'Enter cmd or HELP : ';
-  LastMod = "Apr 25, 2019";
+  LastMod = "Apr 26, 2019";
   clipfmt = CLIPBOARD_ASCII;
   SS5Icon32 = '#100';
   SS5Icon16 = '#200';
@@ -276,7 +276,11 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
         WriteStringAt(tw,0,0,SecondsLeftStr,a);
         EraseToEOL(tw,a);
         WriteLn(tw);
+        WriteString(tw,dt2.TimeStr,a);   (* Using dt2 here instead of dt1, just to see if it works.   *)
+        EraseToEOL(tw,a);
+        WriteLn(tw);
         CardToStr(ScreenSaving, str0);
+        WriteString(tw,"ScreenSaving tally: ",a);
         WriteString(tw,str0,a);
         EraseToEOL(tw,a);
         WriteLn(tw);

@@ -6,7 +6,7 @@ IMPLEMENTATION MODULE MiscStdInOut;
    2 Apr 13 -- Defined SkipLine, which is needed for terminal input.
    3 Apr 13 -- Added WriteLongCard.  And ADDCOMMAS
    5 Jan 15 -- Removed references to the complex family.
-  30 Dec 16 -- Now imports TIMLIBrevised.
+  26 Apr 19 -- Changed cardinal conversion so that numbers < 10,000 do not show a comma.
 *)
 
         (********************************************************)
@@ -256,10 +256,10 @@ BEGIN
   NCOM := PTR DIV 3;
   NULLPOSN := NDGTS + NCOM;
   IF NULLPOSN > HIGH(STR) THEN
-(*
+(* {{{
     WriteString(' Cannot add commas because string is too small.');
     WriteLn;
-*)
+}}} *)
     RETURN;
   END(*IF*);
   WHILE NCOM > 0 DO
@@ -353,7 +353,9 @@ PROCEDURE WriteLongCard (n : LONGCARD);
 
     BEGIN
       LWholeStr.LongCardToStr(n,s);
-      ADDCOMMAS(s);
+      IF n > 9999 THEN
+        ADDCOMMAS(s);
+      END;
       WriteString(s);
     END WriteLongCard;
 (************************************************************************)
@@ -364,7 +366,9 @@ VAR s : STRTYP;
 
     BEGIN
       WholeStr.CardToStr(N,s);
-      ADDCOMMAS(s);
+      IF N > 9999 THEN
+        ADDCOMMAS(s);
+      END;
       WriteString(s);
     END WriteCard;
 
@@ -388,7 +392,9 @@ PROCEDURE WriteRJCard (number, fieldsize: CARDINAL);
         c : CARDINAL;
 
     BEGIN
-(*        SWholeIO.WriteCard (number, fieldsize); *)
+(* {{{
+        SWholeIO.WriteCard (number, fieldsize);
+}}}*)
       WholeStr.CardToStr(number,s);
       WHILE LENGTH(s) < fieldsize DO
         Strings.Insert(' ',0,s);

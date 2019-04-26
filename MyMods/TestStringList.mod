@@ -9,7 +9,6 @@ REVISION HISTORY
 31 Mar 17 -- Now testing DisposeStringListPointerType;
  3 Apr 17 -- Testing the remove string stuff.
  9 Apr 18 -- Added NewStringList, in the Go idiom format.  And then opaque types w/ the needed getter routines.
-10 Apr 18 -- Testing more of the getter routines.
 *)
 
 
@@ -39,7 +38,7 @@ REVISION HISTORY
   StringDoubleLinkedListPointerType = POINTER TO StringDoubleLinkedListType;
 *)
 
-(*    removed 4/9/2018 5:42:08 PM as not being used.
+(*    removed 4/9/2018 5:42:08 PM as it's not used.
   FROM Environment IMPORT GetCommandLine;
   IMPORT TIMLIBrevised;
   FROM TIMLIBrevised IMPORT TIME2MDY, JULIAN, GREGORIAN, DateTimeType, GetDateTime;
@@ -47,7 +46,7 @@ REVISION HISTORY
 *)
 
   CONST
-    LastAltered = "10 Apr 2018";
+    LastAltered = "9 Apr 2018";
 
   VAR
 (*     removed 4/9/2018 5:44:35 PM
@@ -150,25 +149,13 @@ BEGIN
   (* StringListP1 := InitStringListPointerType();  *)
   StringListP1 := NewStringList();
 
-  AppendStringToList(StringListP1," First String in this double linked list");
-  AppendStringToList(StringListP1," Second String in this double linked list");
-  AppendStringToList(StringListP1," Third String in this double linked list");
-  AppendStringToList(StringListP1," Fourth string in this double linked list");
-
-  WriteString(" Testing CurrentString (should be last string) : ");
-  s := UTILLIB.CurrentString(StringListP1);
-  WriteString(s);
-  WriteLn;
+  AppendStringToList(StringListP1," First String in this double linked list.");
+  AppendStringToList(StringListP1," Second String in this double linked list.");
+  AppendStringToList(StringListP1," Third String in this double linked list.");
+  AppendStringToList(StringListP1," Fourth string in this double linked list.");
 
 (* Display the list in forward direction *)
   CurrentPointerBeginning(StringListP1);
-  WriteString(" Testing CurrentString (should be first string) : ");
-  s := UTILLIB.CurrentString(StringListP1);
-  WriteString(s);
-  WriteLn;
-  WriteLn;
-  WriteLn;
-
 
   FOR c1 := 1 TO UTILLIB.StringListLen(StringListP1) DO
     StringP := GetNextStringFromList(StringListP1);
@@ -236,8 +223,6 @@ BEGIN
   END; (* for range StringList len *)
   WriteLn;
 
-  PressAnyKey;
-
   WriteString(" And then there were none.");
   WriteLn;
   WriteLn;
@@ -263,30 +248,15 @@ BEGIN
   WriteLn;
   WriteLn;
 
+  PressAnyKey;
+
   AppendStringToList(StringListP1,"First String");
   AppendStringToList(StringListP1,"Second String");
   AppendStringToList(StringListP1,"Third String");
   AppendStringToList(StringListP1,"Fourth string");
 
-  PressAnyKey;
-
-  WriteString(" Testing CurrentStringBuffer (should be last string) : ");
-  b := UTILLIB.CurrentStringBuffer(StringListP1);
-  WriteString(b.CHARS);
-  WriteString("  count= ");
-  WriteCard(b.COUNT);
-  WriteLn;
-
 (* Display the list in forward direction *)
   CurrentPointerBeginning(StringListP1);
-  WriteString(" Testing CurrentStringBuffer (should be first string) : ");
-  b := UTILLIB.CurrentStringBuffer(StringListP1);
-  WriteString(b.CHARS);
-  WriteString("  count= ");
-  WriteCard(b.COUNT);
-  WriteLn;
-  WriteLn;
-  WriteLn;
 
   FOR c1 := 1 TO UTILLIB.StringListLen(StringListP1) DO
     StringP := GetNextStringFromList(StringListP1);
@@ -370,7 +340,7 @@ BEGIN
   WriteLn;
 
 
-  WriteString(" The length of the string list by the len field is ");
+  WriteString(" The length of the string by the len field is ");
   WriteCard(UTILLIB.StringListLen(StringListP1));
   WriteLn;
 
@@ -394,10 +364,10 @@ BEGIN
 (*  StringListP1 := InitStringListPointerType(); *)
   StringListP1 := NewStringList();
 
-  AppendStringToList(StringListP1," Fifth String in this double linked list");
-  AppendStringToList(StringListP1," Sixth String in this double linked list");
-  AppendStringToList(StringListP1," Seventh String in this double linked list");
-  AppendStringToList(StringListP1," Eighth string in this double linked list");
+  AppendStringToList(StringListP1," Fifth String in this double linked list.");
+  AppendStringToList(StringListP1," Sixth String in this double linked list.");
+  AppendStringToList(StringListP1," Seventh String in this double linked list.");
+  AppendStringToList(StringListP1," Eighth string in this double linked list.");
 
 (* Display the list in forward direction *)
   CurrentPointerBeginning(StringListP1);
@@ -422,7 +392,7 @@ BEGIN
   WriteLn;
 
 
-  WriteString(" The length of the string list by the len field should be four, it is ");
+  WriteString(" The length of the string by the len field should be four, it is ");
   WriteCard(UTILLIB.StringListLen(StringListP1));
   WriteLn;
 
