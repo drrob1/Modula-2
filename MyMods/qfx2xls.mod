@@ -44,6 +44,8 @@ MODULE qfx2xls;
   16 Mar 18 -- Will directly create .xls file w/ tab delims.
   17 Mar 18 -- Moved the close files code to the close message.  I don't know why I had it in the paint message.
                  Now I know.  So I could see the message.  I moved it back to the paint message.
+  11 Oct 18 -- Adding a text string to be appended to the comment field.  I intend this to be the name of the bank,
+                 or something similar.
 *)
 
 
@@ -134,7 +136,7 @@ IMPORT WholeStr, LongStr, LongConv;
 CONST
 (*  szAppName = "qfx2xls"; unused *)
 (*  InputPrompt = "Enter cmd or HELP : "; unused *)
-  LastMod = "17 Mar 2018";
+  LastMod = "11 Oct 2018";
   CitiIcon = "#100";
   MenuSep = '|';
 
@@ -436,6 +438,7 @@ CONST comma = ",";
 VAR
    strlen,k,c1,patternposn : CARDINAL;
    found : BOOLEAN;
+   s : STRTYP;
 
 BEGIN
 (* Need to get header info for ORG and ACCTID *)
@@ -496,6 +499,15 @@ BEGIN
   UNTIL NOT found;
 
   Strings.Concat(outfilename,acntid,comment);
+
+  s := "";
+  BasicDialogs.PromptString(" Enter a string to append to comment field", s);
+(* PROCEDURE PromptString(prompt : ARRAY OF CHAR; VAR INOUT response : ARRAY OF CHAR) : BOOLEAN; *)
+
+  IF LENGTH(s) > 0 THEN
+    Strings.Append(".  ",comment);
+    Strings.Append(s,comment);
+  END;
 
 
   LOOP (* to read multiple records *)

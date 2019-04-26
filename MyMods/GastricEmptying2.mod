@@ -8,34 +8,32 @@ MODULE GastricEmptying2;
   12 Sep 11 -- Added my new FilePicker module.
   26 Dec 14 -- Will change to the FilePickerBase module as I now find it easier to use.  Copied from vlc.mod.
                  But these use terminal mode.
-  27 Dec 14 -- Removing unused modules so can compile in ADW.
-  21 Jun 15 -- Will write out to file, and close all files before program closes.
 *)
-
-(*
-  8/28/2015
-  Normal values from source that I don't remember anymore.
-  1 hr should have 90% of activity remaining in stomach = 6.6 hr halflife = 395 min halflife
-  2 hr should have 60% of activity remaining in stomach = 2.7 hr halflife = 163 min halflife
-  3 hr should have 30% of activity remaining in stomach = 1.7 hr halflife = 104 min halflife
-  4 hr should have 10% of activity remaining in stomach = 1.2 hr halflife = 72 min halflife
-
-*)
-
 
 FROM SYSTEM IMPORT FUNC,CAST;
 FROM Storage IMPORT ALLOCATE, DEALLOCATE;
 FROM LR IMPORT SEMILOGLR, SIMPLELR;
-IMPORT WINUSER;
 IMPORT LongMath;
 FROM LongMath IMPORT ln,exp;
 IMPORT STextIO;
+(* from Def Mod STextIO.  Remember to link as a console ap if use std i/o.
+         FROM STextIO IMPORT WriteChar, WriteLn, WriteString;
+         PROCEDURE WriteChar(ch : CHAR);
+         PROCEDURE WriteLn;
+         PROCEDURE WriteString(s : ARRAY OF CHAR);
+*)
+(*  No longer need this, as it is included in MiscStdInOut
+    FROM STextIO IMPORT WriteString, WriteLn;
+*)
 IMPORT MiscM2;
 FROM MiscM2 IMPORT WriteCard, CLS, WriteString, WriteLn, PressAnyKey, Error, WriteInt,
     WriteReal, WriteLongReal, ReadString, ReadCard, ReadLongReal;
 
-IMPORT Terminal;
+FROM Mat IMPORT Zero, Write, Add, Sub, Mul, Random, Solve, GaussJ, Invert, Eigenvalues;
+
+IMPORT Terminal, BasicDialogs, DlgShell;
 FROM Terminal IMPORT Position;
+FROM BasicDialogs IMPORT MessageTypes;
 IMPORT Strings,MemUtils;
 IMPORT WholeStr,LongStr, LongConv;
 IMPORT ASCII;
@@ -49,6 +47,7 @@ FROM TIMLIB IMPORT JULIAN,GREGORIAN,TIME2MDY;
 FROM MyFIO IMPORT EOFMARKER,DRIVESEP,SUBDIRSEP,EXTRACTDRVPTH,MYFILTYP,
     IOSTATE,FRESET,FPURGE,FOPEN,FCLOSE,FREAD,FRDTXLN,FWRTX,FWRTXLN,RETBLKBUF,
     FWRBL,FWRSTR,FWRLN,FAPPEND;
+(*                                                        FROM FilePicker IMPORT FileNamePicker; *)
 FROM FilePickerBase IMPORT CountOfEntries, SetFilenamePattern, GetNextFilename, GetPrevFilename;
 FROM FileFunc IMPORT NameString,FileExists;
 FROM LongStr IMPORT StrToReal, RealToFloat, RealToEng, RealToFixed, RealToStr;
@@ -56,11 +55,11 @@ FROM LongStr IMPORT StrToReal, RealToFloat, RealToEng, RealToFixed, RealToStr;
 
 (*
                                 FROM Terminal IMPORT Read, WriteString, WriteLn, Write, ReadChar, Reset;
+                FROM SysClock IMPORT DateTime,GetClock,CanGetClock,CanSetClock,IsValidDateTime,SetClock;
 *)
 
 CONST MaxN = 500;
       MaxCol = 10;
-      SigFig = 2;
       GastricPattern = "gastric*.txt";
       MenuSep = '|';
       StomIcon32 = '#100';
@@ -77,17 +76,16 @@ VAR
   ch,ch1,ch2,ch3 :  CHAR;
   bool,inputprocessed :  BOOLEAN;
   sigfig,c1,c2,c3,N,M,max,ctr,len :  CARDINAL;
-  inputline,OpenFileName,str1,str2,str3,str4,str5,str6,str7,str8,filter,str0,
-  Thalf1strFixed,Thalf2strFixed,Thalf1gen,Thalf2gen : STRTYP;
-  ns, infilename, outfilename, DirEntry : NameString;
+  inputline,OpenFileName,str1,str2,str3,str4,str5,str6,str7,str8,filter,str0 : STRTYP;
+  ns, infilename, DirEntry      : NameString;
   longstr     : ARRAY [0..5120] OF CHAR;
   InputPromptLen, LastModLen : CARDINAL;
   inputbuf    : BUFTYP;
-  mybuf,token : BUFTYP;
   r           : LONGREAL;
   L           : LONGINT;
   LC          : LONGCARD;
-  InFile,OutFile : MYFILTYP;
+  InFile      : MYFILTYP;
+  mybuf,token : BUFTYP;
   tknstate    : FSATYP;
   c,retcod,row,col    : CARDINAL;
   i           : INTEGER;
@@ -140,7 +138,7 @@ BEGIN
 
   WriteLn;
   GetCommandLine(ns);
-  CheckPattern(ns);  (* if ns is empty, makes pattern gastric*.txt *)
+  CheckPattern(ns);
   SetFilenamePattern(ns);
 
   max := CountOfEntries;
@@ -341,14 +339,9 @@ BEGIN
     HALT;
   END(*if*);
 
-  outfilename := infilename;
-  Strings.Append(".out",outfilename);
 
   ASSIGN2BUF(infilename,mybuf);
   FOPEN(InFile,mybuf,RD);
-
-  ASSIGN2BUF(outfilename,mybuf);
-  FOPEN(OutFile,mybuf,APND);
   N := 0;
   LOOP   (* read, count and process lines *)
     WHILE N < MaxN DO
@@ -400,34 +393,14 @@ BEGIN
 (*  CLS;         *)
   SEMILOGLR(N,X,Y,lambda1,intercept1);
   Thalf1 := -ln2/lambda1;
-  LongStr.RealToFixed(Thalf1,SigFig,Thalf1strFixed);
-  LongStr.RealToStr(Thalf1,Thalf1gen);
-
   SEMILOGLR(N,X,DecayCorY,lambda2,intercept2);
   Thalf2 := -ln2/lambda2;
-  LongStr.RealToFixed(Thalf2,SigFig,Thalf2strFixed);
-  LongStr.RealToStr(Thalf2,Thalf2gen);
-
-
   WriteString(' Uncorrected T-1/2 is ');
-  WriteString(Thalf1strFixed);
-(*                                               WriteLongReal(Thalf1,4); *)
+  WriteLongReal(Thalf1,4);
   WriteString(' minutes.  Corrected T-1/2 is ');
-  WriteString(Thalf2strFixed);
-(*                                               WriteLongReal(Thalf2,4); *)
+  WriteLongReal(Thalf2,4);
   WriteString(' minutes.');
   WriteLn;
-
-  FWRSTR(OutFile," Uncorrected T-1/2 is ");
-  FWRSTR(OutFile,Thalf1strFixed);
-  FWRSTR(OutFile," (");
-  FWRSTR(OutFile,Thalf1gen);
-  FWRSTR(OutFile," ) minutes.  Corrected T-1/2 is ");
-  FWRSTR(OutFile,Thalf2strFixed);
-  FWRSTR(OutFile," (");
-  FWRSTR(OutFile,Thalf2gen);
-  FWRSTR(OutFile," ) minutes.");
-  FWRLN(OutFile);
 (*
   WriteString(' uncorrected T-1/2 is ');
   WriteLongReal(Thalf1,4);
@@ -452,6 +425,5 @@ BEGIN
 *)
   IF tpv1 # NIL THEN DISPOSE(tpv1); END;
   FCLOSE(InFile);
-  FCLOSE(OutFile);
   PressAnyKey;
 END GastricEmptying2.

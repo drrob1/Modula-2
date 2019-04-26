@@ -1,6 +1,6 @@
 <*DEFINE (ConsoleMode,TRUE)*>
 (* (C) 1990-2013.  Robert W. Solomon.  All rights reserved.  *)
-MODULE RPNM2;
+MODULE RPN;
 (*
   This module uses the HPCALC module to simulate an RPN type calculator.
   REVISION HISTORY
@@ -23,53 +23,63 @@ MODULE RPNM2;
   16 Apr 16 -- undo, redo commands in HPCALC.
    7 Jul 16 -- UP command in HPCALC.  PI added to help, also in HPCALC.
    8 Jul 16 -- Added line to always display the stack using Dump2Console, and added a startup message.
-  26 Mar 17 -- HPCALC now outputs a string list instead of directly doing I/O.  All I/O now done here.
-  27 Mar 17 -- Renamed module to RPNM2.
-  29 Mar 17 -- Removed some WriteLn's.
-  31 Mar 17 -- Added Dispose to the returned string list from GETRESULT.
-  12 Apr 18 -- Updated string list use to match the now opaque type.
+  26 Mar 17 -- HPCALC now outputs a string list instead of directly doing I/O.
 *)
-
   FROM SYSTEM IMPORT ADR;
-  IMPORT STextIO, SWholeIO, SLWholeIO, LongStr;
+(*
+                            FROM SLWholeIO IMPORT ReadLongInt,WriteLongInt,ReadLongCard,WriteLongCard;
+                            FROM SWholeIO IMPORT ReadInt, WriteInt, ReadCard, WriteCard;
+                            FROM STextIO IMPORT ReadString, WriteString, WriteLn, ReadChar, WriteChar, SkipLine;
+                            FROM RealStr IMPORT StrToReal, RealToFloat, RealToEng, RealToFixed, RealToStr;
+                            FROM SysClock IMPORT DateTime,GetClock,CanGetClock,CanSetClock,IsValidDateTime,SetClock;
+                            FROM LowLong IMPORT sign,ulp,intpart,fractpart,trunc (*,round*) ;
+                            FROM LongMath IMPORT sqrt,exp,ln,sin,cos,tan,arctan,arcsin,arccos,power,round,pi;
+                            IMPORT RConversions, LongStr, LongConv, WholeStr (*, FormatString *) ;
+                            FROM Conversions IMPORT StringToInt, StrToInt, IntToString, IntToStr, StringToCard,
+                               StrToCard, CardToString, CardToStr, StringToLong, StrToLong, LongToString, LongToStr;
+                            IMPORT Strings,MemUtils,ASCII;
+                            FROM ExStrings IMPORT AppendChar, EqualI;
+*)
+  IMPORT STextIO, SWholeIO, SLWholeIO;
   FROM RConversions IMPORT RealToString, RealToStringFixed, StringToReal;
   FROM SLongIO IMPORT ReadReal, WriteFloat, WriteEng, WriteFixed, WriteReal;
   FROM Environment IMPORT GetCommandLine;
-  IMPORT UTILLIB;
-  FROM UTILLIB IMPORT BUFSIZ,CTRLCOD,STRTYP,STR10TYP,STR20TYP,BUFTYP,MAXCARDFNT,BLANK,NULL,COPYLEFT,COPYRIGHT,
-    FILLCHAR,SCANFWD,SCANBACK, STRLENFNT,STRCMPFNT,LCHINBUFFNT,stricmpfnt,MRGBUFS,TRIMFNT,TRIM,RMVCHR,APPENDA2B,
-    CONCATAB2C,INSERTAin2B,ASSIGN2BUF, StringItemPointerType,StringDoubleLinkedListPointerType,
-    InitStringListPointerType,AppendStringToList,NextStringFromList,PrevStringFromList,CurrentPointerBeginning,
-    CurrentPointerEnding,GetNextStringFromList,GetPrevStringFromList;
+  FROM UTILLIB IMPORT BLANK,NULL,STRTYP,BUFSIZ,BUFTYP,STR10TYP,TRIM,STRLENFNT,STRCMPFNT,stricmpfnt,
+    SCANBACK,SCANFWD,COPYLEFT;
   FROM TKNRTNS IMPORT FSATYP,CHARSETTYP,DELIMCH,INI1TKN,INI3TKN,GETCHR,
     UNGETCHR,GETTKN,NEWDELIMSET,NEWOPSET,NEWDGTSET,GETTKNSTR,GETTKNEOL,
     UNGETTKN,GETTKNREAL;
   FROM REALLIB IMPORT AINT,ROUND,AMOD,PWRI,GETCROPNUM;
-  FROM TIMLIBrevised IMPORT JULIAN,GREGORIAN,TIME2MDY;
+  FROM TIMLIB IMPORT JULIAN,GREGORIAN,TIME2MDY;
   FROM HPCALC IMPORT STACKSIZE,PUSHX,READX,GETSTACK,DUMPSTACK,GETRESULT,RealStack,Holidays,PushStacks,
     RollDownStacks,RollUpStacks;
   IMPORT HPCALC, MiscStdInOut, Terminal;
   FROM MiscStdInOut IMPORT WriteString,WriteLn,PressAnyKey,WriteCard,WriteInt,ReadString,ReadCard,Error;
   FROM FormatString IMPORT FormatString;
-  FROM FileFunc IMPORT EOL, FileSpecString, NameString, FileAttributes, FileAttributeSet, SearchEntry,
-    FileNameParts (*drive path name extension*), FileTypes, DeviceTypes, AccessModes, FileUseInfo, FileUseInfoSet,
-    CommonFileErrors, File, InvalidHandle, MustHaveNormalFile, MustHaveDirectory, MustHaveNothing, AllAttributes,
-    StdAttributes, AddArchive, AddReadOnly, AddHidden, AddSystem, AddCompressed, AddTemporary, AddEncrypted,
-    AddOffline, AddAlias, AddNormalFile, AddDirectory, OpenFile, OpenFileEx, CreateFile, CreateFileEx,
-    GetTempFileDirectory, MakeTempFileName, CreateTempFile, CreateTempFileEx, OpenCreateFile, OpenCreateFileEx,
-    FakeFileOpen, CloseFile, FileType, SetFileBuffer, RemoveFileBuffer, FlushBuffers, ReadBlock, WriteBlock,
-    ReadChar, WriteChar, PeekChar, ReadLine, WriteLine, LockFileRegion, UnlockFileRegion, SetFilePos, GetFilePos,
-    MoveFilePos, TruncateFile, FileLength, GetFileSizes, TranslateFileError, GetFileAttr, SetFileAttr,
-    GetFileDateTime, SetFileDateTime, RenameFile, DeleteFile, FileExists, CopyFile, SetHandleCount, GetNextDir,
-    ParseFileName, ParseFileNameEx, AssembleParts, ConstructFileName, ConstructFileNameEx, FindInPathList,
-    FindInOSPathList, ExpandFileSpec, FindFirst, FindNext, FindClose, MakeDir, CreateDirTree, DeleteDir, DirExists,
-    RenameDir, GetDefaultPath, SetDefaultPath, GetDeviceFreeSpace, GetDeviceFreeSpaceEx, GetDeviceType;
+  FROM FileFunc IMPORT EOL, FileSpecString, NameString, FileAttributes, FileAttributeSet,
+    SearchEntry, FileNameParts (*drive path name extension*), FileTypes, DeviceTypes,
+    AccessModes, FileUseInfo, FileUseInfoSet, CommonFileErrors, File, InvalidHandle,
+    MustHaveNormalFile, MustHaveDirectory, MustHaveNothing, AllAttributes, StdAttributes,
+    AddArchive, AddReadOnly, AddHidden, AddSystem, AddCompressed, AddTemporary,
+    AddEncrypted, AddOffline, AddAlias, AddNormalFile, AddDirectory, OpenFile,
+    OpenFileEx, CreateFile, CreateFileEx, GetTempFileDirectory, MakeTempFileName,
+    CreateTempFile, CreateTempFileEx, OpenCreateFile, OpenCreateFileEx, FakeFileOpen,
+    CloseFile, FileType, SetFileBuffer, RemoveFileBuffer, FlushBuffers, ReadBlock,
+    WriteBlock, ReadChar, WriteChar, PeekChar, ReadLine, WriteLine, LockFileRegion,
+    UnlockFileRegion, SetFilePos, GetFilePos, MoveFilePos, TruncateFile, FileLength,
+    GetFileSizes, TranslateFileError, GetFileAttr, SetFileAttr, GetFileDateTime,
+    SetFileDateTime, RenameFile, DeleteFile,
+    FileExists, CopyFile, SetHandleCount, GetNextDir, ParseFileName, ParseFileNameEx,
+    AssembleParts, ConstructFileName, ConstructFileNameEx, FindInPathList,
+    FindInOSPathList, ExpandFileSpec, FindFirst, FindNext, FindClose,
+    MakeDir, CreateDirTree, DeleteDir, DirExists, RenameDir, GetDefaultPath,
+    SetDefaultPath, GetDeviceFreeSpace, GetDeviceFreeSpaceEx, GetDeviceType;
   IMPORT Strings;
   FROM Strings IMPORT Append, Equal, Delete, Concat, Capitalize;
   FROM HolidayCalc IMPORT HolType, GetHolidays;
 
 CONST
-  LastCompiled = "12 Apr 2018";
+  LastCompiled = "26 Mar 2017";
 
 VAR
   C,c,K,STRLEN,NON0POSN,NONBLPOSN,RetCode : CARDINAL;
@@ -80,9 +90,7 @@ VAR
   stk                                     : ARRAY [1..STACKSIZE] OF LONGREAL;
   StackFile                               : File;
   inputline,HPFileName,StackFileName,Xstr : STRTYP;
-  DAYNAMES : ARRAY [1..7] OF STR10TYP;
-  StringListP1 : StringDoubleLinkedListPointerType;
-  StringP1 : StringItemPointerType;
+  DAYNAMES         : ARRAY [1..7] OF STR10TYP;
 
 (*********************************************************************)
 PROCEDURE CleanRealString(VAR INOUT str: ARRAY OF CHAR);
@@ -110,7 +118,6 @@ BEGIN
   END;                                                                    (*  str[inner+1] := NULL; *)
 END CleanRealString;
 
-(*****************************************************)
 PROCEDURE TruncateInsigZeros(VAR INOUT str : ARRAY OF CHAR);
 VAR
   StrLen, Non0Posn, NonBlPosn : CARDINAL;
@@ -127,31 +134,6 @@ BEGIN
       COPYLEFT(ADR(str[NonBlPosn]),ADR(str),Non0Posn-NonBlPosn+1);
 END TruncateInsigZeros;
 
-(*****************************************************)
-PROCEDURE DumpToConsole;
-VAR
-    c : CARDINAL;
-    StringListP : StringDoubleLinkedListPointerType;
-    StringP : StringItemPointerType;
-    buf : BUFTYP;
-BEGIN
-  Strings.Assign("DUMP",buf.CHARS);
-  TRIM(buf);
-  StringListP := GETRESULT(buf,R);
-  CurrentPointerBeginning(StringListP);
-  StringP := GetNextStringFromList(StringListP);
-  CurrentPointerBeginning(StringListP);
-  FOR c := 1 TO UTILLIB.StringListLen(StringListP) DO
-    StringP := GetNextStringFromList(StringListP);
-    buf := UTILLIB.GetBuftypFromItem(StringP);
-    WriteString(buf.CHARS);
-    WriteLn;
-  END; (* FOR strings to list *)
-  WriteLn;
-  WriteLn;
-END DumpToConsole;
-
-(*****************************************************)
 PROCEDURE Dump2Console;
 VAR
     S      : CARDINAL;
@@ -166,9 +148,12 @@ BEGIN
   STextIO.WriteLn;
 
   FOR S := STACKSIZE TO 1 BY -1 DO
-    LongStr.RealToStr(stk[S],Xstr);
-    TruncateInsigZeros(Xstr);
-    ok := FormatString("%-13s ||  ",NUMSTR,Xstr);
+    K := 0;
+    RealToStringFixed(stk[S],15,5,Xstr,K,OKAY);
+    IF OKAY THEN
+      TruncateInsigZeros(Xstr);
+    END;
+    ok := FormatString('%-13s ||  ',NUMSTR,Xstr);
     IF ok THEN
       STextIO.WriteString(NUMSTR);
     END;
@@ -205,9 +190,11 @@ BEGIN (********************* MAIN ****************************************)
   END; (* if stackfileexists *)
   PushStacks;
 
-  WriteString(" HP RPN type calculator written in Modula-2.  Last compiled  ");
+  WriteString(" HP RPN type calculator started.  Last compiled  ");
   WriteString(LastCompiled);
   WriteString(".");
+  WriteLn;
+  WriteLn;
   WriteLn;
 
   GetCommandLine(INBUF.CHARS);
@@ -217,33 +204,39 @@ BEGIN (********************* MAIN ****************************************)
   IF INBUF.COUNT <= 0 THEN
     WriteString(' Enter calculation, HELP or Enter to exit: ');
     ReadString(INBUF.CHARS);
+                                                             (* This SkipLine call is in my M2MiscStdInOut library, so I removed it from here.    STextIO.SkipLine; *)
     TRIM(INBUF);
   END; (* if count <= zero *)
   REPEAT (* Until finished with input *)
-    StringListP1 := GETRESULT(INBUF,R);                                              (*    R := GETRESULT(INBUF); *)
+    R := GETRESULT(INBUF);
     WriteLn;
-    IF StringListP1 <> NIL THEN
-      CurrentPointerBeginning(StringListP1);
-      FOR c := 1 TO UTILLIB.StringListLen(StringListP1) DO
-        StringP1 := GetNextStringFromList(StringListP1);
-        STR1 := UTILLIB.GetStringFromItem(StringP1);
-        WriteString(STR1);
-        WriteLn;
-      END; (* FOR strings to list in StringListP1 *)
-      UTILLIB.DisposeStringListPointerType(StringListP1);
-    ELSE
-      WriteString(' Result = ');
-      LongStr.RealToStr(R,Xstr);
-      TruncateInsigZeros(Xstr);
-      WriteString(Xstr);
-      WriteLn;
-      WriteLn;
-      DumpToConsole;   (* Always displaying the stack.  I'll try this to see how much I like it *)
-      WriteLn;
-    END (* if stringlist is not empty *);
-
+    WriteLn;
+    WriteString(' Result = ');
+(*    WriteReal(R,15); *)
+    K := 0;
+    RealToStringFixed(R,20,10,Xstr,K,OKAY);
+    IF OKAY THEN
+      STRLEN := STRLENFNT(Xstr);
+(* Scanback for first nonzero char.  This is the new length of the string *)
+      NON0POSN := SCANBACK(ADR(Xstr),STRLEN,'0',FALSE);
+      Xstr[NON0POSN+1] := NULL; (* Terminate string at 1-st insignificant 0 *)
+      STR1 := Xstr;
+      NONBLPOSN := SCANFWD(ADR(STR1),NON0POSN,BLANK,FALSE);
+(*
+   Remove the leading blanks by copying the non-blank string to the beginning, including the terminating null char.
+*)
+      COPYLEFT(ADR(STR1[NONBLPOSN]),ADR(STR1),NON0POSN-NONBLPOSN+2);
+      ok := FormatString('%-20s||     ',STR2,STR1);
+      WriteString(STR2);
+      WriteReal(R,15);
+    END (*IF RealToStringFixed succeeded *);
+    WriteLn;
+    Dump2Console;   (* Always displaying the stack.  I'll try this to see how much I like it *)
+    WriteLn;
+    
     IF Holidays.valid THEN
       WriteString(" For year ");
+(*      R := READX(); Don't need this assignment as it's still in R from the GETRESULT above *)
       C := ROUND(R);
       IF C < 40 THEN
         INC(C,2000);
@@ -293,20 +286,22 @@ BEGIN (********************* MAIN ****************************************)
       WriteLn;
       Holidays.valid := FALSE;
     ELSIF stricmpfnt(INBUF.CHARS,"ABOUT") = 0 THEN
-      WriteString(" Last compiled rpn.mod ");
+      WriteString(" Last compiled ");
       WriteString(LastCompiled);
       WriteString(".");
       WriteLn;
-    END (* IF holidaysvalid, etc *);
+      WriteLn;
+      WriteLn;
+    END (* IF *);
 
-    WriteLn;
     WriteString(' Enter calculation, HELP, DUMP or Enter to exit: ');
     ReadString(INBUF.CHARS);
+                                                             (*    STextIO.SkipLine; *)
     WriteLn;
     TRIM(INBUF);
     Capitalize(INBUF.CHARS);
     IF (STRCMPFNT(INBUF.CHARS,'D') = 0) OR (STRCMPFNT(INBUF.CHARS,'DUMP') = 0) THEN
-      DumpToConsole;
+      Dump2Console;
       INBUF.CHARS[1] := 'P';
       INBUF.CHARS[2] := '';
       TRIM(INBUF);
@@ -317,6 +312,7 @@ BEGIN (********************* MAIN ****************************************)
   OpenCreateFile(StackFile,StackFileName,ReadWriteDenyWrite);
   WriteBlock(StackFile, ADR(stk), SIZE(stk) );
   CloseFile(StackFile);
-END RPNM2.
+END RPN.
 
+(* PROCEDURE GETSTACK(VAR STK : ARRAY OF LONGREAL; VAR RETCOD : CARDINAL);*)
 (* StackRegNames = (X,Y,Z,T5,T4,T3,T2,T1);  *)
