@@ -15,6 +15,7 @@ REVISION HISTORY
 25 Apr 19 -- Adding time to the window title
 26 Apr 19 -- Running this on my Win10 system aborts w/ an assignment error at the line WiggleMouse := SSTimeOut.  I suspect that
                it's not being assigned correctly, so it is negative and cannot be assigned to a CARDINAL.  This is now corrected.
+27 Apr 19 -- I removed the message displaying screen saving messages.  It was always zero anyway.
 --------------------------------------*)
 
 MODULE SS5;
@@ -101,7 +102,7 @@ FROM LowLong IMPORT sign,ulp,intpart,fractpart,trunc (*,round*) ;
 CONST
   szAppName = "SS5";  (* Screen Saving Dancing Mouse 5.  Text windows started in version 4 *)
   InputPrompt = 'Enter cmd or HELP : ';
-  LastMod = "Apr 26, 2019";
+  LastMod = "Apr 27, 2019";
   clipfmt = CLIPBOARD_ASCII;
   SS5Icon32 = '#100';
   SS5Icon16 = '#200';
@@ -240,10 +241,13 @@ BEGIN
         WriteStringAt(tw,0,0,SecondsLeftStr,a);
         EraseToEOL(tw,a);
         WriteLn(tw);
+(*
+  {{{
         CardToStr(ScreenSaving, str0);
         WriteString(tw,str0,a);
         EraseToEOL(tw,a);
-
+  }}} 
+*)
     | TWM_TIMER:
 (*
 DWORD is in fact a CARDINAL, so you cannot assign negative numbers to such
@@ -284,10 +288,14 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
         WriteString(tw,dt2.TimeStr,a);   (* Using dt2 here instead of dt1, just to see if it works.   *)
         EraseToEOL(tw,a);
         WriteLn(tw);
+(*
+  {{{
         CardToStr(ScreenSaving, str0);
         WriteString(tw,"ScreenSaving tally: ",a);
         WriteString(tw,str0,a);
         EraseToEOL(tw,a);
+  }}}
+*)        
         WriteLn(tw);
         WriteLn(tw);
         IntToStr(WiggleMouse, str0);
