@@ -13,6 +13,8 @@ REVISION HISTORY
                But a simulated keybd event can stop it.  So I coded that, also based on a search.
                And this code works in ShowTimeer.mod.  I decided to copy it here, also.
 25 Apr 19 -- Adding time to the window title
+26 Apr 19 -- Running this on my Win10 system aborts w/ an assignment error at the line WiggleMouse := SSTimeOut.  I suspect that
+               it's not being assigned correctly, so it is negative and cannot be assigned to a CARDINAL.  This is now corrected.
 --------------------------------------*)
 
 MODULE SS5;
@@ -210,6 +212,9 @@ BEGIN
         inputline := '';
         SetScrollDisableWhenNone(tw,TRUE,TRUE);
         bool := WINUSER.SystemParametersInfo(WINUSER.SPI_GETSCREENSAVETIMEOUT,c,ADR(SSTimeOut),c);
+        IF SSTimeOut < 600 THEN (* 600 sec = 10 min *)
+          SSTimeOut := 600
+        END;
         DEC(SSTimeOut,5);  (* Give 5 sec leeway in case computer is busy or something like that *)
         WiggleMouse := SSTimeOut;
 
@@ -411,18 +416,20 @@ END Start;
 
 BEGIN
 
-(* PROCEDURE SetWindowTitle(tw : TextWindow; title : ARRAY OF CHAR);                                 *)
-(* PROCEDURE SetTimer(tw : TextWindow; timerId : CARDINAL; interval : CARDINAL);                     *)
 (*
+{{{
+  PROCEDURE SetWindowTitle(tw : TextWindow; title : ARRAY OF CHAR);
+  PROCEDURE SetTimer(tw : TextWindow; timerId : CARDINAL; interval : CARDINAL);
    create/reset a timer associated with the specified window
    timerId = a unique number to identify the timer.
-   interval = the amount of time in milliseconds between WSM_TIMER messages
-              this interval is only an approximate time
+   interval = the approximate amount of time in milliseconds between WSM_TIMER messages
    calling SetTimer with the same timerId as a previous call but with
    a different interval has the effect of resetting the interval from
    the previous value to the new value
+
+ PROCEDURE KillTimer(tw : TextWindow; timerId : CARDINAL);  InputPromptLen := LENGTH(InputPrompt);
+}}} 
 *)
-(* PROCEDURE KillTimer(tw : TextWindow; timerId : CARDINAL);  InputPromptLen := LENGTH(InputPrompt); *)
   a := ComposeAttribute(Black, White, NormalFont);
   aBold := ComposeAttribute(Black, White, BoldFont);
   biggerFont := DefaultFontInfo;
