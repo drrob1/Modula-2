@@ -16,6 +16,7 @@ REVISION HISTORY
 26 Apr 19 -- Running this on my Win10 system aborts w/ an assignment error at the line WiggleMouse := SSTimeOut.  I suspect that
                it's not being assigned correctly, so it is negative and cannot be assigned to a CARDINAL.  This is now corrected.
 27 Apr 19 -- I removed the message displaying screen saving messages.  It was always zero anyway.
+ 2 May 19 -- It does not stop the screensaver.  I have to see how I can fix that.
 --------------------------------------*)
 
 MODULE SS5;
@@ -102,7 +103,7 @@ FROM LowLong IMPORT sign,ulp,intpart,fractpart,trunc (*,round*) ;
 CONST
   szAppName = "SS5";  (* Screen Saving Dancing Mouse 5.  Text windows started in version 4 *)
   InputPrompt = 'Enter cmd or HELP : ';
-  LastMod = "Apr 27, 2019";
+  LastMod = "May 2, 2019";
   clipfmt = CLIPBOARD_ASCII;
   SS5Icon32 = '#100';
   SS5Icon16 = '#200';
@@ -241,25 +242,28 @@ BEGIN
         WriteStringAt(tw,0,0,SecondsLeftStr,a);
         EraseToEOL(tw,a);
         WriteLn(tw);
-(*
-  {{{
-        CardToStr(ScreenSaving, str0);
+
+        FormatString.FormatString(" ScreenSaving: %c",str0,ScreenSaving);  (* added 5/2/19 *)
         WriteString(tw,str0,a);
         EraseToEOL(tw,a);
-  }}} 
-*)
+        WriteLn(tw);
+
     | TWM_TIMER:
 (*
-DWORD is in fact a CARDINAL, so you cannot assign negative numbers to such
-type.  The solution is to use type casting, like:
+DWORD is in fact a CARDINAL, so you cannot assign negative numbers to such type.  The solution is to use type casting, like:
 mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
 *)
+       (* see if this works to stop the screensaver.  Added 5/2/19 *)
+      WINUSER.SystemParametersInfo(WINUSER.SPI_GETSCREENSAVERRUNNING,c,boolp,c);
+      IF boolp^ THEN
+        INC(ScreenSaving);
+        WINUSER.keybd_event(WINUSER.VK_SPACE,0B9h,0,0);
+      END;
+
       IF msg.timerId = MouseTimer THEN
         WINUSER.SystemParametersInfo(WINUSER.SPI_GETSCREENSAVERRUNNING,c,boolp,c);
-
         IF boolp^ THEN
           INC(ScreenSaving);
-          (*  WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, mousemoveamt), CAST(DWORD, mousemoveamt), 0, 0); *)
           WINUSER.keybd_event(WINUSER.VK_SPACE,0B9h,0,0);
         ELSIF WiggleMouse <= 0 THEN
           WiggleMouse := SSTimeOut;
@@ -288,6 +292,11 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
         WriteString(tw,dt2.TimeStr,a);   (* Using dt2 here instead of dt1, just to see if it works.   *)
         EraseToEOL(tw,a);
         WriteLn(tw);
+        FormatString.FormatString(" ScreenSaving: %c",str0,ScreenSaving);  (* added 5/2/19 *)
+        WriteString(tw,str0,a);
+        EraseToEOL(tw,a);
+        WriteLn(tw);
+
 (*
   {{{
         CardToStr(ScreenSaving, str0);
@@ -295,7 +304,7 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
         WriteString(tw,str0,a);
         EraseToEOL(tw,a);
   }}}
-*)        
+*)
         WriteLn(tw);
         WriteLn(tw);
         IntToStr(WiggleMouse, str0);
@@ -401,7 +410,7 @@ BEGIN
                         "",        (* menu : ARRAY OF CHAR *)
                         SS5Icon16, (* icon : ARRAY OF CHAR *)
                         -1,-1, (* x,y= the initial screen coordinates for the window to be displayed *)
-                        32,7, (* xSize, ySize : COORDINATE *)
+                        40,10, (* xSize, ySize : COORDINATE  changed from 32,7 on 5/2/19 *)
                         -1,-1, (* xBuffer, yBuffer : COORDINATE *)
                         FALSE,  (* gutter : BOOLEAN *)
                         DefaultFontInfo, (* font : FontInfo *)
@@ -436,7 +445,7 @@ BEGIN
    the previous value to the new value
 
  PROCEDURE KillTimer(tw : TextWindow; timerId : CARDINAL);  InputPromptLen := LENGTH(InputPrompt);
-}}} 
+}}}
 *)
   a := ComposeAttribute(Black, White, NormalFont);
   aBold := ComposeAttribute(Black, White, BoldFont);
