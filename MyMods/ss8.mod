@@ -20,6 +20,7 @@ REVISION HISTORY
 13 May 19 -- Now called SS8.  Noticed that it still does not stop the screensaver from starting, or stop it when it has already started.
                ShowTimer does stop it from starting, and stops it when it has already started.  But ShowTimer is run from a batch file;
                Could that make a difference?  Don't yet know, but I removed the mouse timer, as in ShowTimer.
+14 May 19 -- Edited output so it says that this is SS8.               
 --------------------------------------*)
 
 MODULE SS8;
@@ -105,8 +106,7 @@ FROM LowLong IMPORT sign,ulp,intpart,fractpart,trunc (*,round*) ;
 
 CONST
   szAppName = "SS8";  (* Screen Saving Dancing Mouse 8.  Text windows started in version 4 *)
-  InputPrompt = 'Enter cmd or HELP : ';
-  LastMod = "May 13, 2019";
+  LastMod = "May 14, 2019";
   clipfmt = CLIPBOARD_ASCII;
   SS5Icon32 = '#100';
   SS5Icon16 = '#200';
@@ -133,7 +133,7 @@ VAR
   sigfig,c1,c2,c3,SSTimeOut        :  CARDINAL;
   inputline,HPFileName,Xstr,str1,str2,str3,str4,str5,str6,str7,str8,str9,str0 : STRTYP;
   longstr     : ARRAY [0..5120] OF CHAR;
-  InputPromptLen, LastModLen : CARDINAL;
+  LastModLen : CARDINAL;
   inputbuf    : BUFTYP;
   pinstr      : pstrtyp;
   convres     : ConvResults;
@@ -246,7 +246,7 @@ BEGIN
         EraseToEOL(tw,a);
         WriteLn(tw);
 
-        FormatString.FormatString(" ScreenSaving: %c",str0,ScreenSaving);  (* added 5/2/19 *)
+        FormatString.FormatString("%s ScreenSaving: %c",str0,szAppName,ScreenSaving);  (* added 5/2/19 and edited 5/14/19 *)
         WriteString(tw,str0,a);
         EraseToEOL(tw,a);
         WriteLn(tw);
@@ -287,7 +287,7 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
       WriteString(tw,dt2.TimeStr,a);   (* Using dt2 here instead of dt1, just to see if it works.   *)
       EraseToEOL(tw,a);
       WriteLn(tw);
-      FormatString.FormatString(" ScreenSaving: %c",str0,ScreenSaving);  (* added 5/2/19 *)
+      FormatString.FormatString("%s ScreenSaving: %c",str0,szAppName,ScreenSaving);  (* added 5/2/19 and updated 5/14/19 *)
       WriteString(tw,str0,a);
       EraseToEOL(tw,a);
       WriteLn(tw);
@@ -438,7 +438,7 @@ BEGIN
    a different interval has the effect of resetting the interval from
    the previous value to the new value
 
- PROCEDURE KillTimer(tw : TextWindow; timerId : CARDINAL);  InputPromptLen := LENGTH(InputPrompt);
+ PROCEDURE KillTimer(tw : TextWindow; timerId : CARDINAL);
 }}}
 *)
   a := ComposeAttribute(Black, White, NormalFont);
