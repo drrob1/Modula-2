@@ -20,7 +20,9 @@ REVISION HISTORY
 13 May 19 -- Now called SS8.  Noticed that it still does not stop the screensaver from starting, or stop it when it has already started.
                ShowTimer does stop it from starting, and stops it when it has already started.  But ShowTimer is run from a batch file;
                Could that make a difference?  Don't yet know, but I removed the mouse timer, as in ShowTimer.
-14 May 19 -- Edited output so it says that this is SS8.               
+14 May 19 -- Edited output so it says that this is SS8.
+15 May 19 -- Fixing bugs?
+18 May 19 -- Added the kbd event code to the wiggle mouse section.
 --------------------------------------*)
 
 MODULE SS8;
@@ -28,10 +30,8 @@ IMPORT SYSTEM;
 FROM SYSTEM IMPORT ADR, FUNC, UNREFERENCED_PARAMETER, ADDRESS, CAST, DWORD;
 IMPORT WINUSER, WIN32, WINGDI, WINX;
 IMPORT Strings, ExStrings, MemUtils;
-FROM Strings IMPORT
-    Append, Equal, Delete, Concat, Capitalize;
-FROM ExStrings IMPORT
-    AppendChar, EqualI;
+FROM Strings IMPORT Append, Equal, Delete, Concat, Capitalize;
+FROM ExStrings IMPORT AppendChar, EqualI;
 FROM TextWindows IMPORT
     (* TYPES & CONSTS *)
     TextWindow, Colors, TextWindowsMsg, TextWindowProcedure,
@@ -106,7 +106,7 @@ FROM LowLong IMPORT sign,ulp,intpart,fractpart,trunc (*,round*) ;
 
 CONST
   szAppName = "SS8";  (* Screen Saving Dancing Mouse 8.  Text windows started in version 4 *)
-  LastMod = "May 14, 2019";
+  LastMod = "May 18, 2019";
   clipfmt = CLIPBOARD_ASCII;
   SS5Icon32 = '#100';
   SS5Icon16 = '#200';
@@ -114,6 +114,7 @@ CONST
   ClockTimer = 2;
   MouseMovementAmt = -20;
   TimeToWiggleMouse = 720; (* 720 sec is 12 min *)
+  EmergencyScreenReset = 900;
 
 TYPE
   STR20TYP    = ARRAY [0..20] OF CHAR;
@@ -130,7 +131,7 @@ VAR
   yCaret  : INTEGER;
   ch2,ch3 :  CHAR;
   bool,inputprocessed,hpFileExists :  BOOLEAN;
-  sigfig,c1,c2,c3,SSTimeOut        :  CARDINAL;
+  sigfig,c1,c2,c3,SSTimeOut, TimeOutReset :  CARDINAL;
   inputline,HPFileName,Xstr,str1,str2,str3,str4,str5,str6,str7,str8,str9,str0 : STRTYP;
   longstr     : ARRAY [0..5120] OF CHAR;
   LastModLen : CARDINAL;
@@ -145,7 +146,7 @@ VAR
   Win         : TextWindow;
   Reg         : ARRAY [0..35] OF LONGREAL;
   biggerFont  : FontInfo;
-  ch1             :  CHAR='N';
+  ch1         :  CHAR='N';
   BeepParam,FlashTime,Color,CountUpTimer,RapidTimer,MinutesLeft,SecondsLeft,HoursLeft,ColorVal,
     ColorValRed,ColorValBlue,ColorValGreen,ScreenSaving : CARDINAL;
   MinutesLeftStr,SecondsLeftStr,HoursLeftStr,WindowText,ScreenSavingStr : STRTYP;
@@ -154,7 +155,7 @@ VAR
   iVscrollPos, iVscrollMax, iHscrollPos, iHscrollMax                    : INTEGER;
   mousemoveamt    : INTEGER = -10;
   LongZero        : INTEGER64 = 0;
-  boolp           : POINTER TO BOOLEAN;
+  boolp           : POINTER TO BOOLEAN = NIL;
   WiggleMouse     : INTEGER;
 (*
 {{{
@@ -199,7 +200,7 @@ BEGIN
         IF msg.closeMode = CM_DICTATE THEN
             WinShell.TerminateDispatchMessages(0);
         END;
-        KillTimer(tw, MouseTimer);
+(*                                                               KillTimer(tw, MouseTimer);    *)
         KillTimer(tw, ClockTimer);
         DISPOSE(boolp);
         RETURN OkayToClose;
@@ -217,29 +218,32 @@ BEGIN
         inputline := '';
         SetScrollDisableWhenNone(tw,TRUE,TRUE);
         bool := WINUSER.SystemParametersInfo(WINUSER.SPI_GETSCREENSAVETIMEOUT,c,ADR(SSTimeOut),c);
-        IF SSTimeOut < 600 THEN (* 600 sec = 10 min *)
-          SSTimeOut := 600
+        IF SSTimeOut < 15 THEN (* 600 sec = 10 min *)
+          SSTimeOut := TimeOutReset;
         END;
-        DEC(SSTimeOut,5);  (* Give 5 sec leeway in case computer is busy or something like that *)
+        DEC(SSTimeOut, 15);  (* Give leeway in case computer is busy or something like that *)
         WiggleMouse := SSTimeOut;
-
 
     | TWM_SIZE:
         GetClientSize(tw,cxScreen,cyScreen);
         cxClient := msg.width;
         cyClient := msg.height;
         SnapWindowToFont(tw,TRUE);
+        MoveCaretTo(tw,xCaret,yCaret);
+        MakeCaretVisible(tw);
+        CaretOn(tw);
+(*  Commented out 05/15/2019 9:13:26 PM
+{{{
         SetDisplayMode(tw,DisplayNormal);
         SetScrollRangeAllowed(tw,WA_VSCROLL,60);
         SetScrollBarPos(tw,WA_VSCROLL,0);
         SetScrollRangeAllowed(tw,WA_HSCROLL,100);
         SetScrollBarPos(tw,WA_HSCROLL,0);
         SetCaretType(tw,CtHalfBlock);
-        MoveCaretTo(tw,xCaret,yCaret);
-        MakeCaretVisible(tw);
-        CaretOn(tw);
         SetWindowEnable(tw,TRUE);
         SetForegroundWindow(tw);
+}}}
+*)
     |
     TWM_PAINT:
         WriteStringAt(tw,0,0,SecondsLeftStr,a);
@@ -253,10 +257,15 @@ BEGIN
 
     | TWM_TIMER:
 (*
+{{{
 DWORD is in fact a CARDINAL, so you cannot assign negative numbers to such type.  The solution is to use type casting, like:
 mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
+}}}
 *)
        (* see if this works to stop the screensaver.  Added 5/2/19 *)
+      IF boolp = NIL THEN
+        WriteString(tw," boolp is NIL.  Fix this.",a)
+      END;
       WINUSER.SystemParametersInfo(WINUSER.SPI_GETSCREENSAVERRUNNING,c,boolp,c);
       IF boolp^ THEN
         INC(ScreenSaving);
@@ -265,9 +274,11 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
         WiggleMouse := SSTimeOut;
         WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, mousemoveamt), CAST(DWORD, mousemoveamt), 0, 0);
         WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, -mousemoveamt), CAST(DWORD, -mousemoveamt), 0, 0);
-      END; (* if boolp^ *)
+        WINUSER.keybd_event(WINUSER.VK_SPACE,0B9h,0,0); (* added 05/18/2019 7:26:15 AM *)
+      ELSE
+        DEC(WiggleMouse);
+      END; (* if boolp^ ELSIF WiggleMouse *)
 
-      DEC(WiggleMouse);
       INC(CountUpTimer);
       HoursLeft := CountUpTimer/3600;
       MinutesLeft := (CountUpTimer MOD 3600) / 60;
@@ -284,7 +295,7 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
       WriteStringAt(tw,0,0,SecondsLeftStr,a);
       EraseToEOL(tw,a);
       WriteLn(tw);
-      WriteString(tw,dt2.TimeStr,a);   (* Using dt2 here instead of dt1, just to see if it works.   *)
+      WriteString(tw,dt2.TimeStr,a); (* Using dt2 here instead of dt1, just to see if it works. *)
       EraseToEOL(tw,a);
       WriteLn(tw);
       FormatString.FormatString("%s ScreenSaving: %c",str0,szAppName,ScreenSaving);  (* added 5/2/19 and updated 5/14/19 *)
@@ -354,6 +365,7 @@ PROCEDURE Start(param : ADDRESS);
 BEGIN
     UNREFERENCED_PARAMETER(param);
 (*
+{{{
   PROCEDURE CreateWindow(parent : WinShell.Window;
                        name : ARRAY OF CHAR;
                        menu : ARRAY OF CHAR;
@@ -398,21 +410,22 @@ BEGIN
                       and is sized to the number of cells the window client
                       area currently is capable displaying. *)
 (* returns the window handle if successfull, otherwise NIL *)
+}}}
 *)
     Win := CreateWindow(NIL, (* parent : WinShell.Window *)
-                        "SS5 Dancing Mouse TW", (* name : ARRAY OF CHAR *)
-                        "",        (* menu : ARRAY OF CHAR *)
-                        SS5Icon16, (* icon : ARRAY OF CHAR *)
-                        -1,-1, (* x,y= the initial screen coordinates for the window to be displayed *)
-                        40,10, (* xSize, ySize : COORDINATE  changed from 32,7 on 5/2/19 *)
-                        -1,-1, (* xBuffer, yBuffer : COORDINATE *)
-                        FALSE,  (* gutter : BOOLEAN *)
-                        DefaultFontInfo, (* font : FontInfo *)
-                        ComposeAttribute(Black, White, NormalFont), (* background : ScreenAttribute *)
-                        ToplevelWindow,  (* windowType : WindowTypes *)
-                        WndProcTW,
-                        NormalWindow + AddScrollBars,    (* attribs : WinAttrSet *)
-                        NIL); (* createParam : ADDRESS *)
+       "SS8 Dancing Mouse TW", (* name : ARRAY OF CHAR *)
+       "",        (* menu : ARRAY OF CHAR *)
+       SS5Icon16, (* icon : ARRAY OF CHAR *)
+       -1,-1, (* x,y= the initial screen coordinates for the window to be displayed *)
+       40,10, (* xSize, ySize : COORDINATE  changed from 32,7 on 5/2/19 *)
+       -1,-1, (* xBuffer, yBuffer : COORDINATE *)
+       FALSE,  (* gutter : BOOLEAN *)
+       DefaultFontInfo, (* font : FontInfo *)
+       ComposeAttribute(Black, White, NormalFont), (* background : ScreenAttribute *)
+       ToplevelWindow,  (* windowType : WindowTypes *)
+       WndProcTW,
+       NormalWindow + AddScrollBars,    (* attribs : WinAttrSet *)
+       NIL); (* createParam : ADDRESS *)
     IF Win = NIL THEN
         WinShell.TerminateDispatchMessages(127);
     END;
@@ -423,7 +436,7 @@ BEGIN
 END Start;
 
 
-(*++++*****************************************************************)
+(*++++**************** Main Body *************************************************)
 
 BEGIN
 
@@ -449,6 +462,7 @@ BEGIN
   WindowText :=  '';
   ScreenSaving := 0;
   CountUpTimer := 0;
+  TimeOutReset := EmergencyScreenReset;
 
   FUNC WinShell.DispatchMessages(Start, NIL);
 END SS8.
