@@ -27,9 +27,12 @@ REVISION HISTORY
                So I can increase the mouse movement to see if that helps.  And also send <return> and/or <esc>  and/or <up> and/or <down>
                VK_RETURN = 0D   amd its scancode is 0x1c or 01ch
                VK_ESCAPE = 1B   and its scancode is 0x01 or 01h
+               
+             Renamed to SS9, because SS8 works.  But I'm trying to see of other keys pushed into the keystack work as well without the
+             possibility of extra spaces in PowerScribe or Epic, for example.
 --------------------------------------*)
 
-MODULE SS8;
+MODULE SS9;
 IMPORT SYSTEM;
 FROM SYSTEM IMPORT ADR, FUNC, UNREFERENCED_PARAMETER, ADDRESS, CAST, DWORD;
 IMPORT WINUSER, WIN32, WINGDI, WINX;
@@ -109,8 +112,8 @@ FROM LongMath IMPORT sqrt,exp,ln,sin,cos,tan,arctan,arcsin,arccos,power,round,pi
 FROM LowLong IMPORT sign,ulp,intpart,fractpart,trunc (*,round*) ;
 
 CONST
-  szAppName = "SS8";  (* Screen Saving Dancing Mouse 8.  Text windows started in version 4 *)
-  LastMod = "May 18, 2019";
+  szAppName = "SS9";  (* Screen Saving Dancing Mouse 9.  Text windows started in version 4 *)
+  LastMod = "May 21, 2019";
   clipfmt = CLIPBOARD_ASCII;
   SS5Icon32 = '#100';
   SS5Icon16 = '#200';
@@ -278,7 +281,14 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
         WiggleMouse := SSTimeOut;
         WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, mousemoveamt), CAST(DWORD, mousemoveamt), 0, 0);
         WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, -mousemoveamt), CAST(DWORD, -mousemoveamt), 0, 0);
-        WINUSER.keybd_event(WINUSER.VK_SPACE,0B9h,0,0); (* added 05/18/2019 7:26:15 AM *)
+        WINUSER.keybd_event(WINUSER.VK_SPACE,039h,0,0); (* scan code changed 5/21/2019 9:08:47 PM. *)
+        (* Added 5/21/2019 8:48:23 PM together w/ the name change to SS9 *)
+        WINUSER.keybd_event(WINUSER.VK_BACK,0Eh,0,0); (* backspace *)
+        WINUSER.keybd_event(WINUSER.VK_UP,48h,0,0); 
+        WINUSER.keybd_event(WINUSER.VK_LEFT,4Bh,0,0); 
+        WINUSER.keybd_event(WINUSER.VK_RIGHT,4Dh,0,0);
+        WINUSER.keybd_event(WINUSER.VK_DOWN,50h,0,0);
+        
       ELSE
         DEC(WiggleMouse);
       END; (* if boolp^ ELSIF WiggleMouse *)
@@ -469,4 +479,4 @@ BEGIN
   TimeOutReset := EmergencyScreenReset;
 
   FUNC WinShell.DispatchMessages(Start, NIL);
-END SS8.
+END SS9.

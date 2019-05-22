@@ -486,7 +486,7 @@ to accomodate the contents of the format string
       END; (* case menuId *)
 
     | TWM_TIMER:
-
+                                    (* Don't need IF timerid here since I now only use 1 timer *)
       WINUSER.SystemParametersInfo(WINUSER.SPI_GETSCREENSAVERRUNNING,c,boolp,c);
 
       IF boolp^ THEN     (* if screensaver running, stop it *)
@@ -499,9 +499,7 @@ to accomodate the contents of the format string
         WINUSER.keybd_event(WINUSER.VK_SPACE,0B9h,0,0);
       END; (* if screensaver running *)
 
-(* Don't need IF timerid here since I now only use 1 timer *)
-
-      IF WiggleMouse <= 0 THEN  (* This counter is usually ~5 min, or ~300 sec, at the hospital. *)
+      IF WiggleMouse <= 0 THEN (* This counter is usually ~5 min, or ~300 sec, at the hospital. *)
         WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, mousemoveamt), CAST(DWORD, mousemoveamt), 0, 0);
         WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, -mousemoveamt), CAST(DWORD, -mousemoveamt), 0, 0);
         WiggleMouse := SSTimeOut;

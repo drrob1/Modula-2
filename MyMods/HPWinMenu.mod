@@ -1325,26 +1325,26 @@ PROCEDURE Start(param : ADDRESS);
 BEGIN
     UNREFERENCED_PARAMETER(param);
 (*
-                       PROCEDURE CreateWindow(parent : WinShell.Window;  (* create a new window *) (* parent = as WinShell  *)
-                         name : ARRAY OF CHAR;  (* name = as WinShell  *)
-                         menu : ARRAY OF CHAR;  (* menu = the menu for the window. Can be "". *)
-                         icon : ARRAY OF CHAR;  (* icon =  as WinShell *)
-                         x, y : COORDINATE;  (* x, y = the initial screen coordinates for the window to be displayed.
+                       PROCEDURE CreateWindow(parent : WinShell.Window;   create a new window  parent = as WinShell  
+                         name : ARRAY OF CHAR;   name = as WinShell  
+                         menu : ARRAY OF CHAR;   menu = the menu for the window. Can be "". 
+                         icon : ARRAY OF CHAR;   icon =  as WinShell 
+                         x, y : COORDINATE;   x, y = the initial screen coordinates for the window to be displayed.
                                                If a parameter is -1 then the operating system will choose a default location for that coordinate.
                                                These positions are in pixels and are relative to the parent window client area origin for child windows,
-                                               or relative to the screen origin for all other windows. *)
-                         xSize, ySize : COORDINATE; (* xSize, ySize = the initial width and height in character cells if -1 then a system default size will be used *)
-                         xBuffer, yBuffer : COORDINATE;  (* xBuffer, yBuffer = the size of the screen buffer. the window can never be larger than the screen buffer.  If either xBuffer
+                                               or relative to the screen origin for all other windows.
+                         xSize, ySize : COORDINATE;  xSize, ySize = the initial width and height in character cells if -1 then a system default size will be used
+                         xBuffer, yBuffer : COORDINATE;   xBuffer, yBuffer = the size of the screen buffer. the window can never be larger than the screen buffer.  If either xBuffer
                                                             or yBuffer is -1 the screen buffer is a variable size and is sized to the number of cells the window client
-                                                            area currently is capable displaying. *)
-                         gutter : BOOLEAN; (* gutter = TRUE then the text window will always have a blank "gutter" on the left edge of the text window.  FALSE the text will start at the left edge of the client area. *)
-                         font : FontInfo; (* font = the font to use for this window *)
-                         background : ScreenAttribute; (* background = the background color for this window *)
+                                                            area currently is capable displaying.
+                         gutter : BOOLEAN;  gutter = TRUE then the text window will always have a blank "gutter" on the left edge of the text window.  FALSE the text will start at the left edge of the client area.
+                         font : FontInfo;  font = the font to use for this window
+                         background : ScreenAttribute;  background = the background color for this window
                          windowType : WindowTypes;
-                         wndProc : TextWindowProcedure;  (* wndProc = the window procedure *)
-                         attribs : WinAttrSet;  (* attribs = as WinShell *)
-                         createParam : ADDRESS) : TextWindow;  (* createParam = an arbitrary value you can use to pass information to the window procedure of the window. this value is passed in the WSM_CREATE message. *)
-                       (* returns the window handle if successfull, otherwise NIL *)
+                         wndProc : TextWindowProcedure;   wndProc = the window procedure
+                         attribs : WinAttrSet;   attribs = as WinShell
+                         createParam : ADDRESS) : TextWindow;   createParam = an arbitrary value you can use to pass information to the window procedure of the window. this value is passed in the WSM_CREATE message.
+                        returns the window handle if successfull, otherwise NIL
 
                        WindowTypes         = (TopLevel, MdiChild);
 *)
