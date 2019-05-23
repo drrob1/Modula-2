@@ -27,9 +27,10 @@ REVISION HISTORY
                So I can increase the mouse movement to see if that helps.  And also send <return> and/or <esc>  and/or <up> and/or <down>
                VK_RETURN = 0D   amd its scancode is 0x1c or 01ch
                VK_ESCAPE = 1B   and its scancode is 0x01 or 01h
-               
+
              Renamed to SS9, because SS8 works.  But I'm trying to see of other keys pushed into the keystack work as well without the
              possibility of extra spaces in PowerScribe or Epic, for example.
+22 May 19 -- Adding a test mode, in which the timers are ~20 sec.
 --------------------------------------*)
 
 MODULE SS9;
@@ -88,8 +89,7 @@ FROM TKNRTNS IMPORT FSATYP,CHARSETTYP,DELIMCH,INI1TKN,INI3TKN,GETCHR, UNGETCHR,G
 *)
 IMPORT WinShell;
 FROM DlgShell IMPORT
-    NotifyType, NotifyResult, CONTROL, ControlType, DialogPositions,
-    ModelessDialog, GetDialogParent;
+    NotifyType, NotifyResult, CONTROL, ControlType, DialogPositions, ModelessDialog, GetDialogParent;
 FROM Storage IMPORT ALLOCATE, DEALLOCATE;
 IMPORT Terminal, BasicDialogs;
 FROM BasicDialogs IMPORT MessageTypes;
@@ -110,16 +110,17 @@ FROM UTILLIB IMPORT BLANK,NULL,STRTYP,BUFSIZ,BUFTYP,STR10TYP,TRIM,STRLENFNT,STRC
 FROM SysClock IMPORT DateTime,GetClock,CanGetClock,CanSetClock,IsValidDateTime,SetClock;
 FROM LongMath IMPORT sqrt,exp,ln,sin,cos,tan,arctan,arcsin,arccos,power,round,pi;
 FROM LowLong IMPORT sign,ulp,intpart,fractpart,trunc (*,round*) ;
+FROM TOKENPTR IMPORT FSATYP,DELIMCH,DELIMSTATE,INI1TKN,TKNPTRTYP,INI3TKN,GETCHR,UNGETCHR,GETTKN,GETTKNSTR,GETTKNEOL,UNGETTKN,GETTKNREAL;
 
 CONST
   szAppName = "SS9";  (* Screen Saving Dancing Mouse 9.  Text windows started in version 4 *)
-  LastMod = "May 21, 2019";
+  LastMod = "May 22, 2019";
   clipfmt = CLIPBOARD_ASCII;
   SS5Icon32 = '#100';
   SS5Icon16 = '#200';
   MouseTimer  = 1;
   ClockTimer = 2;
-  MouseMovementAmt = -20;
+  MouseMovementAmt = -50;
   TimeToWiggleMouse = 720; (* 720 sec is 12 min *)
   EmergencyScreenReset = 900;
 
@@ -134,15 +135,16 @@ VAR
   cxBuffer: INTEGER;
   cyBuffer: INTEGER;
   cxScreen,cyScreen,wxClient,wyClient : COORDINATE;
-  xCaret  : INTEGER;
-  yCaret  : INTEGER;
+  xCaret, yCaret, I  : INTEGER;
   ch2,ch3 :  CHAR;
-  bool,inputprocessed,hpFileExists :  BOOLEAN;
-  sigfig,c1,c2,c3,SSTimeOut, TimeOutReset :  CARDINAL;
+  bool,inputprocessed,TestMode :  BOOLEAN;
+  sigfig,c1,c2,c3,SSTimeOut, TimeOutReset,RetCode :  CARDINAL;
   inputline,HPFileName,Xstr,str1,str2,str3,str4,str5,str6,str7,str8,str9,str0 : STRTYP;
+  tokenstate  : FSATYP;
+  tpv         : TKNPTRTYP = NIL;
   longstr     : ARRAY [0..5120] OF CHAR;
-  LastModLen : CARDINAL;
-  inputbuf    : BUFTYP;
+  LastModLen  : CARDINAL;
+  inputbuf, TOKEN : BUFTYP;
   pinstr      : pstrtyp;
   convres     : ConvResults;
   r           : LONGREAL;
@@ -207,7 +209,6 @@ BEGIN
         IF msg.closeMode = CM_DICTATE THEN
             WinShell.TerminateDispatchMessages(0);
         END;
-(*                                                               KillTimer(tw, MouseTimer);    *)
         KillTimer(tw, ClockTimer);
         DISPOSE(boolp);
         RETURN OkayToClose;
@@ -225,10 +226,12 @@ BEGIN
         inputline := '';
         SetScrollDisableWhenNone(tw,TRUE,TRUE);
         bool := WINUSER.SystemParametersInfo(WINUSER.SPI_GETSCREENSAVETIMEOUT,c,ADR(SSTimeOut),c);
-        IF SSTimeOut < 15 THEN (* 600 sec = 10 min *)
+        IF TestMode OR inputprocessed THEN
+          SSTimeOut := TimeOutReset;
+        ELSIF SSTimeOut < 15 THEN (* 600 sec = 10 min *)
           SSTimeOut := TimeOutReset;
         END;
-        DEC(SSTimeOut, 15);  (* Give leeway in case computer is busy or something like that *)
+        DEC(SSTimeOut, 5);  (* Give leeway in case computer is busy or something like that *)
         WiggleMouse := SSTimeOut;
 
     | TWM_SIZE:
@@ -284,11 +287,11 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
         WINUSER.keybd_event(WINUSER.VK_SPACE,039h,0,0); (* scan code changed 5/21/2019 9:08:47 PM. *)
         (* Added 5/21/2019 8:48:23 PM together w/ the name change to SS9 *)
         WINUSER.keybd_event(WINUSER.VK_BACK,0Eh,0,0); (* backspace *)
-        WINUSER.keybd_event(WINUSER.VK_UP,48h,0,0); 
-        WINUSER.keybd_event(WINUSER.VK_LEFT,4Bh,0,0); 
+        WINUSER.keybd_event(WINUSER.VK_UP,48h,0,0);
+        WINUSER.keybd_event(WINUSER.VK_LEFT,4Bh,0,0);
         WINUSER.keybd_event(WINUSER.VK_RIGHT,4Dh,0,0);
         WINUSER.keybd_event(WINUSER.VK_DOWN,50h,0,0);
-        
+
       ELSE
         DEC(WiggleMouse);
       END; (* if boolp^ ELSIF WiggleMouse *)
@@ -394,18 +397,18 @@ BEGIN
                        wndProc : TextWindowProcedure;
                        attribs : WinAttrSet;
                        createParam : ADDRESS) : TextWindow;
- create a new window 
+ create a new window
  parent = as WinShell
  name = as WinShell
  menu = the menu for the window. Can be "".
- icon =  as WinShell 
- attribs = as WinShell 
- wndProc = the window procedure 
+ icon =  as WinShell
+ attribs = as WinShell
+ wndProc = the window procedure
  createParam = an arbitrary value you can use to pass information
                  to the window procedure of the window. this value is
-                 passed in the WSM_CREATE message. 
- font = the font to use for this window 
- background = the background color for this window 
+                 passed in the WSM_CREATE message.
+ font = the font to use for this window
+ background = the background color for this window
  gutter = TRUE then the text window will always have a blank "gutter"
             on the left edge of the text window.
             FALSE the text will start at the left edge of the client area.
@@ -415,15 +418,15 @@ BEGIN
           a default location for that coordinate.
           these positions are in pixels and are relative to the
           parent window client area origin for child windows
-          or relative to the screen origin for all other windows. 
+          or relative to the screen origin for all other windows.
  xSize, ySize = the initial width and height in character cells
-                  if -1 then a system default size will be used 
+                  if -1 then a system default size will be used
  xBuffer, yBuffer = the size of the screen buffer. the window can never
                       be larger than the screen buffer. if either xBuffer
                       or yBuffer is -1 the screen buffer is a variable size
                       and is sized to the number of cells the window client
-                      area currently is capable displaying. 
- returns the window handle if successfull, otherwise NIL 
+                      area currently is capable displaying.
+ returns the window handle if successfull, otherwise NIL
 }}}
 *)
     Win := CreateWindow(NIL, (* parent : WinShell.Window *)
@@ -444,7 +447,6 @@ BEGIN
         WinShell.TerminateDispatchMessages(127);
     END;
     SetAutoScroll(Win,TRUE);
-(*                                                                     SetTimer(Win, MouseTimer, 300);  *)
     SetTimer(Win, ClockTimer, 1000);
     NEW(boolp);
 END Start;
@@ -477,6 +479,27 @@ BEGIN
   ScreenSaving := 0;
   CountUpTimer := 0;
   TimeOutReset := EmergencyScreenReset;
+  TestMode := FALSE;
+  inputprocessed := FALSE;
+
+  GetCommandLine(inputbuf.CHARS);
+  TRIM(inputbuf);
+  IF inputbuf.COUNT > 0 THEN
+    INI1TKN(tpv,inputbuf);
+    GETTKN(tpv, TOKEN, tokenstate, I, RetCode);  (* RetCode=0 is nl return; RetCode=1 is no more tokens on line *)
+    IF STRCMPFNT(TOKEN.CHARS,"TEST") = 0 THEN
+      TimeOutReset  := 10;
+      TestMode := TRUE;
+    ELSIF (tokenstate = DGT) AND (ABS(I) <= 2000) THEN
+      inputprocessed := TRUE;
+      TimeOutReset := ABS(I);
+    END; (* if tokenstate for the TimeOutReset *)
+    IF tpv <> NIL THEN  (* This will catch when GETTKN does not DISPOSE of the ptr, ie, when there is a 2nd token on the line *)
+      DISPOSE(tpv);
+      tpv := NIL;
+    END;
+  END; (* if there was a valid command tail entry *)
+
 
   FUNC WinShell.DispatchMessages(Start, NIL);
 END SS9.
