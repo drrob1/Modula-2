@@ -30,7 +30,8 @@ REVISION HISTORY
 
              Renamed to SS9, because SS8 works.  But I'm trying to see of other keys pushed into the keystack work as well without the
              possibility of extra spaces in PowerScribe or Epic, for example.
-22 May 19 -- Adding a test mode, in which the timers are ~20 sec.
+22 May 19 -- Adding a test mode, in which the timer is 5 sec.
+24 May 19 -- Adding help, and removing up arrow because that makes tcc show the prev cmd.
 --------------------------------------*)
 
 MODULE SS9;
@@ -114,7 +115,7 @@ FROM TOKENPTR IMPORT FSATYP,DELIMCH,DELIMSTATE,INI1TKN,TKNPTRTYP,INI3TKN,GETCHR,
 
 CONST
   szAppName = "SS9";  (* Screen Saving Dancing Mouse 9.  Text windows started in version 4 *)
-  LastMod = "May 22, 2019";
+  LastMod = "May 24, 2019";
   clipfmt = CLIPBOARD_ASCII;
   SS5Icon32 = '#100';
   SS5Icon16 = '#200';
@@ -137,7 +138,7 @@ VAR
   cxScreen,cyScreen,wxClient,wyClient : COORDINATE;
   xCaret, yCaret, I  : INTEGER;
   ch2,ch3 :  CHAR;
-  bool,inputprocessed,TestMode :  BOOLEAN;
+  bool,inputprocessed,TestMode,HelpFlag :  BOOLEAN;
   sigfig,c1,c2,c3,SSTimeOut, TimeOutReset,RetCode :  CARDINAL;
   inputline,HPFileName,Xstr,str1,str2,str3,str4,str5,str6,str7,str8,str9,str0 : STRTYP;
   tokenstate  : FSATYP;
@@ -287,10 +288,15 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
         WINUSER.keybd_event(WINUSER.VK_SPACE,039h,0,0); (* scan code changed 5/21/2019 9:08:47 PM. *)
         (* Added 5/21/2019 8:48:23 PM together w/ the name change to SS9 *)
         WINUSER.keybd_event(WINUSER.VK_BACK,0Eh,0,0); (* backspace *)
-        WINUSER.keybd_event(WINUSER.VK_UP,48h,0,0);
+        (*
+        {{{
+        WINUSER.keybd_event(WINUSER.VK_UP,48h,0,0);  Commented out because tcc does something
+        WINUSER.keybd_event(WINUSER.VK_DOWN,50h,0,0);
+        }}}
+        *)
         WINUSER.keybd_event(WINUSER.VK_LEFT,4Bh,0,0);
         WINUSER.keybd_event(WINUSER.VK_RIGHT,4Dh,0,0);
-        WINUSER.keybd_event(WINUSER.VK_DOWN,50h,0,0);
+
 
       ELSE
         DEC(WiggleMouse);
@@ -340,7 +346,12 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
       WriteString(tw,LastMod,a);
       EraseToEOL(tw,a);
       WriteLn(tw);
-
+      IF HelpFlag THEN
+        WriteString(tw," test -- sets timer for 5 sec.  Else 5 sec is not allowed.",a);
+        WriteLn(tw);
+        WriteString(tw," number to use to set timer. ",a);
+        WriteLn(tw);
+      END;
     |
     TWM_KEY:
      FOR i := 0  TO INT(msg.k_count-1) DO
@@ -434,7 +445,7 @@ BEGIN
        "",        (* menu : ARRAY OF CHAR *)
        SS5Icon16, (* icon : ARRAY OF CHAR *)
        -1,-1, (* x,y= the initial screen coordinates for the window to be displayed *)
-       40,10, (* xSize, ySize : COORDINATE  changed from 32,7 on 5/2/19 *)
+       60,12, (* xSize, ySize : COORDINATE  changed from 32,7 on 5/2/19, and again on 5/24/19 *)
        -1,-1, (* xBuffer, yBuffer : COORDINATE *)
        FALSE,  (* gutter : BOOLEAN *)
        DefaultFontInfo, (* font : FontInfo *)
@@ -481,6 +492,7 @@ BEGIN
   TimeOutReset := EmergencyScreenReset;
   TestMode := FALSE;
   inputprocessed := FALSE;
+  HelpFlag := FALSE;
 
   GetCommandLine(inputbuf.CHARS);
   TRIM(inputbuf);
@@ -490,6 +502,8 @@ BEGIN
     IF STRCMPFNT(TOKEN.CHARS,"TEST") = 0 THEN
       TimeOutReset  := 10;
       TestMode := TRUE;
+    ELSIF STRCMPFNT(TOKEN.CHARS,"HELP") = 0 THEN
+      HelpFlag := TRUE;
     ELSIF (tokenstate = DGT) AND (ABS(I) <= 2000) THEN
       inputprocessed := TRUE;
       TimeOutReset := ABS(I);
