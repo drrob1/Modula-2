@@ -32,6 +32,7 @@ REVISION HISTORY
              possibility of extra spaces in PowerScribe or Epic, for example.
 22 May 19 -- Adding a test mode, in which the timer is 5 sec.
 24 May 19 -- Adding help, and removing up arrow because that makes tcc show the prev cmd.
+19 Jun 19 -- Adding PROCEDURE SetForegroundWindow(tw : TextWindow); to TWM_TIMER see if that helps.
 --------------------------------------*)
 
 MODULE SS9;
@@ -283,6 +284,7 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
         WINUSER.keybd_event(WINUSER.VK_SPACE,0B9h,0,0);
       ELSIF WiggleMouse <= 0 THEN
         WiggleMouse := SSTimeOut;
+        SetForegroundWindow(tw);
         WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, mousemoveamt), CAST(DWORD, mousemoveamt), 0, 0);
         WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, -mousemoveamt), CAST(DWORD, -mousemoveamt), 0, 0);
         WINUSER.keybd_event(WINUSER.VK_SPACE,039h,0,0); (* scan code changed 5/21/2019 9:08:47 PM. *)
