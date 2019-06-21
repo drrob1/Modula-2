@@ -116,7 +116,7 @@ FROM TOKENPTR IMPORT FSATYP,DELIMCH,DELIMSTATE,INI1TKN,TKNPTRTYP,INI3TKN,GETCHR,
 
 CONST
   szAppName = "SS9";  (* Screen Saving Dancing Mouse 9.  Text windows started in version 4 *)
-  LastMod = "May 24, 2019";
+  LastMod = "June 19, 2019";
   clipfmt = CLIPBOARD_ASCII;
   SS5Icon32 = '#100';
   SS5Icon16 = '#200';
