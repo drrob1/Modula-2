@@ -16,6 +16,7 @@ IMPLEMENTATION MODULE TIMLIBrevised;
   30 Dec 16 -- Added Milisecs to DatetimeType, and now assumes that CARDINAL is 32 bits wide.  Removed the long deprecated JUL2GREG and GREG2JUL.
                  Renamed to TIMLIBrevised.
   24 Apr 19 -- Started adding date and time strings to the DateTimeType.
+   5 Aug 19 -- Adding DOW field, and Now, NOW procedures to copy Go.
 *)
 
   FROM Strings IMPORT Assign;
@@ -69,16 +70,16 @@ TYPE
 
 //   This is declared in the def module.
   DateTimeType = RECORD
-    M,D,Yr,Hr,Minutes,Seconds,millisecs : CARDINAL;
+    M,D,Yr,Hr,Minutes,Seconds,Millisecs, DOW : CARDINAL;
     MonthStr,DayOfWeekStr : STR10TYP;
     DateStr,TimeStr,TimeWithSecondsStr : STRTYP;
     Julian : CARDINAL;
   END;
-
-
 *)
 
-
+(* 
+  {{{
+*)
 TYPE
     ChanId      = IOChan.ChanId;
     FlagSet     = ChanConsts.FlagSet;
@@ -92,6 +93,10 @@ CONST
   text  = FlagSet{ChanConsts.textFlag}; (* text operations are requested/available *)
   raw   = FlagSet{ChanConsts.rawFlag};  (* raw operations are requested/available *)
   echo  = FlagSet{ChanConsts.echoFlag}; (* echoing by interactive device on reading of characters from input stream requested/applies *)
+
+(*
+  }}}
+*)
 
 VAR
   C,K,IDX,PTR,c,RETCOD                         : CARDINAL;
@@ -107,23 +112,15 @@ VAR
 
 TYPE
     ADIPMType = ARRAY [0..11] OF CARDINAL;
+
 CONST
 (*
   This is a typed constant that now represents the the last day of the previous month.
   The variable name is an acronym of Accumulated Days In Previous Months.
 *)
     ADIPM = ADIPMType{0,31,59,90,120,151,181,212,243,273,304,334};
-(*  ADIPM = ADIPMType{0, 1,-1, 0,  0,  1,  1,  2,  3,  3,  4,  4};  This is INTEGER, and the new expression needs a CARDINAL. *)
+
     FUDGEFACTOR = 5.0;
-
-(* Old method of declaring and initializing the DAYNAMES array.  It is now in def module.
-VAR
-    DAYNAMES : ARRAY[1..7] OF STR10TYP;
-*)
-
-
-
-
 
 
 PROCEDURE TIME2MDY(VAR M,D,Y : CARDINAL);
@@ -235,11 +232,10 @@ to accomodate the contents of the format string
 }}}
 *)
 
-PROCEDURE GetDateTime(VAR dt : DateTimeType) : DateTimeType;  (* C-ish does this a lot, not sure why *)
+PROCEDURE GetDateTime(VAR dt : DateTimeType) : DateTimeType;  (* C does this a lot, returning , not sure why *)
 VAR
   DT : DateTimeType;
   SysTime : DateTime;
-  DOW : CARDINAL;
   AMpm : STRTYP;
 
 BEGIN
@@ -285,6 +281,23 @@ BEGIN
   dt := DT;
   RETURN dt;
 END GetDateTime;
+
+
+PROCEDURE Now() : DateTimeType;
+VAR D1 : DateTimeType;
+
+BEGIN
+  GetDateTime(D1);
+  RETURN D1;
+END Now;
+
+PROCEDURE NOW() : DateTimeType;
+VAR D1, D2 : DateTimeType;
+
+BEGIN
+  D1 := GetDateTime(D2);
+  RETURN D1;
+END NOW;
 
 PROCEDURE GETMDY(INBUF : BUFTYP; VAR M,D,Y : CARDINAL);
 (*

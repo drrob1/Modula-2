@@ -5,6 +5,7 @@ REVISION HISTORY
 13 Oct 13 -- Testing gm2 routines.
 11 Oct 16 -- gm2 was a bust.  I'm testing StonyBrook Modula-2 addition of GetDateTime, backporting C++ and go code I recently wrote.
 25 Apr 19 -- Testing enhancements to GetDateTime in TIMLIBrevised.
+ 6 Aug 19 -- Testing Now() and NOW()
 *)
   FROM SYSTEM IMPORT ADR;
   FROM MiscStdInOut IMPORT WriteString,WriteLn,PressAnyKey,WriteCard,WriteInt,ReadString,ReadCard,
@@ -34,6 +35,9 @@ IMPORT TIMLIBrevised,FormatString;
 FROM TIMLIBrevised IMPORT TIME2MDY, JULIAN, GREGORIAN, DateTimeType, GetDateTime;
 FROM SysClock IMPORT GetClock,DateTime;
 
+CONST
+  LastAltered="August 6, 2019";
+
 VAR
   INBUF,TOKEN : BUFTYP;
     RETCOD,C,posn,c1,c2,
@@ -44,15 +48,21 @@ VAR
     CH                     : CHAR;
     LC                     : LONGCARD;
     dt                     : DateTime;
-    dt1,dt2                : DateTimeType;
-    str                    : STRTYP;
+    dt1,dt2,d1,d2          : DateTimeType;
+    str,s0,s1,s2           : STRTYP;
 
 (*
-                                          TKNSTATE       : FSATYP;
-                                          tpv1,tpv2,tpv3 : TKNPTRTYP;
+{{{
+    TKNSTATE       : FSATYP;
+    tpv1,tpv2,tpv3 : TKNPTRTYP;
+}}}
 *)
 
 BEGIN
+  WriteString(" Test TimLibRevised program.  Last Altered ");
+  WriteString(LastAltered);
+  WriteLn;
+  WriteLn;
   GetClock(dt);
   WriteString(' From system clock: m d y hr min sec frac zone, DST ');
   WriteCard(dt.month);
@@ -122,11 +132,11 @@ BEGIN
   WriteLn;
 
 
-(*
+(*  DateTimetype RECORD
 {{{
   TYPE
     DateTimeType = RECORD
-      M,D,Yr,Hr,Minutes,Seconds,Millisecs : CARDINAL;
+      M,D,Yr,Hr,Minutes,Seconds,Millisecs,DOW : CARDINAL;
       MonthStr,DayOfWeekStr : STR10TYP;
       DateStr,TimeStr,TimeWithSecondsStr : STRTYP;
       Julian : CARDINAL;
@@ -134,11 +144,24 @@ BEGIN
 }}}
 *)
 
-  FormatString.FormatString(" and dt1: %c/%c/%c %c:%c:%c.%c  Month:%s, Day:%s, Date as string: %s, Time: %s and %s. \n ",str,dt1.M,dt1.D,dt1.Yr,dt1.Hr,dt1.Minutes,dt1.Seconds,dt1.Millisecs,
+  FormatString.FormatString(" and dt1: %c/%c/%c %c:%c:%c.%c  %s, %s, %s, %s and %s. \n ",str,dt1.M,dt1.D,dt1.Yr,dt1.Hr,dt1.Minutes,dt1.Seconds,dt1.Millisecs,
                               dt1.MonthStr, dt1.DayOfWeekStr,dt1.DateStr,dt1.TimeStr,dt1.TimeWithSecondsStr);
   WriteString(str);
   WriteLn;
+
+  d1 := TIMLIBrevised.Now();
+  d2 := TIMLIBrevised.NOW();
+
+  FormatString.FormatString("After Now routine D1.  String: %s, string %s and %s.  DOW: %c, Cardinals: %c/%c/%c_%c:%c:%c.%c, %c \n",s1,d1.DateStr,d1.TimeStr,d1.TimeWithSecondsStr,d1.DOW,
+                             d1.M,d1.D,d1.Yr,d1.Hr,d1.Minutes,d1.Seconds,d1.Millisecs,d1.Julian);
+  WriteString(s1);
   WriteLn;
+  FormatString.FormatString("After Now routine D2.  String: %s, string %s and %s.  DOW: %c, Cardinals: %c/%c/%c_%c:%c:%c.%c, %c \n",s2,d2.DateStr,d2.TimeStr,d2.TimeWithSecondsStr,d2.DOW,
+                             d2.M,d2.D,d2.Yr,d2.Hr,d2.Minutes,d2.Seconds,d2.Millisecs,d2.Julian);
+  WriteString(s2);
+  WriteLn;
+  WriteLn;
+
 
 
 END TestTimLibRevised.

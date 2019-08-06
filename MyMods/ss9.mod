@@ -33,6 +33,7 @@ REVISION HISTORY
 22 May 19 -- Adding a test mode, in which the timer is 5 sec.
 24 May 19 -- Adding help, and removing up arrow because that makes tcc show the prev cmd.
 19 Jun 19 -- Adding PROCEDURE SetForegroundWindow(tw : TextWindow); to TWM_TIMER see if that helps.
+ 5 Aug 19 -- Adding absolute time of start so I can possibly track why it completely resets overnight.
 --------------------------------------*)
 
 MODULE SS9;
@@ -116,7 +117,7 @@ FROM TOKENPTR IMPORT FSATYP,DELIMCH,DELIMSTATE,INI1TKN,TKNPTRTYP,INI3TKN,GETCHR,
 
 CONST
   szAppName = "SS9";  (* Screen Saving Dancing Mouse 9.  Text windows started in version 4 *)
-  LastMod = "June 19, 2019";
+  LastMod = "Aug 5, 2019";
   clipfmt = CLIPBOARD_ASCII;
   SS5Icon32 = '#100';
   SS5Icon16 = '#200';
@@ -168,6 +169,8 @@ VAR
   LongZero        : INTEGER64 = 0;
   boolp           : POINTER TO BOOLEAN = NIL;
   WiggleMouse     : INTEGER;
+  T0              : TIMLIBrevised.DateTimeType;
+    wiggled  : CARDINAL;
 (*
 {{{
     FontWeights = (FwLight, FwNormal, FwDemiBold, FwBold, FwHeavy);
@@ -195,14 +198,14 @@ VAR
 PROCEDURE WndProcTW(tw : TextWindow; msg : TWMessageRec) : ResponseType;
 (**********************************************************************)
 VAR
-    clr    : Colors;
-    x,y    : COORDINATE;
-    i,int  : INTEGER;
-    idx, c : CARDINAL;
-    ans    : CHAR;
-    bool   : BOOLEAN;
-    str    : STRTYP;
-    dt1,dt2: TIMLIBrevised.DateTimeType;
+    clr          : Colors;
+    x,y          : COORDINATE;
+    i,int        : INTEGER;
+    idx, c       : CARDINAL;
+    ans          : CHAR;
+    bool         : BOOLEAN;
+    str,s0,s1,s2 : STRTYP;
+    d            : TIMLIBrevised.DateTimeType;
 
 BEGIN
     c := 0;
@@ -235,6 +238,7 @@ BEGIN
         END;
         DEC(SSTimeOut, 5);  (* Give leeway in case computer is busy or something like that *)
         WiggleMouse := SSTimeOut;
+        T0 := TIMLIBrevised.Now();
 
     | TWM_SIZE:
         GetClientSize(tw,cxScreen,cyScreen);
@@ -256,13 +260,14 @@ BEGIN
         SetForegroundWindow(tw);
 }}}
 *)
-    |
-    TWM_PAINT:
+    | TWM_PAINT:
         WriteStringAt(tw,0,0,SecondsLeftStr,a);
         EraseToEOL(tw,a);
         WriteLn(tw);
 
-        FormatString.FormatString("%s ScreenSaving: %c",str0,szAppName,ScreenSaving);  (* added 5/2/19 and edited 5/14/19 *)
+  (* added 5/2/19 and edited 5/14/19, 8/5/19 *)
+        FormatString.FormatString("%s ScreenSaving: %c.  Start datetime: %c/%c/%c_%c:%c:%c.%c ",str0,szAppName,ScreenSaving,
+                                   T0.M,T0.D,T0.Yr,T0.Hr,T0.Minutes,T0.Seconds,T0.Millisecs);
         WriteString(tw,str0,a);
         EraseToEOL(tw,a);
         WriteLn(tw);
@@ -283,6 +288,7 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
         INC(ScreenSaving);
         WINUSER.keybd_event(WINUSER.VK_SPACE,0B9h,0,0);
       ELSIF WiggleMouse <= 0 THEN
+        INC(wiggled);
         WiggleMouse := SSTimeOut;
         SetForegroundWindow(tw);
         WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, mousemoveamt), CAST(DWORD, mousemoveamt), 0, 0);
@@ -308,8 +314,9 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
       HoursLeft := CountUpTimer/3600;
       MinutesLeft := (CountUpTimer MOD 3600) / 60;
       SecondsLeft := (CountUpTimer MOD 60);
-      dt2 := TIMLIBrevised.GetDateTime(dt1);
-      FormatString.FormatString("%2c:%c:%c    %s",SecondsLeftStr,HoursLeft,MinutesLeft,SecondsLeft,dt1.TimeWithSecondsStr);
+      d := TIMLIBrevised.Now();
+      FormatString.FormatString("%2c:%c:%c    %s_%s,  wiggled: %c",
+                                 SecondsLeftStr,HoursLeft,MinutesLeft,SecondsLeft,d.DateStr,d.TimeWithSecondsStr,wiggled);
       WindowText  :=  SecondsLeftStr;
       SetWindowTitle(tw, WindowText);
 (*
@@ -320,12 +327,16 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
       WriteStringAt(tw,0,0,SecondsLeftStr,a);
       EraseToEOL(tw,a);
       WriteLn(tw);
-      WriteString(tw,dt2.TimeStr,a); (* Using dt2 here instead of dt1, just to see if it works. *)
+      WriteString(tw,d.TimeStr,a);
       EraseToEOL(tw,a);
       WriteLn(tw);
-      FormatString.FormatString("%s ScreenSaving: %c",str0,szAppName,ScreenSaving);  (* added 5/2/19 and updated 5/14/19 *)
+        (* added 5/2/19 and updated 5/14/19, 8/6/19 *)
+      FormatString.FormatString("%s ScreenSaving %c, start date_time %s_%s, now %s_%s",str0,szAppName,ScreenSaving,
+                                 T0.DateStr,T0.TimeWithSecondsStr,d.DateStr,d.TimeWithSecondsStr);
       WriteString(tw,str0,a);
       EraseToEOL(tw,a);
+      WriteLn(tw);
+      WriteLn(tw);
       WriteLn(tw);
 
 (*
@@ -447,7 +458,7 @@ BEGIN
        "",        (* menu : ARRAY OF CHAR *)
        SS5Icon16, (* icon : ARRAY OF CHAR *)
        -1,-1, (* x,y= the initial screen coordinates for the window to be displayed *)
-       60,12, (* xSize, ySize : COORDINATE  changed from 32,7 on 5/2/19, and again on 5/24/19 *)
+       90,15, (* xSize, ySize : COORDINATE  changed from 32,7 on 5/2/19, and again on 5/24/19, 8/6/19 *)
        -1,-1, (* xBuffer, yBuffer : COORDINATE *)
        FALSE,  (* gutter : BOOLEAN *)
        DefaultFontInfo, (* font : FontInfo *)
@@ -495,6 +506,7 @@ BEGIN
   TestMode := FALSE;
   inputprocessed := FALSE;
   HelpFlag := FALSE;
+  wiggled := 0;
 
   GetCommandLine(inputbuf.CHARS);
   TRIM(inputbuf);

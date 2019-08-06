@@ -7,6 +7,7 @@ DEFINITION MODULE TIMLIBrevised;
   30 Dec 16 -- Added Milisecs to DatetimeType, and now assumes that CARDINAL is 32 bits wide.  Removed the long deprecated JUL2GREG and GREG2JUL.
                  Renamed to TIMLIBrevised.
   24 Apr 19 -- 
+   5 Aug 19 -- Added DOW field, and Now, NOW procedures go copy Go.
 *)
   FROM UTILLIB IMPORT STRTYP,STR10TYP,BUFTYP;
 
@@ -18,14 +19,16 @@ DEFINITION MODULE TIMLIBrevised;
     MONTHNAMES = MONTHNAMESType{'January','February','March','April','May', 'June','July','August','September','October','November','December'};
   TYPE
     DateTimeType = RECORD
-      M,D,Yr,Hr,Minutes,Seconds,Millisecs : CARDINAL;
+      M,D,Yr,Hr,Minutes,Seconds,Millisecs, DOW : CARDINAL;
       MonthStr,DayOfWeekStr : STR10TYP;
       DateStr,TimeStr,TimeWithSecondsStr : STRTYP;
       Julian : CARDINAL;
     END;
 
 
-PROCEDURE GetDateTime(VAR dt : DateTimeType) : DateTimeType;  (* C-ish does this a lot, not sure why *)
+PROCEDURE GetDateTime(VAR dt : DateTimeType) : DateTimeType;  (* C does this a lot, not sure why *)
+PROCEDURE Now() : DateTimeType;
+PROCEDURE NOW() : DateTimeType;
 
 PROCEDURE TIME2MDY(VAR M,D,Y : CARDINAL);
 (*
