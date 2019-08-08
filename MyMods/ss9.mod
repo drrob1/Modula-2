@@ -34,8 +34,8 @@ REVISION HISTORY
 24 May 19 -- Adding help, and removing up arrow because that makes tcc show the prev cmd.
 19 Jun 19 -- Adding PROCEDURE SetForegroundWindow(tw : TextWindow); to TWM_TIMER see if that helps.
  5 Aug 19 -- Adding absolute time of start so I can possibly track why it completely resets overnight.
- 7 Aug 19 -- Adding writing of the time info to a file, so I can more easily track what's happening.  I have to append and close file after each cycle to be sure I can see it.
-               MyFIO2 routines can handle this.
+ 7 Aug 19 -- Adding writing of the time info to a file, so I can more easily track what's happening.
+               I have to append and close file after each cycle to be sure I can see it.  MyFIO2 routines can handle this.
 --------------------------------------*)
 
 MODULE SS9;
@@ -117,6 +117,7 @@ FROM LongMath IMPORT sqrt,exp,ln,sin,cos,tan,arctan,arcsin,arccos,power,round,pi
 FROM LowLong IMPORT sign,ulp,intpart,fractpart,trunc (*,round*) ;
 FROM TOKENPTR IMPORT FSATYP,DELIMCH,DELIMSTATE,INI1TKN,TKNPTRTYP,INI3TKN,GETCHR,UNGETCHR,GETTKN,GETTKNSTR,GETTKNEOL,UNGETTKN,GETTKNREAL;
 IMPORT MyFIO2;
+FROM MyFIO2 IMPORT IOSTATE;
 
 CONST
   szAppName = "SS9";  (* Screen Saving Dancing Mouse 9.  Text windows started in version 4 *)
@@ -244,10 +245,11 @@ BEGIN
         END;
         DEC(SSTimeOut, 5);  (* Give leeway in case computer is busy or something like that *)
         WiggleMouse := SSTimeOut;
-        T0 := TIMLIBrevised.Now();
-        MyFIO2.FWRSTR(OutFile,T0.DateStr);
+        d := TIMLIBrevised.Now();
+        MyFIO2.FOPEN(OutFile,outputfilenamebuf,APND);
+        MyFIO2.FWRSTR(OutFile,d.DateStr);
         MyFIO2.FWRBL(OutFile,5);
-        MyFIO2.FWRSTR(OutFile,T0.TimeWithSecondsStr);
+        MyFIO2.FWRSTR(OutFile,d.TimeWithSecondsStr);
         MyFIO2.FWRLN(OutFile);
         MyFIO2.FCLOSE(OutFile);
 
@@ -318,14 +320,19 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
         WINUSER.keybd_event(WINUSER.VK_LEFT,4Bh,0,0);
         WINUSER.keybd_event(WINUSER.VK_RIGHT,4Dh,0,0);
 
+        FormatString.FormatString("start date time: %s_%s,  current date time: %s_%s, wiggled %c \n",s2,
+                                     T0.DateStr,T0.TimeWithSecondsStr,d.DateStr,d.TimeWithSecondsStr,wiggled);
         (* Writing to the OutFile *)
         MyFIO2.FOPEN(OutFile,outputfilenamebuf,MyFIO2.APND);
+        MyFIO2.FWRSTR(OutFile,s2);
+        MyFIO2.FCLOSE(OutFile);
+(*  This code was replaced by the sprintf like function above.
         MyFIO2.FWRSTR(OutFile,d.DateStr);
         MyFIO2.FWRBL(OutFile,5);
         MyFIO2.FWRSTR(OutFile,d.TimeWithSecondsStr);
         MyFIO2.FWRLN(OutFile);
-        MyFIO2.FCLOSE(OutFile);
 
+*)
       ELSE
         DEC(WiggleMouse);
       END; (* if boolp^ ELSIF WiggleMouse *)
@@ -550,8 +557,13 @@ BEGIN
 
   (* Open outputfile.  Subsequent calls will append. *)
   ASSIGN2BUF(OutputFileName,outputfilenamebuf);
-  MyFIO2.FOPEN(OutFile,outputfilenamebuf,MyFIO2.WR);
-
+  MyFIO2.FOPEN(OutFile,outputfilenamebuf,APND);
+  T0 := TIMLIBrevised.Now();
+  MyFIO2.FWRSTR(OutFile,T0.DateStr);
+  MyFIO2.FWRBL(OutFile,5);
+  MyFIO2.FWRSTR(OutFile,T0.TimeWithSecondsStr);
+  MyFIO2.FWRLN(OutFile);
+  MyFIO2.FCLOSE(OutFile);
 
   FUNC WinShell.DispatchMessages(Start, NIL);
 END SS9.
