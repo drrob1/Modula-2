@@ -34,6 +34,8 @@ REVISION HISTORY
 24 May 19 -- Adding help, and removing up arrow because that makes tcc show the prev cmd.
 19 Jun 19 -- Adding PROCEDURE SetForegroundWindow(tw : TextWindow); to TWM_TIMER see if that helps.
  5 Aug 19 -- Adding absolute time of start so I can possibly track why it completely resets overnight.
+ 7 Aug 19 -- Adding writing of the time info to a file, so I can more easily track what's happening.  I have to append and close file after each cycle to be sure I can see it.
+               MyFIO2 routines can handle this.
 --------------------------------------*)
 
 MODULE SS9;
@@ -114,10 +116,11 @@ FROM SysClock IMPORT DateTime,GetClock,CanGetClock,CanSetClock,IsValidDateTime,S
 FROM LongMath IMPORT sqrt,exp,ln,sin,cos,tan,arctan,arcsin,arccos,power,round,pi;
 FROM LowLong IMPORT sign,ulp,intpart,fractpart,trunc (*,round*) ;
 FROM TOKENPTR IMPORT FSATYP,DELIMCH,DELIMSTATE,INI1TKN,TKNPTRTYP,INI3TKN,GETCHR,UNGETCHR,GETTKN,GETTKNSTR,GETTKNEOL,UNGETTKN,GETTKNREAL;
+IMPORT MyFIO2;
 
 CONST
   szAppName = "SS9";  (* Screen Saving Dancing Mouse 9.  Text windows started in version 4 *)
-  LastMod = "Aug 5, 2019";
+  LastMod = "Aug 8, 2019";
   clipfmt = CLIPBOARD_ASCII;
   SS5Icon32 = '#100';
   SS5Icon16 = '#200';
@@ -126,6 +129,7 @@ CONST
   MouseMovementAmt = -50;
   TimeToWiggleMouse = 720; (* 720 sec is 12 min *)
   EmergencyScreenReset = 900;
+  OutputFileName = "ss9.txt";
 
 TYPE
   STR20TYP    = ARRAY [0..20] OF CHAR;
@@ -170,7 +174,9 @@ VAR
   boolp           : POINTER TO BOOLEAN = NIL;
   WiggleMouse     : INTEGER;
   T0              : TIMLIBrevised.DateTimeType;
-    wiggled  : CARDINAL;
+  wiggled  : CARDINAL;
+  OutFile : MyFIO2.MYFILTYP;
+  outputfilenamebuf : BUFTYP;
 (*
 {{{
     FontWeights = (FwLight, FwNormal, FwDemiBold, FwBold, FwHeavy);
@@ -239,6 +245,12 @@ BEGIN
         DEC(SSTimeOut, 5);  (* Give leeway in case computer is busy or something like that *)
         WiggleMouse := SSTimeOut;
         T0 := TIMLIBrevised.Now();
+        MyFIO2.FWRSTR(OutFile,T0.DateStr);
+        MyFIO2.FWRBL(OutFile,5);
+        MyFIO2.FWRSTR(OutFile,T0.TimeWithSecondsStr);
+        MyFIO2.FWRLN(OutFile);
+        MyFIO2.FCLOSE(OutFile);
+
 
     | TWM_SIZE:
         GetClientSize(tw,cxScreen,cyScreen);
@@ -283,6 +295,7 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
       IF boolp = NIL THEN
         WriteString(tw," boolp is NIL.  Fix this.",a)
       END;
+      d := TIMLIBrevised.Now();
       WINUSER.SystemParametersInfo(WINUSER.SPI_GETSCREENSAVERRUNNING,c,boolp,c);
       IF boolp^ THEN
         INC(ScreenSaving);
@@ -305,6 +318,13 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
         WINUSER.keybd_event(WINUSER.VK_LEFT,4Bh,0,0);
         WINUSER.keybd_event(WINUSER.VK_RIGHT,4Dh,0,0);
 
+        (* Writing to the OutFile *)
+        MyFIO2.FOPEN(OutFile,outputfilenamebuf,MyFIO2.APND);
+        MyFIO2.FWRSTR(OutFile,d.DateStr);
+        MyFIO2.FWRBL(OutFile,5);
+        MyFIO2.FWRSTR(OutFile,d.TimeWithSecondsStr);
+        MyFIO2.FWRLN(OutFile);
+        MyFIO2.FCLOSE(OutFile);
 
       ELSE
         DEC(WiggleMouse);
@@ -314,7 +334,7 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
       HoursLeft := CountUpTimer/3600;
       MinutesLeft := (CountUpTimer MOD 3600) / 60;
       SecondsLeft := (CountUpTimer MOD 60);
-      d := TIMLIBrevised.Now();
+
       FormatString.FormatString("%2c:%c:%c    %s_%s,  wiggled: %c",
                                  SecondsLeftStr,HoursLeft,MinutesLeft,SecondsLeft,d.DateStr,d.TimeWithSecondsStr,wiggled);
       WindowText  :=  SecondsLeftStr;
@@ -527,6 +547,10 @@ BEGIN
       tpv := NIL;
     END;
   END; (* if there was a valid command tail entry *)
+
+  (* Open outputfile.  Subsequent calls will append. *)
+  ASSIGN2BUF(OutputFileName,outputfilenamebuf);
+  MyFIO2.FOPEN(OutFile,outputfilenamebuf,MyFIO2.WR);
 
 
   FUNC WinShell.DispatchMessages(Start, NIL);
