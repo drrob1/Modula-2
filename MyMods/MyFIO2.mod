@@ -80,7 +80,7 @@ Copyright (C) 1987-2011  Robert Solomon MD.  All rights reserved.
                 to change the calling list.  I have to really want the new field to use it.
   23 Apr 13 -- Came across a bug in the FRDTXLN logic.  If the file has a single line and there is no EOL
                 character, the routine used to detect an EOF condition and immediately exited.  Fixed.
-  13 Aug 19 -- Fixed a bug in BLANKBUF init.
+  13 Aug 19 -- Fixed a bug in BLANKBUF init.  Made it's init values consistent.
 *)
 
   FROM SysClock IMPORT DateTime;
@@ -854,10 +854,9 @@ END GETFNM;
 (**************************************** Main Module Body *****************)
 BEGIN  (* INITIALIZE BLANKBUF FOR RETBLKBUF *)
   FILLCHAR(ADR(BLANKBUF.CHARS),BUFSIZ,BLANK);
-                                               (*  FOR I := 1 TO BUFSIZ DO BLANKBUF.CHARS[I] := BLANK; END(*FOR*); *)
-                                               (*  BLANKBUF.CHARS := '';  I do not know why I did this bug.  I don't need a null char here at all. *)
-  BLANKBUF.LENGTH := 0;
-  BLANKBUF.COUNT  := 0;
+  BLANKBUF.CHARS[BUFSIZ+1] := '';
+  BLANKBUF.LENGTH := BUFSIZ;
+  BLANKBUF.COUNT  := BUFSIZ;
   ROOTNAM := BLANKBUF;
   TMPBUF := BLANKBUF;
 END MyFIO2.
