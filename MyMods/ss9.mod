@@ -36,6 +36,7 @@ REVISION HISTORY
  5 Aug 19 -- Adding absolute time of start so I can possibly track why it completely resets overnight.
  7 Aug 19 -- Adding writing of the time info to a file, so I can more easily track what's happening.
                I have to append and close file after each cycle to be sure I can see it.  MyFIO2 routines can handle this.
+13 Aug 19 -- There is an error in DateStr in that it is writing a null byte to the file.  I have to test to see if TimeStr does this also.
 --------------------------------------*)
 
 MODULE SS9;
@@ -121,7 +122,7 @@ FROM MyFIO2 IMPORT IOSTATE;
 
 CONST
   szAppName = "SS9";  (* Screen Saving Dancing Mouse 9.  Text windows started in version 4 *)
-  LastMod = "Aug 8, 2019";
+  LastMod = "Aug 13, 2019";
   clipfmt = CLIPBOARD_ASCII;
   SS5Icon32 = '#100';
   SS5Icon16 = '#200';
@@ -558,10 +559,14 @@ BEGIN
   (* Open outputfile.  Subsequent calls will append. *)
   ASSIGN2BUF(OutputFileName,outputfilenamebuf);
   MyFIO2.FOPEN(OutFile,outputfilenamebuf,APND);
+  MyFIO2.FWRSTR(OutFile," ------------------------------------- ");
+  MyFIO2.FWRLN(OutFile);
   T0 := TIMLIBrevised.Now();
   MyFIO2.FWRSTR(OutFile,T0.DateStr);
   MyFIO2.FWRBL(OutFile,5);
   MyFIO2.FWRSTR(OutFile,T0.TimeWithSecondsStr);
+  MyFIO2.FWRBL(OutFile,5);
+  MyFIO2.FWRSTR(OutFile,T0.TimeStr);
   MyFIO2.FWRLN(OutFile);
   MyFIO2.FCLOSE(OutFile);
 

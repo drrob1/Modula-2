@@ -6,13 +6,14 @@ REVISION HISTORY
 11 Oct 16 -- gm2 was a bust.  I'm testing StonyBrook Modula-2 addition of GetDateTime, backporting C++ and go code I recently wrote.
 25 Apr 19 -- Testing enhancements to GetDateTime in TIMLIBrevised.
  6 Aug 19 -- Testing Now() and NOW()
+13 Aug 19 -- Found that writing DateStr to a file from MyFIO2 also writes a null char.
 *)
   FROM SYSTEM IMPORT ADR;
   FROM MiscStdInOut IMPORT WriteString,WriteLn,PressAnyKey,WriteCard,WriteInt,ReadString,ReadCard,
                      WriteLongCard;
   FROM Storage IMPORT ALLOCATE, DEALLOCATE;
-  FROM UTILLIB IMPORT BUFSIZ,CTRLCOD,STRTYP,STR10TYP,BUFTYP, MAXCARDFNT,NULL, COPYLEFT,COPYRIGHT,FILLCHAR,SCANFWD,SCANBACK,
-    STRLENFNT,STRCMPFNT,LCHINBUFFNT,MRGBUFS,TRIMFNT,TRIM,RMVCHR, APPENDA2B,CONCATAB2C,INSERTAin2B,ASSIGN2BUF;
+  FROM UTILLIB IMPORT BUFSIZ, CTRLCOD, STRTYP, STR10TYP, BUFTYP, MAXCARDFNT, NULL, COPYLEFT, COPYRIGHT, FILLCHAR, SCANFWD, SCANBACK,
+    STRLENFNT, STRCMPFNT, LCHINBUFFNT, MRGBUFS, TRIMFNT, TRIM, RMVCHR, APPENDA2B, CONCATAB2C, INSERTAin2B, ASSIGN2BUF;
 (*
 {{{
   FROM TOKENPTR IMPORT FSATYP,TKNPTRTYP,INI1TKN,GETCHR, UNGETCHR,GETTKN,UNGETTKN,GETTKNREAL,GETTKNSTR,DELIMCH,DELIMSTATE;
@@ -36,7 +37,7 @@ FROM TIMLIBrevised IMPORT TIME2MDY, JULIAN, GREGORIAN, DateTimeType, GetDateTime
 FROM SysClock IMPORT GetClock,DateTime;
 
 CONST
-  LastAltered="August 6, 2019";
+  LastAltered="August 13, 2019";
 
 VAR
   INBUF,TOKEN : BUFTYP;
@@ -159,6 +160,18 @@ BEGIN
   FormatString.FormatString("After Now routine D2.  String: %s, string %s and %s.  DOW: %c, Cardinals: %c/%c/%c_%c:%c:%c.%c, %c \n",s2,d2.DateStr,d2.TimeStr,d2.TimeWithSecondsStr,d2.DOW,
                              d2.M,d2.D,d2.Yr,d2.Hr,d2.Minutes,d2.Seconds,d2.Millisecs,d2.Julian);
   WriteString(s2);
+  WriteLn;
+  WriteString(" DateStr, TimeStr: ");
+  WriteString(d1.DateStr);
+  WriteString(", ");
+  WriteString(d1.TimeStr);
+  WriteString(".  Len DateStr, TimeStr= ");
+  c1 := STRLENFNT(d1.DateStr);
+  c2 := STRLENFNT(d1.TimeStr);
+  WriteCard(c1);
+  WriteString(", ");
+  WriteCard(c2);
+
   WriteLn;
   WriteLn;
 

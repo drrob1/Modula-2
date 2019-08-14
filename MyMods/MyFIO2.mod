@@ -80,6 +80,7 @@ Copyright (C) 1987-2011  Robert Solomon MD.  All rights reserved.
                 to change the calling list.  I have to really want the new field to use it.
   23 Apr 13 -- Came across a bug in the FRDTXLN logic.  If the file has a single line and there is no EOL
                 character, the routine used to detect an EOF condition and immediately exited.  Fixed.
+  13 Aug 19 -- Fixed a bug in BLANKBUF init.
 *)
 
   FROM SysClock IMPORT DateTime;
@@ -283,7 +284,7 @@ THIS PROCEDURE OPENS THE FILE FOR I/O, USING THE LOGITECH PROCEDURES LOOKUP
 AND RESET.  FILNAM IS THE FILE NAME AS BUILT BY GETFNM.  UNLIKE THE PASCAL
 PROCEDURE OF THE SAME NAME, THIS ROUTINES OPENS AND RESETS FILES FOR BOTH
 READING AND WRITING.  RDWRSTATE IS EITHER RD FOR OPEN A FILE FOR READING,
-OR WR FOR OPEN A FILE FOR WRITING.
+WR FOR OPEN A FILE FOR WRITING.
      Stony Brook M2 doesn't use Lookup and Reset.  FileFunc module used instead.
 New HaltOnError boolean added.  If false, then the F.status field needs to be checked to see
 if any errors occurred.  If true, then the processing is the same as the old way.
@@ -853,8 +854,8 @@ END GETFNM;
 (**************************************** Main Module Body *****************)
 BEGIN  (* INITIALIZE BLANKBUF FOR RETBLKBUF *)
   FILLCHAR(ADR(BLANKBUF.CHARS),BUFSIZ,BLANK);
-(*  FOR I := 1 TO BUFSIZ DO BLANKBUF.CHARS[I] := BLANK; END(*FOR*); *)
-  BLANKBUF.CHARS := '';
+                                               (*  FOR I := 1 TO BUFSIZ DO BLANKBUF.CHARS[I] := BLANK; END(*FOR*); *)
+                                               (*  BLANKBUF.CHARS := '';  I do not know why I did this bug.  I don't need a null char here at all. *)
   BLANKBUF.LENGTH := 0;
   BLANKBUF.COUNT  := 0;
   ROOTNAM := BLANKBUF;
