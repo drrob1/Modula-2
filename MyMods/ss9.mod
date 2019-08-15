@@ -37,7 +37,8 @@ REVISION HISTORY
  7 Aug 19 -- Adding writing of the time info to a file, so I can more easily track what's happening.
                I have to append and close file after each cycle to be sure I can see it.  MyFIO2 routines can handle this.
 13 Aug 19 -- There is an error in DateStr in that it is writing a null byte to the file.  I have to test to see if TimeStr does this also.
-15 Aug 19 -- Added double click to TIMER section.
+15 Aug 19 -- Added double click to TIMER section.  Figured out that by pushing a space into the key stack, this pgm then receives that space.
+               I need to remove the space from clearing the counters.  Maybe I'll print a message acknowledging receipt of that space.
 --------------------------------------*)
 
 MODULE SS9;
@@ -324,12 +325,12 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
 
         FormatString.FormatString("start date time: %s_%s,  current date time: %s_%s, wiggled %c \n",s2,
                                      T0.DateStr,T0.TimeWithSecondsStr,d.DateStr,d.TimeWithSecondsStr,wiggled);
-        WINUSER.mouse_event(WINUSER.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);  (* Do double click, I hope.*)
+        WINUSER.mouse_event(WINUSER.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);  (* Do double click, I hope.  Added 8/15/19. *)
         WINUSER.mouse_event(WINUSER.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
 
         WINUSER.mouse_event(WINUSER.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
         WINUSER.mouse_event(WINUSER.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
-                                     
+
         (* Writing to the OutFile *)
         MyFIO2.FOPEN(OutFile,outputfilenamebuf,MyFIO2.APND);
         MyFIO2.FWRSTR(OutFile,s2);
@@ -400,8 +401,7 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
         WriteString(tw," number to use to set timer. ",a);
         WriteLn(tw);
       END;
-    |
-    TWM_KEY:
+    | TWM_KEY:
      FOR i := 0  TO INT(msg.k_count-1) DO
       IF (msg.k_special = KEY_NOTSPECIAL) THEN
         CASE msg.k_ch OF
@@ -413,15 +413,19 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
         | CHR(27):                               (* escape *)
          (* FUNC *) CloseWindow(tw, CM_REQUEST);
 
-        | ' '    :  CountUpTimer := 0;
-                    ScreenSaving := 0;
-                    WiggleMouse := SSTimeOut;
+        | ' '    :
+                    WriteString(tw," received space from keyboard stack.  ",a);
+                    EraseToEOL(tw,a);
+                    WriteLn(tw);
         ELSE (* CASE ch *)
         END (* case ch *);
       ELSIF msg.k_special = KEY_PAGEUP THEN
       ELSIF msg.k_special = KEY_PAGEUP THEN
       ELSIF msg.k_special = KEY_PAGEDOWN THEN
       ELSIF msg.k_special = KEY_HOME THEN
+        CountUpTimer := 0;
+        ScreenSaving := 0;
+        WiggleMouse := SSTimeOut;
       ELSIF msg.k_special = KEY_END THEN
       ELSIF msg.k_special = KEY_RIGHTARROW THEN
       ELSIF msg.k_special = KEY_LEFTARROW THEN
