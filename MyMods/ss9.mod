@@ -37,6 +37,7 @@ REVISION HISTORY
  7 Aug 19 -- Adding writing of the time info to a file, so I can more easily track what's happening.
                I have to append and close file after each cycle to be sure I can see it.  MyFIO2 routines can handle this.
 13 Aug 19 -- There is an error in DateStr in that it is writing a null byte to the file.  I have to test to see if TimeStr does this also.
+15 Aug 19 -- Added double click to TIMER section.
 --------------------------------------*)
 
 MODULE SS9;
@@ -122,7 +123,7 @@ FROM MyFIO2 IMPORT IOSTATE;
 
 CONST
   szAppName = "SS9";  (* Screen Saving Dancing Mouse 9.  Text windows started in version 4 *)
-  LastMod = "Aug 13, 2019";
+  LastMod = "Aug 15, 2019";
   clipfmt = CLIPBOARD_ASCII;
   SS5Icon32 = '#100';
   SS5Icon16 = '#200';
@@ -323,6 +324,12 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
 
         FormatString.FormatString("start date time: %s_%s,  current date time: %s_%s, wiggled %c \n",s2,
                                      T0.DateStr,T0.TimeWithSecondsStr,d.DateStr,d.TimeWithSecondsStr,wiggled);
+        WINUSER.mouse_event(WINUSER.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);  (* Do double click, I hope.*)
+        WINUSER.mouse_event(WINUSER.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+
+        WINUSER.mouse_event(WINUSER.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
+        WINUSER.mouse_event(WINUSER.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+                                     
         (* Writing to the OutFile *)
         MyFIO2.FOPEN(OutFile,outputfilenamebuf,MyFIO2.APND);
         MyFIO2.FWRSTR(OutFile,s2);
