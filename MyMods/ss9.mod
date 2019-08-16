@@ -39,6 +39,7 @@ REVISION HISTORY
 13 Aug 19 -- There is an error in DateStr in that it is writing a null byte to the file.  I have to test to see if TimeStr does this also.
 15 Aug 19 -- Added double click to TIMER section.  Figured out that by pushing a space into the key stack, this pgm then receives that space.
                I need to remove the space from clearing the counters.  Maybe I'll print a message acknowledging receipt of that space.
+16 Aug 19 -- Added a Clear to EOL call to clear the line where receiving a space prints its message.               
 --------------------------------------*)
 
 MODULE SS9;
@@ -335,13 +336,6 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
         MyFIO2.FOPEN(OutFile,outputfilenamebuf,MyFIO2.APND);
         MyFIO2.FWRSTR(OutFile,s2);
         MyFIO2.FCLOSE(OutFile);
-(*  This code was replaced by the sprintf like function above.
-        MyFIO2.FWRSTR(OutFile,d.DateStr);
-        MyFIO2.FWRBL(OutFile,5);
-        MyFIO2.FWRSTR(OutFile,d.TimeWithSecondsStr);
-        MyFIO2.FWRLN(OutFile);
-
-*)
       ELSE
         DEC(WiggleMouse);
       END; (* if boolp^ ELSIF WiggleMouse *)
@@ -395,6 +389,7 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
       WriteString(tw,LastMod,a);
       EraseToEOL(tw,a);
       WriteLn(tw);
+      EraseToEOL(tw,a); (* erase the line below LastMod *)
       IF HelpFlag THEN
         WriteString(tw," test -- sets timer for 5 sec.  Else 5 sec is not allowed.",a);
         WriteLn(tw);
