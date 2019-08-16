@@ -39,7 +39,7 @@ REVISION HISTORY
 13 Aug 19 -- There is an error in DateStr in that it is writing a null byte to the file.  I have to test to see if TimeStr does this also.
 15 Aug 19 -- Added double click to TIMER section.  Figured out that by pushing a space into the key stack, this pgm then receives that space.
                I need to remove the space from clearing the counters.  Maybe I'll print a message acknowledging receipt of that space.
-16 Aug 19 -- Added a Clear to EOL call to clear the line where receiving a space prints its message.               
+16 Aug 19 -- Added a Clear to EOL call to clear the line where receiving a space prints its message, and then removed it, to write to the file instead.
 --------------------------------------*)
 
 MODULE SS9;
@@ -389,7 +389,6 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
       WriteString(tw,LastMod,a);
       EraseToEOL(tw,a);
       WriteLn(tw);
-      EraseToEOL(tw,a); (* erase the line below LastMod *)
       IF HelpFlag THEN
         WriteString(tw," test -- sets timer for 5 sec.  Else 5 sec is not allowed.",a);
         WriteLn(tw);
@@ -409,9 +408,14 @@ mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
          (* FUNC *) CloseWindow(tw, CM_REQUEST);
 
         | ' '    :
-                    WriteString(tw," received space from keyboard stack.  ",a);
-                    EraseToEOL(tw,a);
-                    WriteLn(tw);
+                    d := TIMLIBrevised.Now();
+                    FormatString.FormatString("  Start date time: %s_%s,  current date time: %s_%s, wiggled %c \n",s2,
+                                     T0.DateStr,T0.TimeWithSecondsStr,d.DateStr,d.TimeWithSecondsStr,wiggled);
+                    MyFIO2.FOPEN(OutFile,outputfilenamebuf,MyFIO2.APND);
+                    MyFIO2.FWRSTR(OutFile," Received space from keyboard stack.  ");
+                    MyFIO2.FWRSTR(OutFile,s2);
+                    MyFIO2.FWRLN(OutFile);
+                    MyFIO2.FCLOSE(OutFile);
         ELSE (* CASE ch *)
         END (* case ch *);
       ELSIF msg.k_special = KEY_PAGEUP THEN
