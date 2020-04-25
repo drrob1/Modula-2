@@ -65,6 +65,7 @@ Copyright (C) 1987  Robert Solomon MD.  All rights reserved.
   21 Apr 13 -- A pointer type has random data before the call to NEW.  I will initialize to NIL myself
                 in the calling routine.
   14 Oct 16 -- I changed the NIL assignment line to be more direct.  Type problems have been fixed.
+  25 Apr 20 -- Time to use LONGINT type instead of INTEGER.  A longint range is +/- 4.6E18, and longcard max is 9.2E18.
 *)
 
   FROM SYSTEM IMPORT ADDRESS,ADR,WORD,CAST;
@@ -77,9 +78,14 @@ Copyright (C) 1987  Robert Solomon MD.  All rights reserved.
   IMPORT LongMath;
   IMPORT ASCII;
 (*
+{{{
   FROM SWholeIO IMPORT ReadInt, WriteInt, ReadCard, WriteCard;
   FROM STextIO IMPORT ReadString, WriteString, WriteLn, ReadChar, WriteChar, SkipLine;
   FROM RealStr IMPORT StrToReal, RealToFloat, RealToEng, RealToFixed, RealToStr;
+  FROM Str IMPORT Lows,Compare,Concat,Append,Copy,Slice,Pos,NextPos,CharPos,RCharPos,
+    Item,ItemS,Prepend,Insert,Subst,Match,FindSubStr,IntToStr,CardToStr,RealToStr,
+    FixRealToStr, StrToInt, StrToCard, StrToReal, StrToC, StrToPas;
+}}}
 *)
   FROM UTILLIB IMPORT LF,BLANK,NULL,BUFTYP,ISDGT,MAXCARD,TRIM,INSERTAin2B,ASSIGN2BUF;
   FROM Conversions IMPORT StringToInt,StrToInt,IntToString,IntToStr,StringToCard,StrToCard,
@@ -88,14 +94,12 @@ Copyright (C) 1987  Robert Solomon MD.  All rights reserved.
   FROM RConversions IMPORT RealToString,RealToStringFixed,StringToReal;
   FROM LongStr IMPORT StrToReal,RealToFloat,RealToEng,RealToFixed,RealToStr,ConvResults;
 
-(*
-  FROM Str IMPORT Lows,Compare,Concat,Append,Copy,Slice,Pos,NextPos,CharPos,RCharPos,
-    Item,ItemS,Prepend,Insert,Subst,Match,FindSubStr,IntToStr,CardToStr,RealToStr,
-    FixRealToStr, StrToInt, StrToCard, StrToReal, StrToC, StrToPas;
-*)
   CONST
       TKNMAXSIZ = 200;
-      DGTMAXSIZ = 5;
+      DGTMAXSIZ = 18;  (* LONGINT *)
+      MaxLongIntVal = 4611686018427388000;  (* Close enough to max longint. *)
+      NearMaxLongInt = 461168601842738800;  (* One order of magnitude less than MaxLongIntVal *)
+
       OPMAXSIZ  = 2;
       POUNDSIGN = '#';  (* 35 *)
       PLUSSIGN  = '+';  (* 43 *)
@@ -116,6 +120,7 @@ Copyright (C) 1987  Robert Solomon MD.  All rights reserved.
       unaryminus= '_';
 
 (* DECLARED IN DEFINITION MODULE
+{{{
   TYPE
 
     FSA TYPE IS A TYPE TO DEFINE THE FINITE STATE AUTOMATA ON WHICH THIS
@@ -130,6 +135,7 @@ Copyright (C) 1987  Robert Solomon MD.  All rights reserved.
 VAR
     DELIMCH    : CHAR;    /* Exported delimiting character */
     DELIMSTATE : FSATYP;  /* Exported delimiting character state */
+}}}
 *)
 
   VAR
@@ -188,6 +194,11 @@ BEGIN
   END (*with*);
   InitFSAArray;
 END INI1TKN;
+
+PROCEDURE INITKN(VAR tpv : TKNPTRTYP; BUF : BUFTYP);
+BEGIN
+  INI1TKN(tpv, BUF);
+END INITKN;
 
 PROCEDURE STOTKNPOSN(VAR tpv : TKNPTRTYP);
 (*
@@ -370,8 +381,7 @@ BEGIN
 
 END GETOPCODE;
 
-PROCEDURE GETTKN(VAR tpv : TKNPTRTYP; VAR TOKEN:BUFTYP; VAR TKNSTATE:FSATYP;
-                 VAR SUM:INTEGER; VAR RETCOD2:CARDINAL);
+PROCEDURE GETTKN(VAR tpv : TKNPTRTYP; VAR TOKEN:BUFTYP; VAR TKNSTATE:FSATYP; VAR SUM:LONGINT; VAR RETCOD2:CARDINAL);
 (*
 *************************** GETTKN **************************************
 THIS IS THE GET NEXT TOKEN ROUTINE.  A TOKEN IS A STRING OF SYMBOLS THAT
@@ -450,7 +460,7 @@ BEGIN
           | DGT : TKNSTATE := DGT;
                   IF CH = unaryminus THEN ORDCH := ASCZERO;  END;
                   INC(TOKEN.COUNT);
-                  SUM := INT(ORDCH - ASCZERO);
+                  SUM := VAL(LONGINT,(ORDCH - ASCZERO));  (* LONG is not defined.  How odd *)
                   TOKEN.CHARS[TOKEN.COUNT] := CH;
           | ALLELSE : TKNSTATE := ALLELSE;
                       QUOFLG := (CH = SQUOTE) OR (CH = DQUOTE);
@@ -530,14 +540,15 @@ BEGIN
                   ELSE
                     INC(TOKEN.COUNT);
                   END(*IF*);
-(*  BUG ?!              INC(TOKEN.COUNT);  leading to double incremented because of ELSE above this *)
-                  IF (SUM > 214748364) OR ((SUM = 214748364) AND (ORDCH > ORD('7'))) THEN
+                                 (*  BUG ?!              INC(TOKEN.COUNT);  leading to double incremented because of ELSE above this *)
+                  (* IF (SUM > 214748364) OR ((SUM = 214748364) AND (ORDCH > ORD('7'))) THEN  Old version of this statement *)
+                  IF SUM > NearMaxLongInt THEN   (* SUM is not made negative until the end of this proc. *)
                     RETCOD2 := 3;
                     DEC(TOKEN.COUNT);
                     EXIT;
                   END(*IF*);
                   TOKEN.CHARS[TOKEN.COUNT] := CH;
-                  SUM := 10 * SUM + INT(ORDCH - ORD('0'));
+                  SUM := 10 * SUM + VAL(LONGINT,(ORDCH - ORD('0')));
           | ALLELSE : UNGETCHR(tpv,RETCOD);
                       IF RETCOD <> 0 THEN RETCOD2 := 4; END(*IF*);
                       EXIT;
@@ -565,29 +576,32 @@ BEGIN
                   END(*IF*);
                   TOKEN.CHARS[TOKEN.COUNT] := CH;
                   IF (SUM < 3276) OR ((SUM = 3276) AND (ORDCH <= 7)) THEN
-                    SUM := SUM + INT(ORDCH);
+                    SUM := SUM + VAL(LONGINT,(ORDCH));
                   END(*IF*);
-          | ALLELSE : IF CH = QUOCHR THEN
-                        QUOFLG := FALSE;
-                        CHRSTATE := DELIM; (* So that DELIMSTATE will = delim *)
+          | ALLELSE :
+                  IF CH = QUOCHR THEN
+                      QUOFLG := FALSE;
+                      CHRSTATE := DELIM; (* So that DELIMSTATE will = delim *)
+                      EXIT;
+                  ELSE
+                      INC(TOKEN.COUNT);
+                      IF TOKEN.COUNT > TKNMAXSIZ THEN
+                        (*  Commented out 4/25/2020, so that the calling module can handle the error w/o output from here, which is superfluous.
+                        WriteString("PARAM NAME TOO LONG, FIRST 80 CHAR'S ARE: ");
+                        TOKEN.CHARS[TOKEN.COUNT] := NULL;
+                        WriteString(TOKEN.CHARS);
+                        WriteLn;
+                        *)
+                        RETCOD2 := 2;
+                        DEC(TOKEN.COUNT);
                         EXIT;
-                      ELSE
-                        INC(TOKEN.COUNT);
-                        IF TOKEN.COUNT > TKNMAXSIZ THEN
-                          WriteString(
-                                 "PARAM NAME TOO LONG, FIRST 80 CHAR'S ARE: ");
-                          TOKEN.CHARS[TOKEN.COUNT] := NULL;
-                          WriteString(TOKEN.CHARS);
-                          WriteLn;
-                          RETCOD2 := 2;
-                          DEC(TOKEN.COUNT);
-                          EXIT;
-                        END(*IF*);
-                        TOKEN.CHARS[TOKEN.COUNT] := CH;
-                        IF (SUM < 3276) OR ((SUM = 3276) AND (ORDCH <= 7)) THEN
-                          SUM := SUM + INT(ORDCH);
-                        END(*IF*);
                       END(*IF*);
+                      TOKEN.CHARS[TOKEN.COUNT] := CH;
+                      (* IF (SUM < 3276) OR ((SUM = 3276) AND (ORDCH <= 7)) THEN   old version of this condition*)
+                      IF SUM < MaxLongIntVal THEN
+                        SUM := SUM + VAL(LONGINT,(ORDCH));
+                      END(*IF*);
+                  END(*IF*);
           END(*CASE chrstate*);
       END(*CASE tokenstate*);
     END(*LOOP*);
@@ -596,8 +610,7 @@ BEGIN
     TOKEN.CHARS[TOKEN.COUNT+1] := NULL;
     IF (TKNSTATE = DGT) AND NEGATV THEN SUM := -SUM; END(*IF*);
 (*
-  For OP tokens, must return the opcode as the sum value.  Do this by
-  calling GETOPCODE.
+  For OP tokens, must return the opcode as the sum value.  Do this by calling GETOPCODE.
 *)
     IF TKNSTATE = OP THEN
       GETOPCODE(tpv,TOKEN,C,RETCOD);
@@ -608,8 +621,8 @@ BEGIN
   END(*with*);
 END GETTKN;
 
-PROCEDURE GETTKNREAL(VAR tpv : TKNPTRTYP;  VAR TOKEN:BUFTYP; VAR TKNSTATE:FSATYP;
-              VAR INTVAL:INTEGER; VAR REALVAL:LONGREAL; VAR RETCOD2:CARDINAL);
+PROCEDURE GETTKNREAL(VAR tpv : TKNPTRTYP;  VAR TOKEN:BUFTYP; VAR TKNSTATE:FSATYP; VAR INTVAL:LONGINT; VAR REALVAL:LONGREAL;
+                                                                                                      VAR RETCOD2:CARDINAL);
 (*
 ************************ GETTKNREAL ***************************************
 GET ToKeN REAL.
@@ -640,8 +653,7 @@ BEGIN
   REALVAL := 0.;
   WITH tpv^ DO
     GETTKN(tpv,TOKEN,TKNSTATE,INTVAL,RETCOD);
-    IF (TKNSTATE = ALLELSE) AND (TOKEN.CHARS[1] = '.') AND (ORD(TOKEN.CHARS[2])
-                >= ORD('0')) AND (ORD(TOKEN.CHARS[2]) <= ORD('9')) THEN
+    IF (TKNSTATE = ALLELSE) AND (TOKEN.CHARS[1] = '.') AND (ORD(TOKEN.CHARS[2]) >= ORD('0')) AND (ORD(TOKEN.CHARS[2]) <= ORD('9')) THEN
 (*
   Likely have a real number beginning with a decimal point, so fall thru
   to the digit token without returning as if a non-digit token was fetched.
@@ -657,8 +669,13 @@ BEGIN
 *)
     UNGETTKN(tpv,RETCOD);
     IF RETCOD > 0 THEN
+      (*  Commented out 4/25/2020 12:30:38 PM so that the return code is all the error handling this rtn needs.  I don't want it to to I/O also.
+          This block should have always returned as an error.  I just caught that now, at the time of rewriting the code for LONGINTs.
       WriteString('*Warning*  In GETTKNREAL and UNGETTKN failed.');
       WriteLn;
+      *)
+      RETCOD2 := RETCOD;
+      RETURN;
     END(*IF*);
     PREVPOSN := CURPOSN; (* So that this token can be ungotten as well *)
     TOKEN.COUNT := 0;
@@ -703,8 +720,7 @@ BEGIN
   END(*with*);
 END GETTKNREAL;
 
-PROCEDURE GETTKNSTR(VAR tpv : TKNPTRTYP; VAR TOKEN:BUFTYP; VAR INTVAL:INTEGER;
-                    VAR RETCOD2:CARDINAL);
+PROCEDURE GETTKNSTR(VAR tpv : TKNPTRTYP; VAR TOKEN:BUFTYP; VAR INTVAL:LONGINT; VAR RETCOD2:CARDINAL);
 (*
   GET ToKeN STRing.
   Will get tokens only stopping at a delimiter, unlike GETTKN, and all
@@ -738,7 +754,7 @@ BEGIN
   FSAARRAY[62] := ALLELSE;      (* GTSIGN *)
   WITH tpv^ DO
     GETTKN(tpv,TOKEN,TKNSTATE,INTVAL,RETCOD2);
-(* Can't test RETCOD2 because number token error does not apply here *)
+    (* Can't test RETCOD2 because number token error does not apply here *)
     IF (TKNSTATE=DELIM) OR ((TKNSTATE=ALLELSE) AND (DELIMSTATE=DELIM)) THEN
       RETURN;
     END(*IF*);
@@ -755,7 +771,7 @@ BEGIN
         END(*IF*);
         INC(COUNT);
         CHARS[COUNT] := CH;
-        INC(INTVAL,ORD(CH));
+        INC(INTVAL,VAL(LONGINT,(CH)));
       END(*LOOP*);
       DELIMCH        := CH;
       DELIMSTATE     := CHRSTATE;
@@ -792,8 +808,7 @@ BEGIN
       END(*LOOP*);
       CHARS[C] := NULL;  (*
                           Take advantage of the post incremented pointer.
-                          Must do this assignment so that if a new string
-                          put into this variable
+                          Must do this assignment so that if a new string put into this variable
                           is shorter than the previous string, TRIM will use
                           the correct (shorter) length.  Even the empty
                           string will be set correctly with the post incr ptr.
@@ -807,18 +822,12 @@ END GETTKNEOL;
 PROCEDURE GetHtmlCodeString(VAR tpv : TKNPTRTYP; VAR htmlcode:BUFTYP; VAR termcode:BOOLEAN; VAR RETCOD2:CARDINAL);
 (*
 ********************************************************************************************************************
-Return the string btwn angle brackets.  If a </ terminating code, termcode is TRUE
+Return the string btwn angle brackets.  If a </ terminating code is found, then termcode is TRUE
 
-SUM   -- CONTAINS THE VALUE OF THE NUMBER IN A NUMBER TOKEN, HAS THE
-          SUM OF THE ASCII VALUES FOR A CHARACTER TOKEN, OR HAS THE OPCODE
-          VALUE FOR AN OP TOKEN.
-RETCOD2--RETURN CODE.  0: Normal return; 1: No more tokens on line;
-          2: Char token too long; 3: Number token with too many digits;
-          4: Cannot UNGETCHR; 5: Error in processing htmlcode string
-          6: Error from GETOPCODE.
+RETCOD2--RETURN CODE.  0: Normal return; 1: No more tokens on line; 5: Error in processing htmlcode string
 *)
 VAR
-          opcode,i          : INTEGER;
+    opcode,i          : LONGINT;
     ORDCH,C,RETCOD    : CARDINAL;
     CH                : CHAR;
     CHRSTATE,TKNSTATE : FSATYP;

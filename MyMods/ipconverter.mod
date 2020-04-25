@@ -2,9 +2,21 @@ MODULE IPConverter;
 (*
   REVISION HISTORY
   ----------------
-  2 Oct 12 -- Initial version, to convert the straight cardinal contained in IpToCountry.csv to the dotted format
-               much more comnonly used.  Used FTEST%a and AddCr3 as templates.
-  6 Oct 12 -- Added percentage indicator.
+   2 Oct 12 -- Initial version, to convert the straight cardinal contained in IpToCountry.csv to the dotted format
+                much more comnonly used.  Used FTEST5a and AddCr3 as templates.
+   6 Oct 12 -- Added percentage indicator.
+  25 Apr 20 -- Decided to make some notes, as I just tried to us this program and it started crashing.  The format of IpToCountry.csv is that it has many
+                 initial comment lines.  It's own documentation says that any line that begins w/ either a # or white space is a comment.  But no actual
+                 lines begin w/ white space.  Sample lines are below from the last file I d/l'd, dated 9/5/13.
+                 "16777216","16777471","apnic","1313020800","AU","AUS","Australia"
+                 "417824768","417857535","arin","1044921600","US","USA","United States"
+                 "1008664576","1008730111","apnic","1082419200","CN","CHN","China"
+                 "3758096128","3758096383","apnic","1313020800","AU","AUS","Australia"
+                 "4278190080","4294967295","iana","410227200","ZZ","ZZZ","Reserved"
+
+
+
+
 *)
   IMPORT Terminal,MiscM2;
   FROM FilePicker IMPORT FileNamePicker;
