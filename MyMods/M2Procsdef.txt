@@ -26547,7 +26547,7 @@ Increases the value of variable v by one or by a specified amount.  If an amount
 INCL
 PROCEDURE INCL(SetVar : SetType; Element : ElementType);
 Includes an element in a SET or PACKEDSET variable.  SetVar must be a variable of a set type, and Element must be an expression resulting in a value of the element type of the set.  The specified element is added to the value of the set variable.
-
+ 
 INT
 PROCEDURE INT(Val : ValType) : INTEGER;
 Converts Val to INTEGER.  Val can be any signed or unsigned integer type, any character type, a boolean type or any enumeration type.  For character, boolean and enumeration types, the returned value is the ordinal value of the parameter.
@@ -26614,7 +26614,7 @@ You cannot convert an enumeration type to a real or complex type. Remember that 
 You cannot convert a real type to a complex type.
 You cannot convert a complex type to a real type.
 The following are TRUE:
-   INT(...)       = VAL(INTEGER, ...);
+   INT(...)       = VAL(INTEGER, ...);   -> if the left hand side is a LONGINT, this func works.  As in ORDCH = INT(CH); after I already declared ORDCH to be LONGINT.
    ORD(...)       = VAL(CARDINAL, ...);
    FLOAT(...)     = VAL(REAL, ...);
    LFLOAT(...)    = VAL(LONGREAL, ...);
@@ -26622,7 +26622,12 @@ The following are TRUE:
 
 
 --------------------------------------------------------------------------------
-
+4/26/2020 1:38:12 PM  I don't know where these procedures are from, but LONG does not exist.  It may be the old Logitech compiler.  
+                      I converted TOKENPTR.mod to use LONGINT instead of INTEGER.  I long ago changed TKNRTNS to use LONGINT, before I was using git and
+                      I did not log when I actually made that change.  That would have been a major change, so I don't know why I didn't log it.
+                      However, I more completely changed TOKENPTR, by making ORCH and ASCZERO both LONGINTs.  
+                      The default numeric type in Wirth's Modula-2 is CARDINAL, for C-ish it's int.  And now in 64-bit Go the int is 8 bytes, same as int64.
+                      Stony Brook Modula-2 used LONGINT as it's internal default.
 
 
 PROCEDURE ABS(X : type) : type;

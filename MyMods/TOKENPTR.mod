@@ -112,7 +112,6 @@ Copyright (C) 1987  Robert Solomon MD.  All rights reserved.
       GTSIGN    = '>';  (* 62 *)
       MULTSIGN  = '*';
       DIVSIGN   = '/';
-      ASCZERO   = ORD('0');   (* Modula-2 V 3.03 allows this as a const *)
       SQUOTE    = "'";
       DQUOTE    = '"';
       DECPT     = '.';
@@ -141,6 +140,7 @@ VAR
   VAR
     FSAARRAY   : ARRAY [0..127] OF FSATYP;
     BufOfZero  : BUFTYP;
+    ASCZERO    : LONGINT = INT('0');  (* 4/26/2020 1:45:13 PM.  Used to be a const, but could not force it to be a LONGINT. *)
 
 PROCEDURE INI3TKN(VAR tpv : TKNPTRTYP; BUF:BUFTYP);
 (*
@@ -400,7 +400,8 @@ RETCOD2--RETURN CODE.  0: Normal return; 1: No more tokens on line;
           6: Error from GETOPCODE.
 *)
 VAR NEGATV         : BOOLEAN;
-    ORDCH,C,RETCOD : CARDINAL;
+    C,RETCOD       : CARDINAL;
+    ORDCH          : LONGINT;
     CH             : CHAR;
     CHRSTATE       : FSATYP;
     QUOCHR         : CHAR;   (* Holds the active quote char *)
@@ -433,7 +434,7 @@ BEGIN
         END(*IF*);
         EXIT;
       END(*IF*);
-      ORDCH := ORD(CH);
+      ORDCH := INT(CH);
       IF QUOFLG AND (CH <> NULL) THEN CHRSTATE := ALLELSE; END(*IF*);
       CASE TKNSTATE OF
         DELIM : (* Tokenstate *)
@@ -460,7 +461,8 @@ BEGIN
           | DGT : TKNSTATE := DGT;
                   IF CH = unaryminus THEN ORDCH := ASCZERO;  END;
                   INC(TOKEN.COUNT);
-                  SUM := VAL(LONGINT,(ORDCH - ASCZERO));  (* LONG is not defined.  How odd *)
+                  (* SUM := VAL(LONGINT,(ORDCH - ASCZERO));  LONG is not defined.  How odd *)
+                  SUM := ORDCH - ASCZERO;
                   TOKEN.CHARS[TOKEN.COUNT] := CH;
           | ALLELSE : TKNSTATE := ALLELSE;
                       QUOFLG := (CH = SQUOTE) OR (CH = DQUOTE);
@@ -508,13 +510,13 @@ BEGIN
                       TKNSTATE := DGT;
 (* OVERWRITE ARITHMETIC SIGN CHARACTER *)
                       TOKEN.CHARS[TOKEN.COUNT] := CH;
-                      SUM := INT(ORDCH - ORD('0'));
+                      (* SUM := INT(ORDCH - ORD('0')); *)
+                      SUM := ORDCH - ASCZERO;
                     ELSE   (* TOKEN.COUNT > 1 SO MUST FIRST RETURN OP *)
                       UNGETCHR(tpv,RETCOD); (* UNGET THIS DIGIT CHAR *)
                       UNGETCHR(tpv,RETCOD); (* THEN UNGET THE ARITH SIGN CHAR *)
                       DEC(TOKEN.COUNT); (* TKN NULL TERMINATED JUST BEFORE RET *)
-                      CH := TOKEN.CHARS[TOKEN.COUNT+1]; (* SO DELIMCH CORRECTLY
-                                                  RETURNS THE ARITH SIGN CHAR *)
+                      CH := TOKEN.CHARS[TOKEN.COUNT+1]; (* SO DELIMCH CORRECTLY RETURNS THE ARITH SIGN CHAR *)
                       IF RETCOD <> 0 THEN RETCOD2 := 4; END(*IF*);
                       EXIT;
                     END(*IF*);
@@ -548,7 +550,8 @@ BEGIN
                     EXIT;
                   END(*IF*);
                   TOKEN.CHARS[TOKEN.COUNT] := CH;
-                  SUM := 10 * SUM + VAL(LONGINT,(ORDCH - ORD('0')));
+                  (*SUM := 10 * SUM + VAL(LONGINT,(ORDCH - ORD('0')));  I don't think I need VAL here *)
+                  SUM := 10 * SUM + ORDCH - ASCZERO;
           | ALLELSE : UNGETCHR(tpv,RETCOD);
                       IF RETCOD <> 0 THEN RETCOD2 := 4; END(*IF*);
                       EXIT;
@@ -557,8 +560,7 @@ BEGIN
           CASE CHRSTATE OF
             DELIM :
 (*
-  Always exit if get a NULL char as a delim.  A quoted string can only
-  get here if CH is NULL.
+  Always exit if get a NULL char as a delim.  A quoted string can only get here if CH is NULL.
 *)
                     EXIT;
           | OP : UNGETCHR(tpv,RETCOD);
@@ -575,8 +577,9 @@ BEGIN
                     EXIT;
                   END(*IF*);
                   TOKEN.CHARS[TOKEN.COUNT] := CH;
-                  IF (SUM < 3276) OR ((SUM = 3276) AND (ORDCH <= 7)) THEN
-                    SUM := SUM + VAL(LONGINT,(ORDCH));
+                  (* IF (SUM < 3276) OR ((SUM = 3276) AND (ORDCH <= 7)) THEN looks like a holdover from 16 bit days. *)
+                  IF SUM < MaxLongIntVal THEN
+                    SUM := SUM + ORDCH;              (* VAL(LONGINT,(ORDCH)); *)
                   END(*IF*);
           | ALLELSE :
                   IF CH = QUOCHR THEN
@@ -599,7 +602,7 @@ BEGIN
                       TOKEN.CHARS[TOKEN.COUNT] := CH;
                       (* IF (SUM < 3276) OR ((SUM = 3276) AND (ORDCH <= 7)) THEN   old version of this condition*)
                       IF SUM < MaxLongIntVal THEN
-                        SUM := SUM + VAL(LONGINT,(ORDCH));
+                        SUM := SUM + ORDCH;                           (* VAL(LONGINT,(ORDCH)); *)
                       END(*IF*);
                   END(*IF*);
           END(*CASE chrstate*);
@@ -771,7 +774,8 @@ BEGIN
         END(*IF*);
         INC(COUNT);
         CHARS[COUNT] := CH;
-        INC(INTVAL,VAL(LONGINT,(CH)));
+        (*  INC(INTVAL,VAL(LONGINT,(CH)));  Don't need VAL here  *)
+        INC(INTVAL,INT(CH));
       END(*LOOP*);
       DELIMCH        := CH;
       DELIMSTATE     := CHRSTATE;
