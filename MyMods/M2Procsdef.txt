@@ -26625,7 +26625,7 @@ The following are TRUE:
 4/26/2020 1:38:12 PM  I don't know where these procedures are from, but LONG does not exist.  It may be the old Logitech compiler.  
                       I converted TOKENPTR.mod to use LONGINT instead of INTEGER.  I long ago changed TKNRTNS to use LONGINT, before I was using git and
                       I did not log when I actually made that change.  That would have been a major change, so I don't know why I didn't log it.
-                      However, I more completely changed TOKENPTR, by making ORCH and ASCZERO both LONGINTs.  
+                      However, I more completely changed TOKENPTR, by making ORDCH and ASCZERO both LONGINTs.  
                       The default numeric type in Wirth's Modula-2 is CARDINAL, for C-ish it's int.  And now in 64-bit Go the int is 8 bytes, same as int64.
                       Stony Brook Modula-2 used LONGINT as it's internal default.
                       It's interesting to me that I devised a system that is similar to Go's error type, only I used numbers.  I devised that long before I started
