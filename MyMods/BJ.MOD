@@ -5,6 +5,8 @@ MODULE BJ;
   31 Oct 95 -- Changed outputing of Status and added a WriteLn before WRHAND.
   30 Nov 95 -- Changed it so cannot hit after split aces.
    8 Mar 05 -- Win32 version using SBM2 build 31.
+  10 Jun 20 -- Finally understood why the score calculation w/ surrender was wrong.  The logic for surrender was wrong.  IE, any hand that hit that mark at any time surrendered.
+                 I only figured that out while coding the Go version.
 *)
   FROM SYSTEM IMPORT ADR,ADDRESS,FUNC;
 (*
@@ -344,10 +346,8 @@ PROCEDURE PLAYROUND;
 VAR
   h,CARD,P : CARDINAL;
   AlreadySplitAces : BOOLEAN;
-
 BEGIN
-  IF ((DEALER.CARD1 = ACE) AND (DEALER.CARD2 = 10)) OR
-                        ((DEALER.CARD2 = ACE) AND (DEALER.CARD1 = 10)) THEN
+  IF ((DEALER.CARD1 = ACE) AND (DEALER.CARD2 = 10)) OR ((DEALER.CARD2 = ACE) AND (DEALER.CARD1 = 10)) THEN
     DEALER.BLACKJACK := TRUE;
     DEALER.TOTAL := 21;
 (*    check for player blackjack for statistics purposes only. *)
@@ -629,8 +629,8 @@ BEGIN (* Main Pgm *)
     WriteLn; WriteString(' After Shuffle:'); WriteLn;
     FOR C := 1 TO NumOfCards DO
         WriteRJCard(DECK[C],4);
-        IF C MOD 19 = 0 THEN WriteLn; END(*IF*);
-    END(*FOR*);
+        IF C MOD 19 = 0 THEN WriteLn; END;
+    END;
     WriteLn;
     WriteString(' Shuffle again (Y/N): '); Read(CH); Write(CH); WriteLn;
 *)
@@ -640,8 +640,8 @@ BEGIN (* Main Pgm *)
   PUTSTRATEGIES;
   WriteString(' Matrices OK (Y/N): '); Terminal.Read(CH); Terminal.Write(CH); WriteLn;
   IF CAP(CH)='N' THEN HALT END(*IF*);
-  LOOP
-    REPEAT
+  LOOP  (* This is the main simulation loop *)
+    REPEAT (* UNTIL user says no or time to shuffle *)
       DEAL;
       PLAYROUND;
       SHOWDOWN;
@@ -650,7 +650,7 @@ BEGIN (* Main Pgm *)
       Read(CH);
       Write(CH);
       WriteLn;
-      IF CAP(CH) = 'Y' THEN DUMPHANDS(*P*); END(*IF*);
+      IF CAP(CH) = 'Y' THEN DUMPHANDS; END;
 *)
       DUMPHANDS;
       WriteString(' Another hand? (Y/N): '); Terminal.Read(CH); Terminal.Write(CH); WriteLn;
@@ -658,7 +658,9 @@ BEGIN (* Main Pgm *)
     WriteString(' Shuffle again (Y/N): '); Terminal.Read(CH); Terminal.Write(CH); WriteLn;
     IF CAP(CH) = 'N' THEN EXIT END(*IF*);
     SHUFFLE(1);
-  END(*LOOP*);
+  END (* main sumulation LOOP *);
+  
+  (* Time to write out stats. *)
   WriteLn;
   WriteString(' Wins: ');
   WriteCard(Wins);

@@ -669,64 +669,63 @@ BEGIN (* Main Pgm *)
                      EXIT;
                    ELSE
                      INC(StratWon[total,DEALER.CARD1]);
-                   END(*IF*);
-                 END(*IF soft*);
+                   END;
+                 END/*IF soft*/;
           | LOST: IF soft THEN
                    IF StratSoftLost[total,DEALER.CARD1] = MAXCARD THEN
                      EXIT;
                    ELSE
                      INC(StratSoftLost[total,DEALER.CARD1]);
-                   END(*IF*);
+                   END/*IF*/;
                  ELSIF total >= 9 THEN
                    IF StratLost[total,DEALER.CARD1] = MAXCARD THEN
                      EXIT;
                    ELSE
                      INC(StratLost[total,DEALER.CARD1]);
-                   END(*IF*);
-                 END(*IF soft*);
+                   END/*IF*/;
+                 END/*IF soft*/;
           | WONDBL: IF soft THEN
                       IF StratDblSoftWon[total,DEALER.CARD1] = MAXCARD THEN
                         EXIT;
                       ELSE
                         INC(StratDblSoftWon[total,DEALER.CARD1]);
-                      END(*IF*);
+                      END/*IF*/;
                     ELSIF (total >= 9) AND (total <= 11) THEN
                       IF StratDblWon[total,DEALER.CARD1] = MAXCARD THEN
                         EXIT;
                       ELSE
                         INC(StratDblWon[total,DEALER.CARD1]);
-                      END(*IF*);
-                    END(*IF soft*);
+                      END/*IF*/;
+                    END/*IF soft*/;
           | LOSTDBL: IF soft THEN
                        IF StratDblSoftLost[total,DEALER.CARD1] = MAXCARD THEN
                          EXIT;
                        ELSE
                          INC(StratDblSoftLost[total,DEALER.CARD1]);
-                       END(*IF*);
+                       END/*IF*/;
                      ELSIF (total >= 9) AND (total <= 11) THEN
                        IF StratDblLost[total,DEALER.CARD1] = MAXCARD THEN
                          EXIT;
                        ELSE
                          INC(StratDblLost[total,DEALER.CARD1]);
-                       END(*IF*);
-                     END(*IF soft*);
-          ELSE (* Ignore LOST2BJ, splits, pushed(BJ) and surrend *)
-          END(*CASE*);
-        END(*IF*);
-      END(*WITH*);
+                       END/*IF*/;
+                     END/*IF soft*/;
+          ELSE /* Ignore LOST2BJ, splits, pushed(BJ) and surrend */
+          END/*CASE*/;
+        END/*IF*/;
+      END/*WITH*/;
 *)
       Score := DBLWins + Wins - Losses - DBLLosses  +  BJWon*3 DIV 2 
             - Surrenders DIV 2;
       ScoreMax := MAXLINTFNT(Score,ScoreMax);
-(*      IF ABS(Score) >= 30 THEN EXIT END(*IF*); *)
+(*      IF ABS(Score) >= 30 THEN EXIT END/*IF*/; *)
     UNTIL CardCtr >= NumOfCards*3 DIV 4;
 (*
     GetTime(T);
     HRS := T.minute DIV 60;
     Min := T.minute MOD 60;
     SEC := T.millisec DIV 1000;
-    IF (SEC >= T0.millisec DIV 1000 + 4) OR (Min <> T0.minute MOD 60) OR
-                                               (HRS <> T0.minute DIV 60) THEN 
+    IF (SEC >= T0.millisec DIV 1000 + 4) OR (Min <> T0.minute MOD 60) OR (HRS <> T0.minute DIV 60) THEN 
       T0 := T;
       Write(CR);
       WriteString(' TotalHands = ');
@@ -782,7 +781,7 @@ BEGIN (* Main Pgm *)
 (*    Don't write out matrices any more, for these purposes.
   WriteString(' Hit any key to continue ');
   Read(CH);
-  Write(FF);  (* Now overwrite the hit any key to continue msg *)
+  Write(FF);  /* Now overwrite the hit any key to continue msg */
   WriteString(' StratWon Matrix:        ');
   WriteLn;
   FOR C1 := 9 TO 21 DO
@@ -791,13 +790,13 @@ BEGIN (* Main Pgm *)
     Write(':');
     FOR C2 := 1 TO 10 DO
       WriteCard(StratWon[C1,C2],6);
-    END(*FOR*);
+    END(*FOR*/;
     WriteLn;
-  END(*FOR*);
+  END(*FOR*/;
   WriteLn;
   WriteString(' Hit any key to continue ');
   Read(CH);
-  Write(FF);  (* Now overwrite the hit any key to continue msg *)
+  Write(FF);  (* Now overwrite the hit any key to continue msg */
   WriteString(' StratLost Matrix:        ');
   WriteLn;
   FOR C1 := 9 TO 21 DO
@@ -806,13 +805,13 @@ BEGIN (* Main Pgm *)
     Write(':');
     FOR C2 := 1 TO 10 DO
       WriteCard(StratLost[C1,C2],6);
-    END(*FOR*);
+    END(*FOR*/;
     WriteLn;
-  END(*FOR*);
+  END(*FOR*/;
   WriteLn;
   WriteString(' Hit any key to continue ');
   Read(CH);
-  Write(FF);  (* Now overwrite the hit any key to continue msg *)
+  Write(FF);  (* Now overwrite the hit any key to continue msg */
   WriteString(' StratDblWon Matrix:        ');
   WriteLn;
   FOR C1 := 9 TO 11 DO
@@ -821,13 +820,13 @@ BEGIN (* Main Pgm *)
     Write(':');
     FOR C2 := 1 TO 10 DO
       WriteCard(StratDblWon[C1,C2],6);
-    END(*FOR*);
+    END(*FOR*/;
     WriteLn;
-  END(*FOR*);
+  END(*FOR*/;
   WriteLn;
   WriteString(' Hit any key to continue ');
   Read(CH);
-  Write(FF);  (* Now overwrite the hit any key to continue msg *)
+  Write(FF);  (* Now overwrite the hit any key to continue msg */
   WriteString(' StratDblLost Matrix:        ');
   WriteLn;
   FOR C1 := 9 TO 11 DO
@@ -836,13 +835,13 @@ BEGIN (* Main Pgm *)
     Write(':');
     FOR C2 := 1 TO 10 DO
       WriteCard(StratDblLost[C1,C2],6);
-    END(*FOR*);
+    END(*FOR*/;
     WriteLn;
-  END(*FOR*);
+  END(*FOR*/;
   WriteLn;
   WriteString(' Hit any key to continue ');
   Read(CH);
-  Write(FF);  (* Now overwrite the hit any key to continue msg *)
+  Write(FF);  (* Now overwrite the hit any key to continue msg */
   WriteString(' StratSoftWon Matrix:        ');
   WriteLn;
   FOR C1 := 3 TO 11 DO
@@ -851,13 +850,13 @@ BEGIN (* Main Pgm *)
     Write(':');
     FOR C2 := 1 TO 10 DO
       WriteCard(StratSoftWon[C1,C2],6);
-    END(*FOR*);
+    END(*FOR*/;
     WriteLn;
-  END(*FOR*);
+  END(*FOR*/;
   WriteLn;
   WriteString(' Hit any key to continue ');
   Read(CH);
-  Write(FF);  (* Now overwrite the hit any key to continue msg *)
+  Write(FF);  (* Now overwrite the hit any key to continue msg */
   WriteString(' StratSoftLost Matrix:        ');
   WriteLn;
   FOR C1 := 3 TO 11 DO
@@ -866,13 +865,13 @@ BEGIN (* Main Pgm *)
     Write(':');
     FOR C2 := 1 TO 10 DO
       WriteCard(StratSoftLost[C1,C2],6);
-    END(*FOR*);
+    END(*FOR*/;
     WriteLn;
-  END(*FOR*);
+  END(*FOR*/;
   WriteLn;
   WriteString(' Hit any key to continue ');
   Read(CH);
-  Write(FF);  (* Now overwrite the hit any key to continue msg *)
+  Write(FF);  (* Now overwrite the hit any key to continue msg */
   WriteString(' StratDblSoftWon Matrix:        ');
   WriteLn;
   FOR C1 := 3 TO 11 DO
@@ -881,13 +880,13 @@ BEGIN (* Main Pgm *)
     Write(':');
     FOR C2 := 1 TO 10 DO
       WriteCard(StratDblSoftWon[C1,C2],6);
-    END(*FOR*);
+    END(*FOR*/;
     WriteLn;
-  END(*FOR*);
+  END(*FOR*/;
   WriteLn;
   WriteString(' Hit any key to continue ');
   Read(CH);
-  Write(FF);  (* Now overwrite the hit any key to continue msg *)
+  Write(FF);  (* Now overwrite the hit any key to continue msg */
   WriteString(' StratDblSoftLost Matrix:        ');
   WriteLn;
   FOR C1 := 3 TO 11 DO
@@ -896,8 +895,8 @@ BEGIN (* Main Pgm *)
     Write(':');
     FOR C2 := 1 TO 10 DO
       WriteCard(StratDblSoftLost[C1,C2],6);
-    END(*FOR*);
+    END(*FOR*/;
     WriteLn;
-  END(*FOR*);
+  END(*FOR*/;
 *)
 END BJ3.
