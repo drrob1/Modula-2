@@ -407,10 +407,10 @@ The solution is to use type casting, like: mouse_event (MOUSEEVENTF_MOVE, CAST(D
           WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE, CAST(DWORD, -mousemoveamt),
                               CAST(DWORD, -mousemoveamt), 0, 0);
 (*  Turned out that these lines of code choked the keyboard buffer.  I couldn't enter characters into PACS.                              
-          WINUSER.keybd_event(WINUSER.VK_CONTROL,9dh,0,0);  (* ctrl key press *)
-          WINUSER.keybd_event(VK_a,9eh,0,0);        (* a key press *)
-          WINUSER.keybd_event(VK_a,9eh,WINUSER.KEYEVENTF_KEYUP,0);  (* a key release *)
-          WINUSER.keybd_event(WINUSER.VK_CONTROL,9dh,WINUSER.KEYEVENTF_EXTENDEDKEY BOR WINUSER.KEYEVENTF_KEYUP,0);  (* ctrl key release *)
+          WINUSER.keybd_event(WINUSER.VK_CONTROL,9dh,0,0);  /* ctrl key press */
+          WINUSER.keybd_event(VK_a,9eh,0,0);        /* a key press */
+          WINUSER.keybd_event(VK_a,9eh,WINUSER.KEYEVENTF_KEYUP,0);  /* a key release */
+          WINUSER.keybd_event(WINUSER.VK_CONTROL,9dh,WINUSER.KEYEVENTF_EXTENDEDKEY BOR WINUSER.KEYEVENTF_KEYUP,0);  /* ctrl key release */
 *)          
         END (* if *);
       ELSIF msg.timerId = ClockTimer THEN
