@@ -8,6 +8,7 @@ DEFINITION MODULE TIMLIBrevised;
                  Renamed to TIMLIBrevised.
   24 Apr 19 -- 
    5 Aug 19 -- Added DOW field, and Now, NOW procedures go copy Go.
+   5 Dec 20 -- Added sleepsec and sleepmsec
 *)
   FROM UTILLIB IMPORT STRTYP,STR10TYP,BUFTYP;
 
@@ -70,6 +71,11 @@ If an error occurs, then Y is returned as zero.
 PROCEDURE JULIAN(M,D,Y : CARDINAL) : CARDINAL;
 
 PROCEDURE GREGORIAN(Juldate : CARDINAL; VAR M,D,Y : CARDINAL);
+
+PROCEDURE Sleepmsec(t : CARDINAL);
+
+PROCEDURE Sleepsec(t : CARDINAL);
+
 
 END TIMLIBrevised.
 

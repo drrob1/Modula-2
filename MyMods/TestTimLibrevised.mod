@@ -7,6 +7,7 @@ REVISION HISTORY
 25 Apr 19 -- Testing enhancements to GetDateTime in TIMLIBrevised.
  6 Aug 19 -- Testing Now() and NOW()
 13 Aug 19 -- Found that writing DateStr to a file from MyFIO2 also writes a null char.
+ 5 Dec 20 -- Testing sleepsec and sleepmsec.
 *)
   FROM SYSTEM IMPORT ADR;
   FROM MiscStdInOut IMPORT WriteString,WriteLn,PressAnyKey,WriteCard,WriteInt,ReadString,ReadCard,
@@ -172,9 +173,24 @@ BEGIN
   WriteString(", ");
   WriteCard(c2);
 
+
+  WriteLn;
+  WriteString(" Will now sleep for 5 seconds");
+  TIMLIBrevised.Sleepsec(5);
+  WriteString(" ... Time to wake up.");
+  WriteLn;
+
+  WriteString(" Will now sleep for 500 msec.");
+  TIMLIBrevised.Sleepmsec(500);
+  WriteString(" ... Time to wake up.");
+  WriteLn;
+
+  WriteString(" Will now sleep for 10 sec");
+  TIMLIBrevised.Sleepsec(10);
+  WriteString(" ... Time to wake up.");
   WriteLn;
   WriteLn;
 
-
+  PressAnyKey;
 
 END TestTimLibRevised.

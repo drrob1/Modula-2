@@ -38,6 +38,8 @@ REVISION HISTORY
 30 Jan 17 -- Fixed sequence to insert a Ctrl-a keybd_event, I found when searching about stopping an active screen saver.
                https://www.codeproject.com/articles/7305/keyboard-events-simulation-using-keybd-event-funct
 31 Jan 17 -- Had to remove the keybd_event code because it choked the keyboard buffer.  I couldn't enter characters into PACS.               
+ 5 Dec 20 -- Will remove sleep at 8 pm or so.  And will remove the wiggle mouse function.  When timer triggers, it will double-click twice.
+               Removed TIMLIB and am now using TIMLIBrevised.
 --------------------------------------*)
 <*/Resource:FHPacs.RES*>
 MODULE FHPacs;
@@ -95,7 +97,8 @@ IMPORT RConversions, LongStr, LongConv,FormatString;
 FROM RConversions IMPORT RealToString, RealToStringFixed, StringToReal;
 FROM Conversions IMPORT StringToInt, StrToInt, IntToString, IntToStr, StringToCard,
     StrToCard, CardToString, CardToStr, StringToLong, StrToLong, LongToString, LongToStr;
-FROM TIMLIB IMPORT JULIAN,GREGORIAN,TIME2MDY, DateTimeType, GetDateTime;
+FROM TIMLIBrevised IMPORT JULIAN,GREGORIAN,TIME2MDY, DateTimeType, GetDateTime;
+IMPORT TIMLIBrevised;  (* for the rest of the identifiers that I can now use qualified. *)
 FROM LongStr IMPORT StrToReal,RealToFloat,RealToEng,RealToFixed,RealToStr,ConvResults;
 
 FROM UTILLIB IMPORT BLANK,NULL,STRTYP,BUFSIZ,BUFTYP,STR10TYP,TRIM,STRLENFNT,STRCMPFNT,
@@ -188,6 +191,7 @@ BEGIN
   bool := WINUSER.SystemParametersInfo(WINUSER.SPI_SETPOWEROFFTIMEOUT,PowerTimeOut,NIL,c);
   bool := WINUSER.SystemParametersInfo(WINUSER.SPI_SETLOWPOWERTIMEOUT,PowerTimeOut,NIL,c);
 END WakeUp;
+
 
 (*++++*****************************************************************)
 PROCEDURE WndProcTW(tw : TextWindow; msg : TWMessageRec) : ResponseType;
@@ -389,10 +393,11 @@ DWORD is typed as a CARDINAL here, so you cannot assign negative numbers easily.
 The solution is to use type casting, like: mouse_event (MOUSEEVENTF_MOVE, CAST(DWORD,dx), CAST(DWORD,dy), 0, 0);
 *)
       dt := GetDateTime(DatTim); (* Both of these are out params, just like in C-ish.  Don't know why that's done, but it works. *)
+      (*  removed 12/5/2020 1:30:24 PM as it's not needed anymore.
       IF (dt.Hr = HourOfDayGroggy) AND (DatTim.Minutes = 0) THEN
-        sleep := TRUE;  (* will stop mouse movement and double click function without changing the power settings *)
-      END (* if *);
-
+        sleep := TRUE;   will stop mouse movement and double click function without changing the power settings
+      END;
+     *)
       IF msg.timerId = MouseTimer THEN
         IF sleep THEN  (* Don't wiggle mouse *)
         ELSIF WiggleMouse <= 0 THEN
@@ -402,10 +407,8 @@ The solution is to use type casting, like: mouse_event (MOUSEEVENTF_MOVE, CAST(D
           (* FOR k := 1 TO 1000 DO END; *)
           WINUSER.mouse_event(WINUSER.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
           WINUSER.mouse_event(WINUSER.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
-          WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, mousemoveamt),
-                              CAST(DWORD, mousemoveamt), 0, 0);
-          WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE, CAST(DWORD, -mousemoveamt),
-                              CAST(DWORD, -mousemoveamt), 0, 0);
+          (* WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, mousemoveamt), CAST(DWORD, mousemoveamt), 0, 0); *)
+          (* WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE, CAST(DWORD, -mousemoveamt), CAST(DWORD, -mousemoveamt), 0, 0); neg movement doesn't work, so it's removed. *)
 (*  Turned out that these lines of code choked the keyboard buffer.  I couldn't enter characters into PACS.                              
           WINUSER.keybd_event(WINUSER.VK_CONTROL,9dh,0,0);  /* ctrl key press */
           WINUSER.keybd_event(VK_a,9eh,0,0);        /* a key press */
@@ -516,36 +519,36 @@ BEGIN
                        wndProc : TextWindowProcedure;
                        attribs : WinAttrSet;
                        createParam : ADDRESS) : TextWindow;
-(* create a new window *)
-(* parent = as WinShell  *)
-(* name = as WinShell  *)
-(* menu = the menu for the window. Can be "". *)
-(* icon =  as WinShell *)
-(* attribs = as WinShell *)
-(* wndProc = the window procedure *)
-(* createParam = an arbitrary value you can use to pass information
+   create a new window
+   parent = as WinShell
+   name = as WinShell
+   menu = the menu for the window. Can be "".
+   icon =  as WinShell
+   attribs = as WinShell
+   wndProc = the window procedure
+   createParam = an arbitrary value you can use to pass information
                  to the window procedure of the window. this value is
-                 passed in the WSM_CREATE message. *)
-(* font = the font to use for this window *)
-(* background = the background color for this window *)
-(* gutter = TRUE then the text window will always have a blank "gutter"
+                 passed in the WSM_CREATE message.
+   font = the font to use for this window
+   background = the background color for this window
+   gutter = TRUE then the text window will always have a blank "gutter"
             on the left edge of the text window.
             FALSE the text will start at the left edge of the client area.
-            *)
-(* x, y = the initial screen coordinates for the window to be displayed
+            
+   x, y = the initial screen coordinates for the window to be displayed
           if a parameter is -1 then the operating system will choose
           a default location for that coordinate.
           these positions are in pixels and are relative to the
           parent window client area origin for child windows
-          or relative to the screen origin for all other windows. *)
-(* xSize, ySize = the initial width and height in character cells
-                  if -1 then a system default size will be used *)
-(* xBuffer, yBuffer = the size of the screen buffer. the window can never
+          or relative to the screen origin for all other windows.
+   xSize, ySize = the initial width and height in character cells
+                  if -1 then a system default size will be used
+   xBuffer, yBuffer = the size of the screen buffer. the window can never
                       be larger than the screen buffer. if either xBuffer
                       or yBuffer is -1 the screen buffer is a variable size
                       and is sized to the number of cells the window client
-                      area currently is capable displaying. *)
-(* returns the window handle if successfull, otherwise NIL *)
+                      area currently is capable displaying.
+   returns the window handle if successfull, otherwise NIL 
 *)
     Win := CreateWindow(NIL, (* parent : WinShell.Window *)
                         "FH PACS", (* name : ARRAY OF CHAR *)
@@ -575,9 +578,9 @@ END Start;
 
 BEGIN
 
-(*                                                                                    PROCEDURE SetWindowTitle(tw : TextWindow; title : ARRAY OF CHAR);  *)
-(*                                                                        PROCEDURE SetTimer(tw : TextWindow; timerId : CARDINAL; interval : CARDINAL);  *)
-(*
+(*                                                                                    PROCEDURE SetWindowTitle(tw : TextWindow; title : ARRAY OF CHAR);
+                                                                          PROCEDURE SetTimer(tw : TextWindow; timerId : CARDINAL; interval : CARDINAL);
+  
                                                                                               create/reset a timer associated with the specified window
                                                                                               timerId = a unique number to identify the timer.
                                                                                    interval = the amount of time in milliseconds between WSM_TIMER messages
@@ -585,8 +588,9 @@ BEGIN
                                                                                          calling SetTimer with the same timerId as a previous call but with
                                                                                          a different interval has the effect of resetting the interval from
                                                                                            the previous value to the new value
+                                                            PROCEDURE KillTimer(tw : TextWindow; timerId : CARDINAL);  InputPromptLen := LENGTH(InputPrompt);                                                                                          
 *)
-(*                                                     PROCEDURE KillTimer(tw : TextWindow; timerId : CARDINAL);  InputPromptLen := LENGTH(InputPrompt); *)
+
   a := ComposeAttribute(Black, White, NormalFont);
   aBold := ComposeAttribute(Black, White, BoldFont);
   biggerFont := DefaultFontInfo;

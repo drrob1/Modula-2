@@ -17,6 +17,7 @@ IMPLEMENTATION MODULE TIMLIBrevised;
                  Renamed to TIMLIBrevised.
   24 Apr 19 -- Started adding date and time strings to the DateTimeType.
    5 Aug 19 -- Adding DOW field, and Now, NOW procedures to copy Go.
+   5 Dec 20 -- Added sleepsec and sleepmsec
 *)
 
   FROM Strings IMPORT Assign;
@@ -37,6 +38,7 @@ IMPLEMENTATION MODULE TIMLIBrevised;
   IMPORT IOChan, ChanConsts;
   IMPORT RConversions, LongStr, LongConv, LowLong;
   IMPORT SysClock,FormatDT,FormatString;
+  IMPORT MiscStdInOut;
 
 
 (*
@@ -77,7 +79,7 @@ TYPE
   END;
 *)
 
-(* 
+(*
   {{{
 *)
 TYPE
@@ -121,7 +123,6 @@ CONST
     ADIPM = ADIPMType{0,31,59,90,120,151,181,212,243,273,304,334};
 
     FUDGEFACTOR = 5.0;
-
 
 PROCEDURE TIME2MDY(VAR M,D,Y : CARDINAL);
 (*
@@ -431,6 +432,91 @@ BEGIN
   D := D0;
   Y := Y0;
 END GREGORIAN;
+
+PROCEDURE Sleepmsec(t : CARDINAL);
+  (* time is in milliseconds *)
+  (*
+    DateTimeType = RECORD
+      M,D,Yr,Hr,Minutes,Seconds,Millisecs, DOW : CARDINAL;
+      MonthStr,DayOfWeekStr : STR10TYP;
+      DateStr,TimeStr,TimeWithSecondsStr : STRTYP;
+      Julian : CARDINAL;
+  END;
+  *)
+
+  VAR
+    now, t0 : DateTimeType;
+    msec, target, then : LONGCARD;
+
+  BEGIN
+    t0 := Now();
+    msec := (t0.Hr * 3600 + t0.Minutes * 60 + t0.Seconds) * 1000 + t0.Millisecs;
+    target := msec + VAL(LONGCARD,t);
+    (*
+    MiscStdInOut.WriteLn;
+    MiscStdInOut.WriteString("msec= ");
+    MiscStdInOut.WriteLongCard(msec);
+    MiscStdInOut.WriteString(".    target= ");
+    MiscStdInOut.WriteLongCard(target);
+    MiscStdInOut.WriteLn;
+    *)
+    REPEAT
+      now := NOW();
+      then := (now.Hr*3600 + now.Minutes*60 + now.Seconds)*1000 + now.Millisecs;
+      (*
+      MiscStdInOut.WriteLn;
+      MiscStdInOut.WriteString(" then= ");
+      MiscStdInOut.WriteLongCard(then);
+      MiscStdInOut.WriteLn;
+      *)
+    UNTIL then >= target;
+END Sleepmsec;
+
+PROCEDURE Sleepsec(t : CARDINAL);
+  (* time is in seconds *)
+  (*
+    DateTimeType = RECORD
+      M,D,Yr,Hr,Minutes,Seconds,Millisecs, DOW : CARDINAL;
+      MonthStr,DayOfWeekStr : STR10TYP;
+      DateStr,TimeStr,TimeWithSecondsStr : STRTYP;
+      Julian : CARDINAL;
+  END;
+  *)
+
+  VAR
+    now, t0 : DateTimeType;
+    sec, target, then : LONGCARD;
+
+  BEGIN
+    t0 := NOW();
+    sec := t0.Hr * 3600 + t0.Minutes * 60 + t0.Seconds;
+    IF t0.Millisecs >= 500 THEN
+      INC(sec);
+    END;
+    target := sec + VAL(LONGCARD,t);
+    (*
+    MiscStdInOut.WriteLn;
+    MiscStdInOut.WriteString("sec= ");
+    MiscStdInOut.WriteLongCard(sec);
+    MiscStdInOut.WriteString(".    target= ");
+    MiscStdInOut.WriteLongCard(target);
+    MiscStdInOut.WriteLn;
+    *)
+    REPEAT
+      now := NOW();
+      then := (now.Hr*3600 + now.Minutes*60 + now.Seconds);
+      (*
+      MiscStdInOut.WriteLn;
+      MiscStdInOut.WriteString(" then= ");
+      MiscStdInOut.WriteLongCard(then);
+      MiscStdInOut.WriteLn;
+        *)
+    UNTIL then >= target;
+END Sleepsec;
+
+
+
+
 
 (* Old method of declaring and initializing the DAYNAMES array.
 BEGIN (******************************** MAIN ****************************)
