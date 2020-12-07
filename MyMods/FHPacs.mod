@@ -37,7 +37,7 @@ REVISION HISTORY
 17 Dec 16 -- Added Will Sleep at time.
 30 Jan 17 -- Fixed sequence to insert a Ctrl-a keybd_event, I found when searching about stopping an active screen saver.
                https://www.codeproject.com/articles/7305/keyboard-events-simulation-using-keybd-event-funct
-31 Jan 17 -- Had to remove the keybd_event code because it choked the keyboard buffer.  I couldn't enter characters into PACS.               
+31 Jan 17 -- Had to remove the keybd_event code because it choked the keyboard buffer.  I couldn't enter characters into PACS.
  5 Dec 20 -- Will remove sleep at 8 pm or so.  And will remove the wiggle mouse function.  When timer triggers, it will double-click twice.
                Removed TIMLIB and am now using TIMLIBrevised.
 --------------------------------------*)
@@ -98,7 +98,7 @@ FROM RConversions IMPORT RealToString, RealToStringFixed, StringToReal;
 FROM Conversions IMPORT StringToInt, StrToInt, IntToString, IntToStr, StringToCard,
     StrToCard, CardToString, CardToStr, StringToLong, StrToLong, LongToString, LongToStr;
 FROM TIMLIBrevised IMPORT JULIAN,GREGORIAN,TIME2MDY, DateTimeType, GetDateTime;
-IMPORT TIMLIBrevised;  (* for the rest of the identifiers that I can now use qualified. *)
+IMPORT TIMLIBrevised;  (* for the rest of the identifiers that I can now use qualified, esp Sleepsec and Sleepmsec. *)
 FROM LongStr IMPORT StrToReal,RealToFloat,RealToEng,RealToFixed,RealToStr,ConvResults;
 
 FROM UTILLIB IMPORT BLANK,NULL,STRTYP,BUFSIZ,BUFTYP,STR10TYP,TRIM,STRLENFNT,STRCMPFNT,
@@ -192,7 +192,6 @@ BEGIN
   bool := WINUSER.SystemParametersInfo(WINUSER.SPI_SETLOWPOWERTIMEOUT,PowerTimeOut,NIL,c);
 END WakeUp;
 
-
 (*++++*****************************************************************)
 PROCEDURE WndProcTW(tw : TextWindow; msg : TWMessageRec) : ResponseType;
 (**********************************************************************)
@@ -223,11 +222,6 @@ BEGIN
         END;
         FUNC WINUSER.SystemParametersInfo(WINUSER.SPI_SETPOWEROFFTIMEOUT,k,NIL,c);
         FUNC WINUSER.SystemParametersInfo(WINUSER.SPI_SETLOWPOWERTIMEOUT,k,NIL,c);
-(*
-                                                              FUNC WINUSER.SystemParametersInfo(WINUSER.SPI_SETPOWEROFFTIMEOUT,EmergencyScreenReset,NIL,c);
-                                                              FUNC WINUSER.SystemParametersInfo(WINUSER.SPI_SETLOWPOWERTIMEOUT,EmergencyScreenReset,NIL,c);
-                                                                   bool := WINUSER.SystemParametersInfo(WINUSER.SPI_SETLOWPOWERTIMEOUT,PowerTimeOut,NIL,c);
-*)
         RETURN OkayToClose;
 
     | TWM_CREATE:
@@ -402,19 +396,29 @@ The solution is to use type casting, like: mouse_event (MOUSEEVENTF_MOVE, CAST(D
         IF sleep THEN  (* Don't wiggle mouse *)
         ELSIF WiggleMouse <= 0 THEN
           WiggleMouse := TimeOutReset;
-          WINUSER.mouse_event(WINUSER.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);  (* Do double click, I hope.*)
+          WINUSER.mouse_event(WINUSER.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);  (* Do double click *)
           WINUSER.mouse_event(WINUSER.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
           (* FOR k := 1 TO 1000 DO END; *)
           WINUSER.mouse_event(WINUSER.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
           WINUSER.mouse_event(WINUSER.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+
+          TIMLIBrevised.Sleepmsec(500);
+
+          WINUSER.mouse_event(WINUSER.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);  (* Do double click *)
+          WINUSER.mouse_event(WINUSER.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+          (* FOR k := 1 TO 1000 DO END; *)
+          WINUSER.mouse_event(WINUSER.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
+          WINUSER.mouse_event(WINUSER.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+
+
           (* WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE,CAST(DWORD, mousemoveamt), CAST(DWORD, mousemoveamt), 0, 0); *)
           (* WINUSER.mouse_event(WINUSER.MOUSEEVENTF_MOVE, CAST(DWORD, -mousemoveamt), CAST(DWORD, -mousemoveamt), 0, 0); neg movement doesn't work, so it's removed. *)
-(*  Turned out that these lines of code choked the keyboard buffer.  I couldn't enter characters into PACS.                              
+(*  Turned out that these lines of code choked the keyboard buffer.  I couldn't enter characters into PACS.
           WINUSER.keybd_event(WINUSER.VK_CONTROL,9dh,0,0);  /* ctrl key press */
           WINUSER.keybd_event(VK_a,9eh,0,0);        /* a key press */
           WINUSER.keybd_event(VK_a,9eh,WINUSER.KEYEVENTF_KEYUP,0);  /* a key release */
           WINUSER.keybd_event(WINUSER.VK_CONTROL,9dh,WINUSER.KEYEVENTF_EXTENDEDKEY BOR WINUSER.KEYEVENTF_KEYUP,0);  /* ctrl key release */
-*)          
+*)
         END (* if *);
       ELSIF msg.timerId = ClockTimer THEN
         IF WiggleMouse > 0 THEN DEC(WiggleMouse); END;
@@ -534,7 +538,7 @@ BEGIN
    gutter = TRUE then the text window will always have a blank "gutter"
             on the left edge of the text window.
             FALSE the text will start at the left edge of the client area.
-            
+
    x, y = the initial screen coordinates for the window to be displayed
           if a parameter is -1 then the operating system will choose
           a default location for that coordinate.
@@ -548,7 +552,7 @@ BEGIN
                       or yBuffer is -1 the screen buffer is a variable size
                       and is sized to the number of cells the window client
                       area currently is capable displaying.
-   returns the window handle if successfull, otherwise NIL 
+   returns the window handle if successfull, otherwise NIL
 *)
     Win := CreateWindow(NIL, (* parent : WinShell.Window *)
                         "FH PACS", (* name : ARRAY OF CHAR *)
@@ -580,7 +584,7 @@ BEGIN
 
 (*                                                                                    PROCEDURE SetWindowTitle(tw : TextWindow; title : ARRAY OF CHAR);
                                                                           PROCEDURE SetTimer(tw : TextWindow; timerId : CARDINAL; interval : CARDINAL);
-  
+
                                                                                               create/reset a timer associated with the specified window
                                                                                               timerId = a unique number to identify the timer.
                                                                                    interval = the amount of time in milliseconds between WSM_TIMER messages
@@ -588,7 +592,7 @@ BEGIN
                                                                                          calling SetTimer with the same timerId as a previous call but with
                                                                                          a different interval has the effect of resetting the interval from
                                                                                            the previous value to the new value
-                                                            PROCEDURE KillTimer(tw : TextWindow; timerId : CARDINAL);  InputPromptLen := LENGTH(InputPrompt);                                                                                          
+                                                            PROCEDURE KillTimer(tw : TextWindow; timerId : CARDINAL);  InputPromptLen := LENGTH(InputPrompt);
 *)
 
   a := ComposeAttribute(Black, White, NormalFont);
