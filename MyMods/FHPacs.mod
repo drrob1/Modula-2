@@ -108,7 +108,7 @@ FROM LongMath IMPORT sqrt,exp,ln,sin,cos,tan,arctan,arcsin,arccos,power,round,pi
 FROM LowLong IMPORT sign,ulp,intpart,fractpart,trunc (*,round*) ;
 
 CONST
-  LastMod = "31 Jan 17";
+  LastMod = "6 Dec 20";
   szAppName = "FHPacs";
   InputPromptLn1 = " <tab> Sleep in 5; <bsp> Wake up; <del> or <F1> emerg screen timer reset and HALT. ";
   InputPromptLn2 = " <home> stop mouse movement; <end> resume mouse movements. ";
