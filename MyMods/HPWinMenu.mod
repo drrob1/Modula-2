@@ -69,6 +69,7 @@ REVISION HISTORY
                Removed code that was commented out long ago.
 31 Mar 17 -- Added dispose strings code
 30 Dec 17 -- Added WriteLn(tw) to writehelp, increased size of help window slightly, and removed unused var's.
+11 Dec 20 -- Getting strange errors about pointers not being pointer types, when they are opaque types which must be pointers.
 --------------------------------------*)
 
 MODULE HPWinMenu;
@@ -161,7 +162,7 @@ FROM HPCALC IMPORT STACKSIZE,PUSHX,READX,GETSTACK,DUMPSTACK,GETRESULT,RealStack,
 CONST
   (* szAppName = "HPWinMenu"; *)
   InputPrompt = "Enter cmd or HELP : ";
-  LastMod = "30 Dec 17";
+  LastMod = "11 Dec 20";
   clipfmt = CLIPBOARD_ASCII;
   HalfCalcIcon = "#100";
   FullGreenIcon = "#200";
@@ -580,7 +581,7 @@ BEGIN
          ch1 := inputline[4];
          ch2 := inputline[5];
        RMVCHR(inputbuf,1,3);
-       IF ch1 IN opset THEN
+         IF ch1 IN opset THEN
          GETRESULT(inputbuf,R);
        ELSIF ch2 IN opset THEN
          RMVCHR(inputbuf,1,1);
@@ -776,13 +777,17 @@ BEGIN
      IF StringListP <> NIL THEN
        MoveCaretTo(tw,0,12);
        CurrentPointerBeginning(StringListP);
-       FOR C := 1 TO StringListP^.len DO
+(*       PROCEDURE StringListLen(StringListP : StringDoubleLinkedListPointerType) : CARDINAL; *)
+       FOR C := 1 TO UTILLIB.StringListLen( StringListP ) DO
          StringP := GetNextStringFromList(StringListP);
-         WriteString(tw,StringP^.S.CHARS,a);
+         (* PROCEDURE GetStringFromItem(StringP : StringItemPointerType) : STRTYP; *)
+         (* WriteString(tw,StringP^.S.CHARS,a); This is giving an error about StringP needs to be a pointer. *)
+         WriteString(tw, UTILLIB.GetStringFromItem(StringP), a);
          EraseToEOL(tw,a);
          WriteLn(tw);
        END; (* FOR StringListP has strings to print *)
-       C := StringListP^.len + 12;
+(*       C := StringListP^.len + 12;  Giving an error about StringListP needs to be a pointer *)
+       C := UTILLIB.StringListLen(StringListP) + 12;
        WHILE C < MainWindowHeight DO
          EraseToEOL(tw,a);
          WriteLn(tw);
@@ -1325,26 +1330,26 @@ PROCEDURE Start(param : ADDRESS);
 BEGIN
     UNREFERENCED_PARAMETER(param);
 (*
-                       PROCEDURE CreateWindow(parent : WinShell.Window;   create a new window  parent = as WinShell  
-                         name : ARRAY OF CHAR;   name = as WinShell  
-                         menu : ARRAY OF CHAR;   menu = the menu for the window. Can be "". 
-                         icon : ARRAY OF CHAR;   icon =  as WinShell 
-                         x, y : COORDINATE;   x, y = the initial screen coordinates for the window to be displayed.
+                       PROCEDURE CreateWindow(parent : WinShell.Window;  (* create a new window *) (* parent = as WinShell  *)
+                         name : ARRAY OF CHAR;  (* name = as WinShell  *)
+                         menu : ARRAY OF CHAR;  (* menu = the menu for the window. Can be "". *)
+                         icon : ARRAY OF CHAR;  (* icon =  as WinShell *)
+                         x, y : COORDINATE;  (* x, y = the initial screen coordinates for the window to be displayed.
                                                If a parameter is -1 then the operating system will choose a default location for that coordinate.
                                                These positions are in pixels and are relative to the parent window client area origin for child windows,
-                                               or relative to the screen origin for all other windows.
-                         xSize, ySize : COORDINATE;  xSize, ySize = the initial width and height in character cells if -1 then a system default size will be used
-                         xBuffer, yBuffer : COORDINATE;   xBuffer, yBuffer = the size of the screen buffer. the window can never be larger than the screen buffer.  If either xBuffer
+                                               or relative to the screen origin for all other windows. *)
+                         xSize, ySize : COORDINATE; (* xSize, ySize = the initial width and height in character cells if -1 then a system default size will be used *)
+                         xBuffer, yBuffer : COORDINATE;  (* xBuffer, yBuffer = the size of the screen buffer. the window can never be larger than the screen buffer.  If either xBuffer
                                                             or yBuffer is -1 the screen buffer is a variable size and is sized to the number of cells the window client
-                                                            area currently is capable displaying.
-                         gutter : BOOLEAN;  gutter = TRUE then the text window will always have a blank "gutter" on the left edge of the text window.  FALSE the text will start at the left edge of the client area.
-                         font : FontInfo;  font = the font to use for this window
-                         background : ScreenAttribute;  background = the background color for this window
+                                                            area currently is capable displaying. *)
+                         gutter : BOOLEAN; (* gutter = TRUE then the text window will always have a blank "gutter" on the left edge of the text window.  FALSE the text will start at the left edge of the client area. *)
+                         font : FontInfo; (* font = the font to use for this window *)
+                         background : ScreenAttribute; (* background = the background color for this window *)
                          windowType : WindowTypes;
-                         wndProc : TextWindowProcedure;   wndProc = the window procedure
-                         attribs : WinAttrSet;   attribs = as WinShell
-                         createParam : ADDRESS) : TextWindow;   createParam = an arbitrary value you can use to pass information to the window procedure of the window. this value is passed in the WSM_CREATE message.
-                        returns the window handle if successfull, otherwise NIL
+                         wndProc : TextWindowProcedure;  (* wndProc = the window procedure *)
+                         attribs : WinAttrSet;  (* attribs = as WinShell *)
+                         createParam : ADDRESS) : TextWindow;  (* createParam = an arbitrary value you can use to pass information to the window procedure of the window. this value is passed in the WSM_CREATE message. *)
+                       (* returns the window handle if successfull, otherwise NIL *)
 
                        WindowTypes         = (TopLevel, MdiChild);
 *)
