@@ -71,6 +71,7 @@ REVISION HISTORY
 30 Dec 17 -- Added WriteLn(tw) to writehelp, increased size of help window slightly, and removed unused var's.
 11 Dec 20 -- Getting strange errors about pointers not being pointer types, when they are opaque types which must be pointers.
                I just figured this out (2 days later).  My making this an opaque type, I cannot reference its field names.  That's what I was doing.  I don't know how this got thru the compiler.
+               And technically, the error message is correct, as this is not a pointer type, but an opaque type implemented as a pointer.
 --------------------------------------*)
 
 MODULE HPWinMenu;
