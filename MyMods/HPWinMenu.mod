@@ -70,6 +70,7 @@ REVISION HISTORY
 31 Mar 17 -- Added dispose strings code
 30 Dec 17 -- Added WriteLn(tw) to writehelp, increased size of help window slightly, and removed unused var's.
 11 Dec 20 -- Getting strange errors about pointers not being pointer types, when they are opaque types which must be pointers.
+               I just figured this out (2 days later).  My making this an opaque type, I cannot reference its field names.  That's what I was doing.  I don't know how this got thru the compiler.
 --------------------------------------*)
 
 MODULE HPWinMenu;
@@ -777,11 +778,11 @@ BEGIN
      IF StringListP <> NIL THEN
        MoveCaretTo(tw,0,12);
        CurrentPointerBeginning(StringListP);
-(*       PROCEDURE StringListLen(StringListP : StringDoubleLinkedListPointerType) : CARDINAL; *)
-       FOR C := 1 TO UTILLIB.StringListLen( StringListP ) DO
+
+       FOR C := 1 TO UTILLIB.StringListLen( StringListP ) DO  (* This line tested StringListP^.len, which is not allowed for an opaque type.  Oops. *)
          StringP := GetNextStringFromList(StringListP);
          (* PROCEDURE GetStringFromItem(StringP : StringItemPointerType) : STRTYP; *)
-         (* WriteString(tw,StringP^.S.CHARS,a); This is giving an error about StringP needs to be a pointer. *)
+         (* WriteString(tw,StringP^.S.CHARS,a); This is giving an error about StringP needs to be a pointer.  Wrong error msg, but it as an error as I'm not allowed to access field names in an opaque type. *)
          WriteString(tw, UTILLIB.GetStringFromItem(StringP), a);
          EraseToEOL(tw,a);
          WriteLn(tw);
