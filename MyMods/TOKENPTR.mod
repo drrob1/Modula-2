@@ -87,7 +87,7 @@ Copyright (C) 1987  Robert Solomon MD.  All rights reserved.
     FixRealToStr, StrToInt, StrToCard, StrToReal, StrToC, StrToPas;
 }}}
 *)
-  FROM UTILLIB IMPORT LF,BLANK,NULL,BUFTYP,ISDGT,MAXCARD,TRIM,INSERTAin2B,ASSIGN2BUF;
+  FROM UTILLIB IMPORT LF,BLANK,NULL,STRTYP,BUFTYP,ISDGT,MAXCARD,TRIM,INSERTAin2B,ASSIGN2BUF;
   FROM Conversions IMPORT StringToInt,StrToInt,IntToString,IntToStr,StringToCard,StrToCard,
     CardToString,CardToStr,StrBaseToCard,CardBaseToStr,StringToLong,StrToLong,LongToString,
     LongToStr,StrBaseToLong,LongBaseToStr;
@@ -199,6 +199,27 @@ PROCEDURE INITKN(VAR tpv : TKNPTRTYP; BUF : BUFTYP);
 BEGIN
   INI1TKN(tpv, BUF);
 END INITKN;
+
+PROCEDURE NewToken(str : STRTYP) : TKNPTRTYP; (* Using a Go idiom *)
+VAR
+  tpv : TKNPTRTYP;
+  BUF : BUFTYP;
+
+BEGIN
+  NEW(tpv); (* I don't see the need to test against a NIL pointer now.  I guess this is Go's influence on me now. *)
+  ASSIGN2BUF(str, BUF);
+  TRIM(BUF);
+
+  WITH tpv^ DO
+    CURPOSN  := 1;
+    TKNBUF   := BUF;
+    PREVPOSN := 0;
+    HOLDCURPOSN := 0;
+    HOLDTKNBUF.CHARS[1] := NULL;
+  END (*with*);
+  InitFSAArray;
+  RETURN tpv;
+END NewToken;
 
 PROCEDURE STOTKNPOSN(VAR tpv : TKNPTRTYP);
 (*
