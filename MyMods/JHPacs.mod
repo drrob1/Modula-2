@@ -647,7 +647,7 @@ BEGIN
     END;
   END;
 
-  IF tknptr <> NIL THEN
+  IF tknptr <> NIL THEN  (* This is unneeded, as GETTKN DISPOSEs of the pointer when reaching end of line. *)
     DISPOSE(tknptr);
   END;
 
